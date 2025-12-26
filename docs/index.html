@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文献追踪系统</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📚 文献追踪系统</h1>
+            <p class="subtitle">自动追踪机器学习、铁电、磁性等领域最新文献</p>
+        </header>
+
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="搜索标题、摘要、作者...">
+                <button onclick="clearSearch()">清除</button>
+            </div>
+            <div class="filters">
+                <select id="sortSelect" onchange="sortArticles()">
+                    <option value="date-desc">按日期降序</option>
+                    <option value="date-asc">按日期升序</option>
+                    <option value="journal">按期刊</option>
+                </select>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="favoritesOnly" onchange="filterArticles()">
+                    只看收藏
+                </label>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <span>共 <strong id="totalCount">0</strong> 篇文献</span>
+            <span>收藏 <strong id="favCount">0</strong> 篇</span>
+            <span>最后更新: <strong id="lastUpdate">-</strong></span>
+        </div>
+
+        <div id="articleList" class="article-list">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
