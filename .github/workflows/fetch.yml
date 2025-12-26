@@ -8,6 +8,8 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
 
 jobs:
   fetch:
@@ -46,3 +48,30 @@ jobs:
           git fetch origin main
           git rebase origin/main || git rebase --abort
           git push origin main
+
+  deploy:
+    needs: fetch
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      
+      - name: 拉取最新代码
+        run: git pull origin main
+      
+      - name: 设置Pages
+        uses: actions/configure-pages@v4
+      
+      - name: 上传artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'docs'
+      
+      - name: 部署到GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
