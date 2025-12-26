@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""快速测试脚本 - 只用2个RSS源"""
+"""快速测试脚本 - 只用5个RSS源"""
 
 import os
 import sys
@@ -19,15 +19,18 @@ try:
     from translator import translate_text
     from data_manager import DataManager
 
-    # 只用2个RSS源测试
+    # 只用5个RSS源测试
     TEST_FEEDS = [
         "https://www.nature.com/nphys.rss",
         "https://www.nature.com/natmachintell.rss",
+        "https://www.nature.com/ncomms.rss",
+        "http://feeds.aps.org/rss/recent/prl.xml",
+        "http://feeds.aps.org/rss/recent/prb.xml",
     ]
 
     KEYWORDS = ["ferro", "machine", "learning", "magne", "neural", "network", "potential", "hamiltonian"]
 
-    log("🧪 快速测试 - 2个RSS源")
+    log("🧪 快速测试 - 5个RSS源")
     
     fetcher = RSSFetcher(KEYWORDS)
     data_manager = DataManager("data", "articles")
