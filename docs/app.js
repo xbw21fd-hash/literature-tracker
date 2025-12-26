@@ -3,6 +3,8 @@
 let allArticles = [];
 let filteredArticles = [];
 let favorites = new Set();
+let currentPage = 1;
+const PAGE_SIZE = 30;
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
@@ -90,12 +92,10 @@ function filterArticles() {
     const favoritesOnly = document.getElementById('favoritesOnly').checked;
     
     filteredArticles = allArticles.filter(article => {
-        // 收藏筛选
         if (favoritesOnly && !article.is_favorite) {
             return false;
         }
         
-        // 搜索筛选
         if (searchTerm) {
             const searchText = [
                 article.title,
@@ -114,6 +114,7 @@ function filterArticles() {
         return true;
     });
     
+    currentPage = 1;
     sortArticles();
 }
 
@@ -137,6 +138,18 @@ function sortArticles() {
     renderArticles();
 }
 
+// 获取当前页数据
+function getCurrentPageArticles() {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+    return filteredArticles.slice(start, end);
+}
+
+// 获取总页数
+function getTotalPages() {
+    return Math.ceil(filteredArticles.length / PAGE_SIZE);
+}
+
 // 渲染文献列表
 function renderArticles() {
     const container = document.getElementById('articleList');
@@ -148,10 +161,73 @@ function renderArticles() {
                 <p>尝试调整搜索条件</p>
             </div>
         `;
+        renderPagination();
         return;
     }
     
-    container.innerHTML = filteredArticles.map(article => createArticleCard(article)).join('');
+    const pageArticles = getCurrentPageArticles();
+    container.innerHTML = pageArticles.map(article => createArticleCard(article)).join('');
+    renderPagination();
+}
+
+// 渲染分页
+function renderPagination() {
+    const totalPages = getTotalPages();
+    const paginationContainer = document.getElementById('pagination');
+    
+    if (!paginationContainer) return;
+    
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    let html = '<div class="pagination">';
+    
+    // 上一页
+    html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>上一页</button>`;
+    
+    // 页码
+    const maxVisible = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+    
+    if (endPage - startPage < maxVisible - 1) {
+        startPage = Math.max(1, endPage - maxVisible + 1);
+    }
+    
+    if (startPage > 1) {
+        html += `<button class="page-btn" onclick="goToPage(1)">1</button>`;
+        if (startPage > 2) html += '<span class="page-ellipsis">...</span>';
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += '<span class="page-ellipsis">...</span>';
+        html += `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+    }
+    
+    // 下一页
+    html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>下一页</button>`;
+    
+    // 页码信息
+    html += `<span class="page-info">第 ${currentPage}/${totalPages} 页，共 ${filteredArticles.length} 篇</span>`;
+    
+    html += '</div>';
+    paginationContainer.innerHTML = html;
+}
+
+// 跳转页面
+function goToPage(page) {
+    const totalPages = getTotalPages();
+    if (page < 1 || page > totalPages) return;
+    
+    currentPage = page;
+    renderArticles();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // 创建文献卡片
@@ -196,20 +272,16 @@ function toggleFavorite(id) {
     
     saveFavorites();
     
-    // 更新文章状态
     const article = allArticles.find(a => a.id === id);
     if (article) {
         article.is_favorite = favorites.has(id);
     }
     
-    // 更新UI
     document.getElementById('favCount').textContent = favorites.size;
     
-    // 如果在"只看收藏"模式，重新筛选
     if (document.getElementById('favoritesOnly').checked) {
         filterArticles();
     } else {
-        // 只更新当前卡片
         const card = document.getElementById(`article-${id}`);
         if (card) {
             card.classList.toggle('favorite');
@@ -218,22 +290,6 @@ function toggleFavorite(id) {
             btn.title = favorites.has(id) ? '取消收藏' : '添加收藏';
         }
     }
-}
-
-// 展开/收起摘要
-function toggleAbstract(id) {
-    const abstract = document.getElementById(`abstract-${id}`);
-    const abstractZh = document.getElementById(`abstract-zh-${id}`);
-    
-    [abstract, abstractZh].forEach(el => {
-        if (el) {
-            if (el.style.webkitLineClamp === 'unset') {
-                el.style.webkitLineClamp = '3';
-            } else {
-                el.style.webkitLineClamp = 'unset';
-            }
-        }
-    });
 }
 
 // HTML转义
