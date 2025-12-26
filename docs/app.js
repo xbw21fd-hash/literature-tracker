@@ -164,14 +164,12 @@ function createArticleCard(article) {
         <div class="article-card ${isFav ? 'favorite' : ''}" id="article-${article.id}">
             <div class="article-header">
                 <h2 class="article-title">
-                    <a href="${article.link}" target="_blank" rel="noopener">${escapeHtml(article.title)}</a>
+                    <a href="${article.link}" target="_blank" rel="noopener">${escapeHtml(article.title_zh || article.title)}</a>
                 </h2>
                 <button class="favorite-btn" onclick="toggleFavorite('${article.id}')" title="${isFav ? '取消收藏' : '添加收藏'}">
                     ${isFav ? '⭐' : '☆'}
                 </button>
             </div>
-            
-            ${article.title_zh ? `<p class="article-title-zh">${escapeHtml(article.title_zh)}</p>` : ''}
             
             <div class="article-meta">
                 <span>📖 ${escapeHtml(article.journal || '未知期刊')}</span>
@@ -179,20 +177,10 @@ function createArticleCard(article) {
                 <span>👤 ${escapeHtml(authors + authorsMore) || '未知作者'}</span>
             </div>
             
-            ${article.abstract ? `
-                <div class="article-abstract" id="abstract-${article.id}">
-                    ${escapeHtml(article.abstract)}
-                </div>
-            ` : ''}
-            
             ${article.abstract_zh ? `
                 <div class="article-abstract-zh" id="abstract-zh-${article.id}">
                     ${escapeHtml(article.abstract_zh)}
                 </div>
-            ` : ''}
-            
-            ${(article.abstract && article.abstract.length > 200) ? `
-                <button class="expand-btn" onclick="toggleAbstract('${article.id}')">展开/收起</button>
             ` : ''}
         </div>
     `;
