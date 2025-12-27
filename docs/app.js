@@ -20,6 +20,7 @@ let focusedIndex = -1;
 let currentCategory = 'all'; // 'all' | 'ai-related' | 'ai-unrelated'
 let currentReadFilter = 'all'; // 'all' | 'unread' | 'read' | 'later'
 let currentTheme = 'light';
+let searchMode = 'normal'; // 'normal' | 'regex' | 'boolean'
 
 const PAGE_SIZE = 50;
 const AI_KEYWORDS = ['machine', 'learn', 'neural', 'network'];
@@ -80,6 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch();
     setupKeyboardNavigation();
     createTooltip();
+    initSearchMode();
 });
 
 // ========================================
@@ -638,12 +640,13 @@ function clearSearch() {
 }
 
 function filterArticles() {
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+    const searchTerm = document.getElementById('searchInput')?.value || '';
     const favoritesOnly = document.getElementById('favoritesOnly')?.checked || false;
     const dateFrom = document.getElementById('dateFrom')?.value || '';
     const dateTo = document.getElementById('dateTo')?.value || '';
     const journalFilter = document.getElementById('journalFilter')?.value || 'all';
 
+    // 先应用基础筛选（收藏、日期）
     filteredArticles = allArticles.filter(article => {
         if (favoritesOnly && !article.is_favorite) {
             return false;
@@ -667,23 +670,13 @@ function filterArticles() {
             }
         }
 
-        if (searchTerm) {
-            const searchText = [
-                article.title,
-                article.title_zh,
-                article.abstract,
-                article.abstract_zh,
-                article.journal,
-                ...(article.authors || [])
-            ].join(' ').toLowerCase();
-
-            if (!searchText.includes(searchTerm)) {
-                return false;
-            }
-        }
-
         return true;
     });
+
+    // 应用高级搜索（支持普通/正则/布尔模式）
+    if (searchTerm) {
+        filteredArticles = advancedSearch(filteredArticles, searchTerm);
+    }
 
     // 应用分类筛选
     filteredArticles = filterByCategory(filteredArticles, currentCategory);
@@ -1259,4 +1252,195 @@ function showToast(message) {
         toast.classList.remove('visible');
         setTimeout(() => document.body.removeChild(toast), 300);
     }, 2000);
+}
+
+
+// ========================================
+// 高级搜索功能
+// ========================================
+
+function initSearchMode() {
+    const indicator = document.getElementById('searchModeIndicator');
+    if (indicator) {
+        indicator.addEventListener('click', cycleSearchMode);
+    }
+}
+
+function cycleSearchMode() {
+    const modes = ['normal', 'regex', 'boolean'];
+    const currentIndex = modes.indexOf(searchMode);
+    searchMode = modes[(currentIndex + 1) % modes.length];
+    updateSearchModeUI();
+    filterArticles();
+}
+
+function updateSearchModeUI() {
+    const indicator = document.getElementById('searchModeIndicator');
+    if (indicator) {
+        const labels = {
+            'normal': '普通',
+            'regex': '正则',
+            'boolean': '布尔'
+        };
+        indicator.textContent = labels[searchMode];
+        indicator.className = `search-mode-indicator mode-${searchMode}`;
+    }
+}
+
+// 高级搜索（支持正则和布尔）
+function advancedSearch(articles, searchTerm) {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+        return articles;
+    }
+
+    switch (searchMode) {
+        case 'regex':
+            return executeRegexSearch(articles, searchTerm);
+        case 'boolean':
+            const ast = parseBooleanQuery(searchTerm);
+            return executeBooleanSearch(articles, ast);
+        default:
+            // 普通搜索
+            const term = searchTerm.toLowerCase();
+            return articles.filter(article => {
+                const searchText = [
+                    article.title,
+                    article.title_zh,
+                    article.abstract,
+                    article.abstract_zh,
+                    article.journal,
+                    ...(article.authors || [])
+                ].join(' ').toLowerCase();
+                return searchText.includes(term);
+            });
+    }
+}
+
+// 正则表达式搜索
+function executeRegexSearch(articles, pattern) {
+    try {
+        const regex = new RegExp(pattern, 'i');
+        return articles.filter(article => {
+            const searchText = [
+                article.title,
+                article.title_zh,
+                article.abstract,
+                article.abstract_zh,
+                article.journal,
+                ...(article.authors || [])
+            ].join(' ');
+            return regex.test(searchText);
+        });
+    } catch (e) {
+        showToast('正则表达式无效: ' + e.message);
+        return articles;
+    }
+}
+
+// 布尔表达式解析
+function parseBooleanQuery(query) {
+    query = query.trim();
+
+    // 处理括号
+    if (query.startsWith('(') && query.endsWith(')')) {
+        let depth = 0;
+        let allInParens = true;
+        for (let i = 0; i < query.length - 1; i++) {
+            if (query[i] === '(') depth++;
+            else if (query[i] === ')') depth--;
+            if (depth === 0 && i > 0) {
+                allInParens = false;
+                break;
+            }
+        }
+        if (allInParens) {
+            query = query.slice(1, -1);
+        }
+    }
+
+    // 查找顶层 OR
+    let depth = 0;
+    for (let i = 0; i < query.length; i++) {
+        if (query[i] === '(') depth++;
+        else if (query[i] === ')') depth--;
+        else if (depth === 0 && query.substring(i, i + 4).toUpperCase() === ' OR ') {
+            return {
+                type: 'OR',
+                children: [
+                    parseBooleanQuery(query.substring(0, i)),
+                    parseBooleanQuery(query.substring(i + 4))
+                ]
+            };
+        }
+    }
+
+    // 查找顶层 AND
+    depth = 0;
+    for (let i = 0; i < query.length; i++) {
+        if (query[i] === '(') depth++;
+        else if (query[i] === ')') depth--;
+        else if (depth === 0 && query.substring(i, i + 5).toUpperCase() === ' AND ') {
+            return {
+                type: 'AND',
+                children: [
+                    parseBooleanQuery(query.substring(0, i)),
+                    parseBooleanQuery(query.substring(i + 5))
+                ]
+            };
+        }
+    }
+
+    // 查找 NOT
+    if (query.toUpperCase().startsWith('NOT ')) {
+        return {
+            type: 'NOT',
+            children: [parseBooleanQuery(query.substring(4))]
+        };
+    }
+
+    // 基本词项
+    return { type: 'TERM', value: query.trim().toLowerCase() };
+}
+
+function executeBooleanSearch(articles, ast) {
+    if (!ast) return articles;
+
+    switch (ast.type) {
+        case 'TERM':
+            return articles.filter(article => {
+                const searchText = [
+                    article.title,
+                    article.title_zh,
+                    article.abstract,
+                    article.abstract_zh,
+                    article.journal,
+                    ...(article.authors || [])
+                ].join(' ').toLowerCase();
+                return searchText.includes(ast.value);
+            });
+
+        case 'AND':
+            let result = articles;
+            for (const child of ast.children) {
+                result = executeBooleanSearch(result, child);
+            }
+            return result;
+
+        case 'OR':
+            const sets = ast.children.map(child =>
+                new Set(executeBooleanSearch(articles, child).map(a => a.id))
+            );
+            const unionIds = new Set();
+            sets.forEach(s => s.forEach(id => unionIds.add(id)));
+            return articles.filter(a => unionIds.has(a.id));
+
+        case 'NOT':
+            const excludeIds = new Set(
+                executeBooleanSearch(articles, ast.children[0]).map(a => a.id)
+            );
+            return articles.filter(a => !excludeIds.has(a.id));
+
+        default:
+            return articles;
+    }
 }
