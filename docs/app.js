@@ -858,7 +858,7 @@ function createArticleCard(article, index) {
              id="article-${article.id}"
              data-index="${index}"
              data-id="${article.id}"
-             data-journal-group="${journalGroup}">>
+             data-journal-group="${journalGroup}">
             
             <div class="card-header" 
                  onclick="toggleCardExpansion('${article.id}')"
@@ -869,7 +869,7 @@ function createArticleCard(article, index) {
                         <a href="${article.link}" target="_blank" rel="noopener" onclick="event.stopPropagation();">${titleZhHighlighted}</a>
                     </div>
                     <div class="card-meta">
-                        <span>� $${escapeHtml(article.journal || '未知期刊')}</span>
+                        <span>📖 ${escapeHtml(article.journal || '未知期刊')}</span>
                         <span>📅 ${article.pub_date || '未知日期'}</span>
                         <span class="ai-tag ${isAI ? 'ai-related' : 'ai-unrelated'}">
                             ${isAI ? '🤖 AI' : '📚 非AI'}
