@@ -518,6 +518,25 @@ function matchesJournalGroup(journal, groupKey) {
     return patterns.some(pattern => journalLower.includes(pattern));
 }
 
+// 获取期刊所属的分组（优先返回top分组）
+function getJournalGroup(journal) {
+    if (!journal) return 'other';
+
+    // 优先检查是否是顶刊
+    if (matchesJournalGroup(journal, 'top')) {
+        return 'top';
+    }
+
+    // 检查其他分组
+    for (const groupKey of Object.keys(JOURNAL_GROUPS)) {
+        if (groupKey !== 'top' && matchesJournalGroup(journal, groupKey)) {
+            return groupKey;
+        }
+    }
+
+    return 'other';
+}
+
 function isInAnyGroup(journal) {
     if (!journal) return false;
 
@@ -825,6 +844,7 @@ function createArticleCard(article, index) {
     const isLater = article.is_read_later;
     const isFocused = index === focusedIndex;
     const isAI = article.is_ai_related;
+    const journalGroup = getJournalGroup(article.journal);
 
     const authors = (article.authors || []).slice(0, 3).join(', ');
     const authorsMore = article.authors && article.authors.length > 3 ? ' et al.' : '';
@@ -834,10 +854,11 @@ function createArticleCard(article, index) {
     const abstractZhHighlighted = highlightKeywords(article.abstract_zh);
 
     return `
-        <div class="article-card ${isExpanded ? 'expanded' : ''} ${isFav ? 'favorite' : ''} ${isRead ? 'read' : ''} ${isLater ? 'read-later' : ''} ${isFocused ? 'focused' : ''}" 
+        <div class="article-card ${isExpanded ? 'expanded' : ''} ${isFav ? 'favorite' : ''} ${isRead ? 'read' : ''} ${isLater ? 'read-later' : ''} ${isFocused ? 'focused' : ''} journal-group-${journalGroup}" 
              id="article-${article.id}"
              data-index="${index}"
-             data-id="${article.id}">
+             data-id="${article.id}"
+             data-journal-group="${journalGroup}">>
             
             <div class="card-header" 
                  onclick="toggleCardExpansion('${article.id}')"
