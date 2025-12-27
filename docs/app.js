@@ -441,22 +441,23 @@ async function loadArticles() {
             performanceMonitor.start('数据加载');
         }
 
-        // 使用极速加载器（如果可用）
-        if (typeof fastLoader !== 'undefined' && fastLoader) {
+        // 暂时禁用FastLoader，使用稳定的标准加载
+        // TODO: 修复FastLoader后重新启用
+        const useFastLoader = false;
+
+        if (useFastLoader && typeof fastLoader !== 'undefined' && fastLoader) {
             console.log('✨ 使用极速加载模式');
 
             // 极速加载
             const articles = await fastLoader.fastLoad();
             allArticles = articles;
 
-            // 合并本地状态（异步处理，不阻塞）
-            requestIdleCallback(() => {
-                allArticles.forEach(article => {
-                    article.is_favorite = favorites.has(article.id);
-                    article.is_read = readArticles.has(article.id);
-                    article.is_read_later = readLater.has(article.id);
-                    article.is_ai_related = isAIRelated(article);
-                });
+            // 合并本地状态
+            allArticles.forEach(article => {
+                article.is_favorite = favorites.has(article.id);
+                article.is_read = readArticles.has(article.id);
+                article.is_read_later = readLater.has(article.id);
+                article.is_ai_related = isAIRelated(article);
             });
 
             // 填充期刊下拉列表
@@ -466,6 +467,9 @@ async function loadArticles() {
             const data = { articles: allArticles, total: allArticles.length };
             updateStats(data);
             updateReadLaterCount();
+
+            // 筛选和显示文章 - 这是关键！
+            filterArticles();
 
             const loadTime = Math.round(performance.now() - startTime);
             console.log(`✅ 加载完成: ${allArticles.length} 篇文献，耗时 ${loadTime}ms`);
@@ -478,7 +482,7 @@ async function loadArticles() {
             return;
         }
 
-        // 降级到标准加载模式
+        // 标准加载模式
         console.log('📦 使用标准加载模式');
 
         // 尝试从 IndexedDB 加载缓存
@@ -525,11 +529,14 @@ async function loadArticles() {
             article.is_ai_related = isAIRelated(article);
         });
 
-        // 构建倒排索引
+        // 构建倒排索引（异步，不阻塞）
         if (typeof invertedIndexSearchEngine !== 'undefined' && invertedIndexSearchEngine) {
-            invertedIndexSearchEngine.buildIndex(allArticles);
-            const stats = invertedIndexSearchEngine.getIndexStats();
-            console.log(`✅ 搜索索引构建完成: ${stats.totalWords} 个词, ${stats.totalDocuments} 篇文献`);
+            // 使用setTimeout让UI先渲染
+            setTimeout(() => {
+                invertedIndexSearchEngine.buildIndex(allArticles);
+                const stats = invertedIndexSearchEngine.getIndexStats();
+                console.log(`✅ 搜索索引构建完成: ${stats.totalWords} 个词, ${stats.totalDocuments} 篇文献`);
+            }, 100);
         }
 
         // 填充期刊下拉列表
