@@ -307,6 +307,14 @@ class ZoteroImporter:
             with open(self.index_file, 'w', encoding='utf-8') as f:
                 json.dump(index_data, f, ensure_ascii=False, indent=2)
             
+            # 同步到 docs/data 目录（用于网页显示）
+            docs_data_dir = Path('docs/data')
+            docs_data_dir.mkdir(parents=True, exist_ok=True)
+            docs_index_file = docs_data_dir / 'index.json'
+            with open(docs_index_file, 'w', encoding='utf-8') as f:
+                json.dump(index_data, f, ensure_ascii=False, indent=2)
+            print(f"  📁 已同步到 {docs_index_file}")
+            
             # 保存历史记录
             self.save_history(history)
             
