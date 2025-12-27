@@ -14,17 +14,30 @@ from pathlib import Path
 JOURNAL_MAPPING = {
     # Physical Review 系列
     'phys. rev. lett.': 'Phys. Rev. Lett.',
+    'phys. rev. lett': 'Phys. Rev. Lett.',
     'physical review letters': 'Phys. Rev. Lett.',
+    'recent articles in phys. rev. lett.': 'Phys. Rev. Lett.',
     'phys. rev. b': 'Phys. Rev. B',
     'physical review b': 'Phys. Rev. B',
+    'recent articles in phys. rev. b': 'Phys. Rev. B',
     'phys. rev. x': 'Phys. Rev. X',
     'physical review x': 'Phys. Rev. X',
-    'phys. rev. materials': 'Phys. Rev. Materials',
-    'physical review materials': 'Phys. Rev. Materials',
-    'phys. rev. research': 'Phys. Rev. Research',
-    'physical review research': 'Phys. Rev. Research',
-    'phys. rev. applied': 'Phys. Rev. Applied',
-    'physical review applied': 'Phys. Rev. Applied',
+    'recent articles in phys. rev. x': 'Phys. Rev. X',
+    'phys. rev. mater.': 'Phys. Rev. Mater.',
+    'phys. rev. materials': 'Phys. Rev. Mater.',
+    'physical review materials': 'Phys. Rev. Mater.',
+    'recent articles in phys. rev. materials': 'Phys. Rev. Mater.',
+    'phys. rev. res.': 'Phys. Rev. Res.',
+    'phys. rev. research': 'Phys. Rev. Res.',
+    'physical review research': 'Phys. Rev. Res.',
+    'recent articles in phys. rev. research': 'Phys. Rev. Res.',
+    'phys. rev. appl.': 'Phys. Rev. Appl.',
+    'phys. rev. applied': 'Phys. Rev. Appl.',
+    'physical review applied': 'Phys. Rev. Appl.',
+    'rev. mod. phys.': 'Rev. Mod. Phys.',
+    'recent articles in rev. mod. phys.': 'Rev. Mod. Phys.',
+    'recent articles in physics': 'Physics',
+    'recent articles in prx energy': 'PRX Energy',
     
     # Nature 系列
     'nat. phys.': 'Nat. Phys.',
@@ -32,6 +45,7 @@ JOURNAL_MAPPING = {
     'nat. mater.': 'Nat. Mater.',
     'nature materials': 'Nat. Mater.',
     'nat. commun.': 'Nat. Commun.',
+    'nat commun': 'Nat. Commun.',
     'nature communications': 'Nat. Commun.',
     'nat. chem.': 'Nat. Chem.',
     'nature chemistry': 'Nat. Chem.',
@@ -41,31 +55,52 @@ JOURNAL_MAPPING = {
     'nature reviews physics': 'Nat. Rev. Phys.',
     'nat. rev. mater.': 'Nat. Rev. Mater.',
     'nature reviews materials': 'Nat. Rev. Mater.',
+    'nat. rev. chem.': 'Nat. Rev. Chem.',
+    'nature reviews chemistry': 'Nat. Rev. Chem.',
+    'nat. comput. sci.': 'Nat. Comput. Sci.',
+    'nature computational science': 'Nat. Comput. Sci.',
+    'nat. mach. intell.': 'Nat. Mach. Intell.',
+    'nature machine intelligence': 'Nat. Mach. Intell.',
+    'nat. electron.': 'Nat. Electron.',
+    'nature electronics': 'Nat. Electron.',
+    'natl. sci. rev.': 'Natl. Sci. Rev.',
+    'national science review current issue': 'Natl. Sci. Rev.',
     
     # Science 系列
     'sci. adv.': 'Sci. Adv.',
     'science advances': 'Sci. Adv.',
+    'aaas: science advances: table of contents': 'Sci. Adv.',
+    'sci. bull.': 'Sci. Bull.',
+    'sciencedirect publication: science bulletin': 'Sci. Bull.',
     
     # Advanced Materials 系列
     'adv. mater.': 'Adv. Mater.',
     'advanced materials': 'Adv. Mater.',
+    'wiley: advanced materials: table of contents': 'Adv. Mater.',
     'adv. funct. mater.': 'Adv. Funct. Mater.',
     'advanced functional materials': 'Adv. Funct. Mater.',
     'adv. energy mater.': 'Adv. Energy Mater.',
     'advanced energy materials': 'Adv. Energy Mater.',
+    'adv. sci.': 'Adv. Sci.',
+    'wiley: advanced science: table of contents': 'Adv. Sci.',
     
     # ACS 系列
     'j. am. chem. soc.': 'J. Am. Chem. Soc.',
     'journal of the american chemical society': 'J. Am. Chem. Soc.',
     'nano lett.': 'Nano Lett.',
     'nano letters': 'Nano Lett.',
+    'nano letters: latest articles (acs publications)': 'Nano Lett.',
     'acs nano': 'ACS Nano',
+    'acs nano: latest articles (acs publications)': 'ACS Nano',
     'j. phys. chem. c': 'J. Phys. Chem. C',
     'journal of physical chemistry c': 'J. Phys. Chem. C',
     'j. phys. chem. lett.': 'J. Phys. Chem. Lett.',
     'journal of physical chemistry letters': 'J. Phys. Chem. Lett.',
     'chem. mater.': 'Chem. Mater.',
     'chemistry of materials': 'Chem. Mater.',
+    'j. chem. phys.': 'J. Chem. Phys.',
+    'the journal of chemical physics current issue': 'J. Chem. Phys.',
+    'langmuir : acs j. surf. colloids': 'Langmuir',
     
     # Angewandte Chemie
     'angew. chem. int. ed.': 'Angew. Chem. Int. Ed.',
@@ -75,7 +110,20 @@ JOURNAL_MAPPING = {
     'npj quantum mater.': 'npj Quantum Mater.',
     'npj quantum materials': 'npj Quantum Mater.',
     'npj comput. mater.': 'npj Comput. Mater.',
+    'npj comput mater': 'npj Comput. Mater.',
     'npj computational materials': 'npj Comput. Mater.',
+    
+    # Computational Materials
+    'comput. mater. sci.': 'Comput. Mater. Sci.',
+    'comput. mater. sci': 'Comput. Mater. Sci.',
+    
+    # Machine Learning
+    'mach. learn.: sci. technol.': 'Mach. Learn.: Sci. Technol.',
+    'machine learning: science and technology': 'Mach. Learn.: Sci. Technol.',
+    
+    # Commun Mater
+    'commun mater': 'Commun. Mater.',
+    'commun. mater.': 'Commun. Mater.',
     
     # 其他
     '2d mater.': '2D Mater.',
@@ -87,16 +135,21 @@ JOURNAL_MAPPING = {
     'new j. phys.': 'New J. Phys.',
     'new journal of physics': 'New J. Phys.',
     'appl. phys. lett.': 'Appl. Phys. Lett.',
+    'appl. phys. lett': 'Appl. Phys. Lett.',
     'applied physics letters': 'Appl. Phys. Lett.',
     'j. appl. phys.': 'J. Appl. Phys.',
     'journal of applied physics': 'J. Appl. Phys.',
     'phys. status solidi b': 'Phys. Status Solidi B',
     'physica status solidi b': 'Phys. Status Solidi B',
+    'phys. status solidi (rrl) -- rapid res. lett.': 'Phys. Status Solidi RRL',
     'solid state commun.': 'Solid State Commun.',
     'solid state communications': 'Solid State Commun.',
     'j. magn. magn. mater.': 'J. Magn. Magn. Mater.',
     'journal of magnetism and magnetic materials': 'J. Magn. Magn. Mater.',
-    'phys. rev. lett': 'Phys. Rev. Lett.',
+    'j. korean phys. soc': 'J. Korean Phys. Soc.',
+    'funct, mater': 'Funct. Mater.',
+    'opt. express, oe': 'Opt. Express',
+    'josa b': 'J. Opt. Soc. Am. B',
 }
 
 
