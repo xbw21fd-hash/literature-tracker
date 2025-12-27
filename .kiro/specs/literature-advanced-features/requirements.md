@@ -157,18 +157,26 @@
 
 ### Requirement 12: AI每日摘要报告
 
-**User Story:** As a 用户, I want 收到AI生成的每日摘要, so that 我可以快速了解当天的重要文献。
+**User Story:** As a 用户, I want 收到AI生成的每日摘要, so that 我可以快速速览当天的文献内容并方便查看原文。
 
 #### Acceptance Criteria
 
-1. THE AI_Summarizer SHALL 使用免费AI API（如OpenRouter、Groq、DeepSeek）
+1. THE AI_Summarizer SHALL 使用公开免费的大模型API（如 Gemini、SiliconFlow、Groq、DeepSeek、OpenRouter 免费模型）
 2. THE AI_Summarizer SHALL 每日生成一次摘要报告
-3. THE AI_Summarizer SHALL 选择当天最重要的5-10篇文献
-4. THE AI_Summarizer SHALL 为每篇文献生成简短摘要（50-100字）
-5. THE AI_Summarizer SHALL 识别当天的研究热点和趋势
-6. THE AI_Summarizer SHALL 将摘要通过邮件发送
-7. THE AI_Summarizer SHALL 将摘要保存为HTML文件在网站展示
-8. IF API调用失败, THEN THE AI_Summarizer SHALL 降级为简单统计摘要
+3. THE AI_Summarizer SHALL 对当天所有新文献进行智能分析和总结
+4. THE AI_Summarizer SHALL 生成以下内容：
+   - 当日文献总览（总数、AI相关/非AI分类统计）
+   - 研究热点和趋势分析
+   - 每篇文献的一句话核心要点
+   - 推荐阅读的重点文献（5-10篇）
+5. THE AI_Summarizer SHALL 为每篇文献提供可点击的原文链接
+6. THE AI_Summarizer SHALL 按期刊或主题分组展示文献
+7. THE AI_Summarizer SHALL 将摘要保存为 HTML 文件（docs/daily/YYYY-MM-DD.html）
+8. THE AI_Summarizer SHALL 在主页提供"每日摘要"入口链接
+9. THE AI_Summarizer SHALL 将摘要通过邮件发送（可选）
+10. IF API调用失败, THEN THE AI_Summarizer SHALL 降级为简单统计摘要（无AI分析）
+11. THE AI_Summarizer SHALL 支持配置不同的免费API提供商
+12. THE AI_Summarizer SHALL 在配置文件中存储API密钥（通过环境变量或GitHub Secrets）
 
 ### Requirement 13: 数据导出增强
 

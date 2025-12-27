@@ -12,7 +12,16 @@ from datetime import datetime
 # 添加当前目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import RSS_FEEDS, KEYWORDS, EMAIL_CONFIG, DATA_DIR, ARTICLES_DIR, WECHAT_CONFIG, DEDUP_CONFIG
+from config import (
+    RSS_FEEDS,
+    KEYWORDS,
+    EMAIL_CONFIG,
+    DATA_DIR,
+    ARTICLES_DIR,
+    WECHAT_CONFIG,
+    DEDUP_CONFIG,
+    AI_CONFIG,
+)
 from rss_fetcher import RSSFetcher
 from translator import translate_text
 from data_manager import DataManager
@@ -20,6 +29,9 @@ from email_notifier import EmailNotifier
 from abstract_scraper import AbstractScraper, enhance_article_abstract
 from deduplicator import Deduplicator
 from wechat_notifier import WeChatNotifier
+from rss_generator import generate_rss_feed
+from ai_summarizer import generate_daily_summary
+from incremental_index import IncrementalIndex
 
 
 def run_fetch(send_email: bool = True, verbose: bool = True):
@@ -42,7 +54,7 @@ def run_fetch(send_email: bool = True, verbose: bool = True):
     filtered_articles = fetcher.filter_by_keywords(all_articles)
     print(f"筛选后剩余 {len(filtered_articles)} 篇文献")
     
-    # 2.5 去重处理
+    # 3. 去重处理
     if DEDUP_CONFIG.get("enabled", True):
         print(f"\n🔄 正在去重...")
         deduplicator = Deduplicator(
@@ -53,7 +65,7 @@ def run_fetch(send_email: bool = True, verbose: bool = True):
             print(f"   去除 {dup_count} 篇重复文献")
         print(f"去重后剩余 {len(filtered_articles)} 篇文献")
     
-    # 3. 获取新文献（去重）
+    # 4. 获取新文献（去重）
     new_articles = data_manager.get_new_articles(filtered_articles)
     print(f"其中新文献 {len(new_articles)} 篇")
     
@@ -61,7 +73,7 @@ def run_fetch(send_email: bool = True, verbose: bool = True):
         print("\n✅ 没有新文献，任务完成")
         return []
     
-    # 4. 翻译新文献（并增强摘要）
+    # 5. 翻译新文献（并增强摘要）
     print(f"\n🌐 正在处理 {len(new_articles)} 篇新文献...")
     scraper = AbstractScraper()
     enhanced_count = 0
@@ -85,22 +97,52 @@ def run_fetch(send_email: bool = True, verbose: bool = True):
     if enhanced_count > 0:
         print(f"\n📊 共增强 {enhanced_count} 篇文献的摘要")
     
-    # 5. 保存到历史记录
+    # 6. 保存到历史记录
     print("\n💾 保存数据...")
     data_manager.add_articles(new_articles)
     
-    # 6. 生成Markdown文件
+    # 7. 生成Markdown文件
     print("📝 生成Markdown文件...")
     for article in new_articles:
         filepath = data_manager.save_article_markdown(article)
         if verbose:
             print(f"  已保存: {filepath}")
     
-    # 7. 生成索引JSON
+    # 8. 生成索引JSON
     data_manager.generate_index_json()
     print("📊 索引文件已更新")
     
-    # 8. 发送邮件通知
+    # 9. 生成RSS Feed
+    print("\n📡 生成RSS Feed...")
+    try:
+        import json
+        with open('docs/data/index.json', 'r', encoding='utf-8') as f:
+            all_data = json.load(f)
+        generate_rss_feed(all_data.get('articles', []))
+    except Exception as e:
+        print(f"   RSS生成失败: {e}")
+    
+    # 10. 生成AI每日摘要
+    ai_enabled = AI_CONFIG.get("enabled", True)
+    ai_api_key = os.environ.get('AI_API_KEY') or AI_CONFIG.get('api_key', '')
+    ai_provider = os.environ.get('AI_PROVIDER') or AI_CONFIG.get('provider', 'gemini')
+    if ai_enabled and ai_api_key:
+        print("\n🤖 生成AI每日摘要...")
+        try:
+            import json
+            with open('docs/data/index.json', 'r', encoding='utf-8') as f:
+                all_data = json.load(f)
+            generate_daily_summary(
+                all_data.get('articles', []),
+                api_provider=ai_provider,
+                api_key=ai_api_key,
+            )
+        except Exception as e:
+            print(f"   AI摘要生成失败: {e}")
+    elif ai_enabled:
+        print("⚠️ 未配置AI API密钥，跳过AI每日摘要")
+    
+    # 11. 发送邮件通知
     if send_email and EMAIL_CONFIG.get("sender_email"):
         print("\n📧 发送邮件通知...")
         notifier = EmailNotifier(
@@ -112,7 +154,7 @@ def run_fetch(send_email: bool = True, verbose: bool = True):
         )
         notifier.send_notification(EMAIL_CONFIG["recipient"], new_articles)
     
-    # 9. 发送微信推送
+    # 12. 发送微信推送
     if WECHAT_CONFIG.get("enabled") and WECHAT_CONFIG.get("sendkey"):
         print("\n📱 发送微信推送...")
         wechat = WeChatNotifier(sendkey=WECHAT_CONFIG["sendkey"])

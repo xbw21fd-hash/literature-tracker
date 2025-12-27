@@ -7,6 +7,9 @@
     <meta name="description" content="自动追踪机器学习、铁电、磁性等领域最新文献">
     <title>文献追踪系统</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="alternate" type="application/rss+xml" title="文献追踪RSS" href="feed.xml">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
 </head>
 
 <body>
@@ -22,9 +25,14 @@
         </header>
 
         <div class="controls">
+            <div class="nav-links">
+                <a href="analytics.html" class="nav-link">📊 数据分析</a>
+                <a href="daily/" class="nav-link">📰 每日摘要</a>
+            </div>
             <div class="search-box">
                 <div class="search-input-wrapper">
-                    <input type="text" id="searchInput" placeholder="搜索标题、摘要、作者..." autocomplete="off">
+                    <input type="text" id="searchInput" placeholder="搜索标题、摘要、作者... (支持正则和布尔运算)" autocomplete="off">
+                    <div class="search-mode-indicator" id="searchModeIndicator" title="点击切换搜索模式">普通</div>
                     <div class="search-history-dropdown" id="searchHistoryDropdown">
                         <div class="search-history-header">
                             <span>搜索历史</span>
@@ -135,6 +143,7 @@
             <div><kbd>s</kbd> 收藏</div>
             <div><kbd>r</kbd> 标记已读</div>
             <div><kbd>l</kbd> 稍后阅读</div>
+            <div><kbd>/</kbd> 搜索模式</div>
         </div>
 
         <!-- 页脚 -->
@@ -143,7 +152,30 @@
         </footer>
     </div>
 
-    <script src="app.js?v=13"></script>
+    <!-- 回到顶部按钮 -->
+    <button id="backToTop" class="back-to-top" onclick="scrollToTop()" title="回到顶部">
+        ↑
+    </button>
+
+    <!-- 性能监控按钮 -->
+    <button class="performance-monitor-btn"
+        onclick="if(typeof performanceMonitor !== 'undefined' && performanceMonitor) performanceMonitor.showPanel()"
+        title="性能监控">
+        ⚡
+    </button>
+
+    <script src="performance-optimization.js?v=1"></script>
+    <script src="advanced-features.js?v=1"></script>
+    <script src="app.js?v=17"></script>
+    <script>
+        // 初始化所有功能
+        document.addEventListener('DOMContentLoaded', async () => {
+            // 先初始化性能优化
+            if (typeof initPerformanceOptimization === 'function') {
+                await initPerformanceOptimization();
+            }
+        });
+    </script>
 </body>
 
 </html>

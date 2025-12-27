@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级功能测试 - 文献追踪系统</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .test-section {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        .test-section h2 {
+            margin: 0 0 var(--spacing-md) 0;
+            color: var(--text-primary);
+        }
+
+        .test-button {
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .test-button:hover {
+            background: var(--accent-hover);
+        }
+
+        .test-result {
+            margin-top: var(--spacing-md);
+            padding: var(--spacing-md);
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+            font-family: monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .test-result.success {
+            border-left: 4px solid var(--color-success);
+        }
+
+        .test-result.error {
+            border-left: 4px solid var(--color-error);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="test-container">
+        <header>
+            <h1>🧪 高级功能测试</h1>
+            <p class="subtitle">测试所有V5高级UI功能</p>
+        </header>
+
+        <div class="test-section">
+            <h2>1. 布局管理器测试</h2>
+            <button class="test-button" onclick="testLayoutManager()">测试布局切换</button>
+            <button class="test-button" onclick="testLayoutPersistence()">测试持久化</button>
+            <div id="layoutResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>2. 字体管理器测试</h2>
+            <button class="test-button" onclick="testFontManager()">测试字体调节</button>
+            <button class="test-button" onclick="testFontBounds()">测试边界检查</button>
+            <div id="fontResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>3. 快捷键管理器测试</h2>
+            <button class="test-button" onclick="testShortcutManager()">测试快捷键注册</button>
+            <button class="test-button" onclick="testConflictDetection()">测试冲突检测</button>
+            <div id="shortcutResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>4. 虚拟滚动测试</h2>
+            <button class="test-button" onclick="testVirtualScroll()">测试虚拟滚动</button>
+            <button class="test-button" onclick="testLargeDataset()">测试大数据集</button>
+            <div id="virtualScrollResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>5. 缓存管理器测试</h2>
+            <button class="test-button" onclick="testCacheManager()">测试LRU缓存</button>
+            <button class="test-button" onclick="testCacheStats()">测试缓存统计</button>
+            <div id="cacheResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>6. 移动端适配测试</h2>
+            <button class="test-button" onclick="testMobileDetection()">测试设备检测</button>
+            <button class="test-button" onclick="testTouchHandlers()">测试触摸处理</button>
+            <div id="mobileResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>7. 趋势预测测试</h2>
+            <button class="test-button" onclick="testTrendPredictor()">测试趋势分析</button>
+            <button class="test-button" onclick="testTopicIdentification()">测试主题识别</button>
+            <div id="trendResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>8. 主题演化测试</h2>
+            <button class="test-button" onclick="testTopicEvolution()">测试主题演化</button>
+            <button class="test-button" onclick="testLifecycleAnalysis()">测试生命周期</button>
+            <div id="evolutionResult" class="test-result" style="display:none;"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>9. 运行所有测试</h2>
+            <button class="test-button" onclick="runAllTests()" style="background: var(--color-success);">
+                ▶️ 运行所有测试
+            </button>
+            <div id="allTestsResult" class="test-result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script src="advanced-features.js"></script>
+    <script>
+        // 测试工具函数
+        function showResult(elementId, message, isSuccess = true) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `test-result ${isSuccess ? 'success' : 'error'}`;
+            element.style.display = 'block';
+        }
+
+        // 1. 布局管理器测试
+        function testLayoutManager() {
+            try {
+                const manager = new LayoutManager();
+                manager.init();
+
+                let result = '✓ LayoutManager 初始化成功\n';
+
+                // 测试布局切换
+                manager.setLayout('grid');
+                result += `✓ 切换到网格布局: ${manager.currentLayout}\n`;
+
+                manager.setLayout('compact');
+                result += `✓ 切换到紧凑布局: ${manager.currentLayout}\n`;
+
+                manager.setLayout('list');
+                result += `✓ 切换到列表布局: ${manager.currentLayout}\n`;
+
+                showResult('layoutResult', result, true);
+            } catch (e) {
+                showResult('layoutResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testLayoutPersistence() {
+            try {
+                const manager = new LayoutManager();
+                manager.setLayout('grid');
+                manager.saveLayout();
+
+                const manager2 = new LayoutManager();
+                manager2.restoreLayout();
+
+                const result = manager2.currentLayout === 'grid'
+                    ? '✓ 布局持久化测试通过'
+                    : '✗ 布局持久化测试失败';
+
+                showResult('layoutResult', result, manager2.currentLayout === 'grid');
+            } catch (e) {
+                showResult('layoutResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 2. 字体管理器测试
+        function testFontManager() {
+            try {
+                const manager = new FontManager();
+                manager.init();
+
+                let result = '✓ FontManager 初始化成功\n';
+                result += `初始字体大小: ${manager.currentSize}\n`;
+
+                manager.increaseFontSize();
+                result += `✓ 增大字体: ${manager.currentSize}\n`;
+
+                manager.decreaseFontSize();
+                result += `✓ 减小字体: ${manager.currentSize}\n`;
+
+                manager.resetFontSize();
+                result += `✓ 重置字体: ${manager.currentSize}\n`;
+
+                showResult('fontResult', result, true);
+            } catch (e) {
+                showResult('fontResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testFontBounds() {
+            try {
+                const manager = new FontManager();
+                manager.currentSize = 'xs';
+                manager.decreaseFontSize();
+
+                const minTest = manager.currentSize === 'xs';
+
+                manager.currentSize = 'xl';
+                manager.increaseFontSize();
+
+                const maxTest = manager.currentSize === 'xl';
+
+                const result = minTest && maxTest
+                    ? '✓ 字体边界检查测试通过'
+                    : '✗ 字体边界检查测试失败';
+
+                showResult('fontResult', result, minTest && maxTest);
+            } catch (e) {
+                showResult('fontResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 3. 快捷键管理器测试
+        function testShortcutManager() {
+            try {
+                const manager = new ShortcutManager();
+                manager.init();
+
+                let result = '✓ ShortcutManager 初始化成功\n';
+                result += `快捷键数量: ${manager.shortcuts.size}\n`;
+
+                const nextArticle = manager.getShortcut('nextArticle');
+                result += `✓ 获取快捷键: nextArticle = ${nextArticle?.keys}\n`;
+
+                showResult('shortcutResult', result, true);
+            } catch (e) {
+                showResult('shortcutResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testConflictDetection() {
+            try {
+                const manager = new ShortcutManager();
+                manager.init();
+
+                const conflicts = manager.getConflicts('j', 'test');
+
+                const result = conflicts.length > 0
+                    ? `✓ 冲突检测测试通过: 发现 ${conflicts.length} 个冲突`
+                    : '✓ 冲突检测测试通过: 无冲突';
+
+                showResult('shortcutResult', result, true);
+            } catch (e) {
+                showResult('shortcutResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 4. 虚拟滚动测试
+        function testVirtualScroll() {
+            try {
+                const manager = new VirtualScrollManager();
+                const testData = Array.from({ length: 100 }, (_, i) => ({ id: i, title: `Item ${i}` }));
+
+                const container = document.createElement('div');
+                manager.init(container, testData, (item) => `<div>${item.title}</div>`);
+
+                let result = '✓ VirtualScrollManager 初始化成功\n';
+                result += `启用状态: ${manager.enabled}\n`;
+                result += `项目数量: ${manager.items.length}\n`;
+                result += `可见范围: ${manager.visibleRange.start} - ${manager.visibleRange.end}\n`;
+
+                showResult('virtualScrollResult', result, true);
+            } catch (e) {
+                showResult('virtualScrollResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testLargeDataset() {
+            try {
+                const manager = new VirtualScrollManager();
+                const testData = Array.from({ length: 1000 }, (_, i) => ({ id: i, title: `Item ${i}` }));
+
+                const container = document.createElement('div');
+                const startTime = performance.now();
+                manager.init(container, testData, (item) => `<div>${item.title}</div>`);
+                const endTime = performance.now();
+
+                const result = `✓ 大数据集测试通过\n` +
+                    `项目数量: ${testData.length}\n` +
+                    `初始化时间: ${(endTime - startTime).toFixed(2)}ms\n` +
+                    `虚拟滚动已启用: ${manager.enabled}`;
+
+                showResult('virtualScrollResult', result, true);
+            } catch (e) {
+                showResult('virtualScrollResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 5. 缓存管理器测试
+        function testCacheManager() {
+            try {
+                const cache = new CacheManager(5);
+
+                // 添加项目
+                for (let i = 0; i < 7; i++) {
+                    cache.set(`key${i}`, `value${i}`);
+                }
+
+                let result = '✓ CacheManager 测试\n';
+                result += `缓存大小: ${cache.cache.size} (最大: ${cache.maxSize})\n`;
+                result += `LRU淘汰测试: ${cache.cache.size === 5 ? '通过' : '失败'}\n`;
+
+                // 测试获取
+                const value = cache.get('key6');
+                result += `✓ 获取测试: ${value}\n`;
+
+                showResult('cacheResult', result, cache.cache.size === 5);
+            } catch (e) {
+                showResult('cacheResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testCacheStats() {
+            try {
+                const cache = new CacheManager(10);
+
+                cache.set('key1', 'value1');
+                cache.set('key2', 'value2');
+
+                cache.get('key1'); // hit
+                cache.get('key1'); // hit
+                cache.get('key3'); // miss
+
+                const stats = cache.getStats();
+
+                const result = `✓ 缓存统计测试\n` +
+                    `大小: ${stats.size}/${stats.maxSize}\n` +
+                    `命中: ${stats.hits}\n` +
+                    `未命中: ${stats.misses}\n` +
+                    `命中率: ${stats.hitRate}`;
+
+                showResult('cacheResult', result, true);
+            } catch (e) {
+                showResult('cacheResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 6. 移动端适配测试
+        function testMobileDetection() {
+            try {
+                const adapter = new MobileAdapter();
+                adapter.init();
+
+                const result = `✓ MobileAdapter 初始化成功\n` +
+                    `移动设备检测: ${adapter.isMobile ? '是' : '否'}\n` +
+                    `窗口宽度: ${window.innerWidth}px`;
+
+                showResult('mobileResult', result, true);
+            } catch (e) {
+                showResult('mobileResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testTouchHandlers() {
+            try {
+                const adapter = new MobileAdapter();
+                adapter.init();
+
+                const result = `✓ 触摸处理器测试\n` +
+                    `滑动阈值: ${adapter.swipeThreshold}px\n` +
+                    `触摸处理器已设置: ${adapter.touchStartX !== undefined}`;
+
+                showResult('mobileResult', result, true);
+            } catch (e) {
+                showResult('mobileResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 7. 趋势预测测试
+        function testTrendPredictor() {
+            try {
+                const predictor = new TrendPredictor();
+
+                // 创建测试数据
+                const testArticles = [];
+                for (let i = 0; i < 100; i++) {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() - Math.floor(i / 10));
+                    testArticles.push({
+                        id: i,
+                        pub_date: date.toISOString().substring(0, 10),
+                        title: `Test Article ${i}`,
+                        is_ai_related: i % 2 === 0
+                    });
+                }
+
+                const analysis = predictor.analyze(testArticles);
+
+                const result = `✓ 趋势预测测试\n` +
+                    `月度数据点: ${analysis.monthlyData.length}\n` +
+                    `增长率数据: ${analysis.growthRates.length}\n` +
+                    `预测数据: ${analysis.predictions.length}\n` +
+                    `新兴主题: ${analysis.emergingTopics.length}\n` +
+                    `衰退主题: ${analysis.decliningTopics.length}`;
+
+                showResult('trendResult', result, true);
+            } catch (e) {
+                showResult('trendResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testTopicIdentification() {
+            try {
+                const predictor = new TrendPredictor();
+
+                const testArticles = [
+                    { pub_date: '2024-01-01', title: 'machine learning', abstract: 'neural networks' },
+                    { pub_date: '2024-02-01', title: 'deep learning', abstract: 'transformers' },
+                    { pub_date: '2024-03-01', title: 'machine learning', abstract: 'neural networks' }
+                ];
+
+                const emerging = predictor.identifyEmergingTopics(testArticles);
+
+                const result = `✓ 主题识别测试\n` +
+                    `识别到的新兴主题: ${emerging.length}`;
+
+                showResult('trendResult', result, true);
+            } catch (e) {
+                showResult('trendResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 8. 主题演化测试
+        function testTopicEvolution() {
+            try {
+                const analyzer = new TopicEvolutionAnalyzer();
+
+                const testArticles = [];
+                for (let i = 0; i < 50; i++) {
+                    const date = new Date();
+                    date.setMonth(date.getMonth() - Math.floor(i / 5));
+                    testArticles.push({
+                        id: i,
+                        pub_date: date.toISOString().substring(0, 10),
+                        title: `Test Article ${i}`,
+                        abstract: 'machine learning neural networks'
+                    });
+                }
+
+                const analysis = analyzer.analyze(testArticles);
+
+                const result = `✓ 主题演化测试\n` +
+                    `时间切片: ${analysis.timeSlices.length}\n` +
+                    `主题演化记录: ${analysis.evolution.length}\n` +
+                    `生命周期分析: ${analysis.lifecycles.length}`;
+
+                showResult('evolutionResult', result, true);
+            } catch (e) {
+                showResult('evolutionResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        function testLifecycleAnalysis() {
+            try {
+                const analyzer = new TopicEvolutionAnalyzer();
+
+                const testArticles = [
+                    { pub_date: '2024-01-01', title: 'test', abstract: 'machine learning' },
+                    { pub_date: '2024-02-01', title: 'test', abstract: 'machine learning' },
+                    { pub_date: '2024-03-01', title: 'test', abstract: 'machine learning' }
+                ];
+
+                const analysis = analyzer.analyze(testArticles);
+
+                const stages = ['emerging', 'growing', 'mature', 'declining'];
+                const stageCounts = stages.map(stage =>
+                    analysis.lifecycles.filter(lc => lc.stage === stage).length
+                );
+
+                const result = `✓ 生命周期分析测试\n` +
+                    `新兴: ${stageCounts[0]}\n` +
+                    `增长: ${stageCounts[1]}\n` +
+                    `成熟: ${stageCounts[2]}\n` +
+                    `衰退: ${stageCounts[3]}`;
+
+                showResult('evolutionResult', result, true);
+            } catch (e) {
+                showResult('evolutionResult', `✗ 测试失败: ${e.message}`, false);
+            }
+        }
+
+        // 运行所有测试
+        async function runAllTests() {
+            const resultElement = document.getElementById('allTestsResult');
+            resultElement.style.display = 'block';
+            resultElement.textContent = '正在运行所有测试...\n\n';
+
+            const tests = [
+                { name: '布局管理器', fn: testLayoutManager },
+                { name: '布局持久化', fn: testLayoutPersistence },
+                { name: '字体管理器', fn: testFontManager },
+                { name: '字体边界', fn: testFontBounds },
+                { name: '快捷键管理器', fn: testShortcutManager },
+                { name: '冲突检测', fn: testConflictDetection },
+                { name: '虚拟滚动', fn: testVirtualScroll },
+                { name: '大数据集', fn: testLargeDataset },
+                { name: 'LRU缓存', fn: testCacheManager },
+                { name: '缓存统计', fn: testCacheStats },
+                { name: '移动端检测', fn: testMobileDetection },
+                { name: '触摸处理', fn: testTouchHandlers },
+                { name: '趋势预测', fn: testTrendPredictor },
+                { name: '主题识别', fn: testTopicIdentification },
+                { name: '主题演化', fn: testTopicEvolution },
+                { name: '生命周期', fn: testLifecycleAnalysis }
+            ];
+
+            let passed = 0;
+            let failed = 0;
+
+            for (const test of tests) {
+                try {
+                    test.fn();
+                    resultElement.textContent += `✓ ${test.name} - 通过\n`;
+                    passed++;
+                } catch (e) {
+                    resultElement.textContent += `✗ ${test.name} - 失败: ${e.message}\n`;
+                    failed++;
+                }
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            resultElement.textContent += `\n总计: ${tests.length} 个测试\n`;
+            resultElement.textContent += `通过: ${passed}\n`;
+            resultElement.textContent += `失败: ${failed}\n`;
+            resultElement.textContent += `\n${failed === 0 ? '🎉 所有测试通过！' : '⚠️ 部分测试失败'}`;
+
+            resultElement.className = `test-result ${failed === 0 ? 'success' : 'error'}`;
+        }
+    </script>
+</body>
+
+</html>

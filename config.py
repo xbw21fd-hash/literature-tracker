@@ -96,6 +96,13 @@ WECHAT_CONFIG = {
     "sendkey": os.environ.get("SERVERCHAN_KEY", ""),  # Server酱SendKey，从 https://sct.ftqq.com/ 获取
 }
 
+# AI摘要配置
+AI_CONFIG = {
+    "enabled": True,  # 是否启用AI摘要
+    "provider": os.environ.get("AI_PROVIDER", "gemini"),  # gemini, siliconflow, groq, deepseek
+    "api_key": os.environ.get("AI_API_KEY", ""),  # API密钥
+}
+
 # 去重配置
 DEDUP_CONFIG = {
     "enabled": True,  # 是否启用去重

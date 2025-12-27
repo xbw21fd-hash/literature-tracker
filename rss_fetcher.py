@@ -216,9 +216,15 @@ class RSSFetcher:
         # 先尝试从feed标题获取
         if feed.feed.get("title"):
             title = feed.feed.title
+            
+            # 移除 "Recent Articles in " 前缀
+            if title.startswith("Recent Articles in "):
+                title = title.replace("Recent Articles in ", "")
+            
             # 清理标题
             if " - " in title:
                 title = title.split(" - ")[0]
+            
             if len(title) < 50:
                 return title
         

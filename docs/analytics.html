@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="文献追踪系统 - 数据分析仪表板">
+    <title>数据分析 - 文献追踪系统</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/wordcloud@1.2.2/src/wordcloud2.min.js"></script>
+    <style>
+        /* 分析页面专用样式 */
+        .analytics-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            background: var(--accent-primary);
+            color: white;
+            text-decoration: none;
+            border-radius: var(--radius-md);
+            font-size: 14px;
+            transition: background var(--transition-fast);
+        }
+
+        .back-btn:hover {
+            background: var(--accent-hover);
+        }
+
+        .analytics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .analytics-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+        }
+
+        .analytics-card h3 {
+            margin-bottom: var(--spacing-md);
+            color: var(--text-primary);
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .analytics-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: var(--spacing-md);
+            background: var(--bg-primary);
+            border-radius: var(--radius-md);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: var(--accent-primary);
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            margin-top: var(--spacing-xs);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .chart-btn {
+            padding: var(--spacing-xs) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all var(--transition-fast);
+        }
+
+        .chart-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .chart-btn.active {
+            background: var(--accent-primary);
+            border-color: var(--accent-primary);
+            color: white;
+        }
+
+        #wordcloud-container {
+            height: 350px;
+            width: 100%;
+            cursor: pointer;
+        }
+
+        .keyword-chip-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: var(--spacing-xs);
+            margin-top: var(--spacing-md);
+        }
+
+        .keyword-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: var(--radius-lg);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
+
+        .keyword-chip-count {
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .export-btn {
+            padding: var(--spacing-xs) var(--spacing-md);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 13px;
+            transition: all var(--transition-fast);
+        }
+
+        .export-btn:hover {
+            border-color: var(--accent-primary);
+            color: white;
+            background: var(--accent-primary);
+        }
+
+        .journal-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .journal-item {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background var(--transition-fast);
+        }
+
+        .journal-item:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .journal-name {
+            color: var(--text-primary);
+        }
+
+        .journal-count {
+            color: var(--accent-primary);
+            font-weight: bold;
+        }
+
+        .growth-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 0.9em;
+        }
+
+        .growth-positive {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--color-success);
+        }
+
+        .growth-negative {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--color-error);
+        }
+
+        @media (max-width: 767px) {
+            .analytics-header {
+                flex-direction: column;
+                gap: var(--spacing-md);
+                text-align: center;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+
+            #wordcloud-container {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="analytics-container">
+        <header>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">
+                🌙
+            </button>
+            <h1>📊 数据分析仪表板</h1>
+            <p class="subtitle">文献统计与趋势分析</p>
+        </header>
+
+        <div class="analytics-header">
+            <a href="index.html" class="back-btn">← 返回主页</a>
+            <div class="export-buttons">
+                <button class="export-btn" onclick="exportCSV()">📄 导出CSV</button>
+                <button class="export-btn" onclick="exportAllCharts()">🖼️ 导出图表</button>
+            </div>
+        </div>
+
+        <!-- 统计概览 -->
+        <div class="analytics-card full-width">
+            <h3>📈 统计概览</h3>
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalArticles">0</div>
+                    <div class="stat-label">本周文献</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="aiArticles">0</div>
+                    <div class="stat-label">本周AI相关</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="nonAiArticles">0</div>
+                    <div class="stat-label">本周非AI</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="journalCount">0</div>
+                    <div class="stat-label">本月文献</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="aiPercentage">0%</div>
+                    <div class="stat-label">本月AI占比</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="aiGrowth">-</div>
+                    <div class="stat-label">周环比增长</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="analytics-grid">
+            <!-- 趋势图表 -->
+            <div class="analytics-card full-width">
+                <h3>📅 文献发表趋势</h3>
+                <div class="chart-controls">
+                    <button class="chart-btn active" data-mode="monthly"
+                        onclick="switchTrendMode('monthly')">按月</button>
+                    <button class="chart-btn" data-mode="weekly" onclick="switchTrendMode('weekly')">按周</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 期刊分布饼图 -->
+            <div class="analytics-card">
+                <h3>📚 期刊分布</h3>
+                <div class="chart-container">
+                    <canvas id="journalChart"></canvas>
+                </div>
+            </div>
+
+            <!-- AI vs 非AI对比 -->
+            <div class="analytics-card">
+                <h3>🤖 AI vs 非AI趋势</h3>
+                <div class="chart-container">
+                    <canvas id="aiCompareChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 关键词云 -->
+            <div class="analytics-card full-width">
+                <h3>🔤 研究热点关键词</h3>
+                <div id="wordcloud-container"></div>
+                <div class="keyword-chip-container" id="keywordList"></div>
+            </div>
+
+            <!-- 期刊列表 -->
+            <div class="analytics-card">
+                <h3>📖 期刊文献数量</h3>
+                <div class="journal-list" id="journalList"></div>
+            </div>
+
+            <!-- AI文献按期刊分布 -->
+            <div class="analytics-card">
+                <h3>🤖 AI文献期刊分布</h3>
+                <div class="chart-container">
+                    <canvas id="aiJournalChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <footer class="site-footer">
+            Made by 于宏宇（Hongyu Yu） with AI
+        </footer>
+    </div>
+
+    <!-- 回到顶部按钮 -->
+    <button id="backToTop" class="back-to-top" onclick="scrollToTop()" title="回到顶部">
+        ↑
+    </button>
+
+    <script src="analytics.js"></script>
+</body>
+
+</html>

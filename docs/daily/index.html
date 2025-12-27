@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日摘要 - 文献追踪系统</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .daily-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .daily-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .daily-item {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .daily-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .daily-date {
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        .daily-meta {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="daily-container">
+        <header>
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">
+                🌙
+            </button>
+            <h1>📰 每日文献摘要</h1>
+            <p class="subtitle">AI生成的每日文献速览</p>
+        </header>
+
+        <a href="../index.html" class="back-link">← 返回主页</a>
+
+        <div class="daily-list" id="dailyList">
+            <div class="empty-state">
+                <h3>暂无摘要</h3>
+                <p>每日摘要将在文献更新后自动生成</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 主题管理
+        const THEME_KEY = 'literature_theme';
+
+        function initTheme() {
+            const theme = localStorage.getItem(THEME_KEY) || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeButton();
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const newTheme = current === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, newTheme);
+            document.documentElement.setAttribute('data-theme', newTheme);
+            updateThemeButton();
+        }
+
+        function updateThemeButton() {
+            const btn = document.getElementById('themeToggle');
+            const theme = document.documentElement.getAttribute('data-theme') || 'light';
+            if (btn) {
+                btn.innerHTML = theme === 'light' ? '🌙' : '☀️';
+            }
+        }
+
+        // 加载摘要列表
+        async function loadDailyList() {
+            // 这里可以通过API或静态文件获取摘要列表
+            // 简单实现：检查最近30天的文件
+            const container = document.getElementById('dailyList');
+            const items = [];
+
+            const today = new Date();
+            for (let i = 0; i < 30; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() - i);
+                const dateStr = date.toISOString().slice(0, 10);
+
+                try {
+                    const response = await fetch(`${dateStr}.html`, { method: 'HEAD' });
+                    if (response.ok) {
+                        items.push({
+                            date: dateStr,
+                            weekday: date.toLocaleDateString('zh-CN', { weekday: 'long' })
+                        });
+                    }
+                } catch (e) {
+                    // 文件不存在，跳过
+                }
+            }
+
+            if (items.length > 0) {
+                container.innerHTML = items.map(item => `
+                    <a href="${item.date}.html" class="daily-item">
+                        <div>
+                            <div class="daily-date">📅 ${item.date}</div>
+                            <div class="daily-meta">${item.weekday}</div>
+                        </div>
+                        <span>→</span>
+                    </a>
+                `).join('');
+            }
+        }
+
+        initTheme();
+        loadDailyList();
+    </script>
+</body>
+
+</html>
