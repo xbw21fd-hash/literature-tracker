@@ -20,7 +20,6 @@ let focusedIndex = -1;
 let currentCategory = 'all'; // 'all' | 'ai-related' | 'ai-unrelated'
 let currentReadFilter = 'all'; // 'all' | 'unread' | 'read' | 'later'
 let currentTheme = 'light';
-let searchMode = 'normal'; // 'normal' | 'regex' | 'boolean'
 
 const PAGE_SIZE = 50;
 const AI_KEYWORDS = ['machine', 'learn', 'neural', 'network'];
@@ -35,7 +34,7 @@ const MAX_SEARCH_HISTORY = 10;
 const JOURNAL_GROUPS = {
     'top': {
         name: '顶刊',
-        patterns: ['nature', 'science', 'phys. rev. lett', 'prl', 'phys. rev. x', 'prx', 'jacs', 'angewandte', 'pnas', 'advanced materials', 'editor', 'suggestion', 'physics news', 'rev. mod. phys', 'annual reviews']
+        patterns: ['nature', 'science', 'physical review letters', 'prl', 'Phys. Rev. lett.', 'journal of the american chemical society', 'jacs', 'angewandte', 'pnas', 'proceedings of the national academy', 'advanced materials', 'adv. mater', 'editor', 'suggestion', 'physics news', 'physics today', 'Rev. Mod. Phys.']
     },
     'nature': {
         name: 'Nature系列',
@@ -43,27 +42,23 @@ const JOURNAL_GROUPS = {
     },
     'aps': {
         name: 'APS系列',
-        patterns: ['phys. rev.', 'physical review', 'prx energy', 'physics']
+        patterns: ['physical review', 'prl', 'prx', 'prb', 'pr materials', 'pr research', 'pr energy', 'pr applied', 'physics', 'Phys. Rev.', 'Rev. Mod. Phys.']
     },
     'acs': {
         name: 'ACS系列',
-        patterns: ['acs', 'nano letters', 'chemical reviews', 'j. phys. chem', 'j. chem. theory']
+        patterns: ['acs', 'journal of the american chemical', 'jacs', 'nano letters', 'chemical reviews', 'j. phys. chem', 'j. chem. theory']
     },
     'wiley': {
         name: 'Wiley系列',
-        patterns: ['wiley', 'angewandte', 'angew', 'advanced materials', 'adv. mater', 'adv. funct', 'advanced functional', 'advanced energy', 'advanced science', 'small']
+        patterns: ['wiley', 'angewandte', 'angew', 'advanced materials', 'adv. mater', 'adv. funct', 'advanced functional', 'advanced energy', 'small', 'chemphyschem']
     },
     'rsc': {
         name: 'RSC系列',
-        patterns: ['rsc', 'digital discovery', 'chem. sci', 'chemical science']
+        patterns: ['rsc', 'royal society of chemistry', 'digital discovery', 'chem. sci', 'chemical science']
     },
     'elsevier': {
         name: 'Elsevier系列',
-        patterns: ['computational materials science', 'computer physics communications', 'materials today', 'sciencedirect', 'science bulletin']
-    },
-    'iop': {
-        name: 'IOP系列',
-        patterns: ['machine learning: science and technology']
+        patterns: ['computational materials science', 'computer physics communications', 'materials today', 'sciencedirect']
     },
     'preprint': {
         name: '预印本',
@@ -85,13 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearch();
     setupKeyboardNavigation();
     createTooltip();
-    initSearchMode();
-    handleURLParams();
-
-    // 初始化高级功能
-    if (typeof initAdvancedFeatures === 'function') {
-        initAdvancedFeatures();
-    }
 });
 
 // ========================================
@@ -433,93 +421,10 @@ function hideSearchHistory() {
 
 async function loadArticles() {
     try {
-        const startTime = performance.now();
-        console.log('🚀 开始加载文献...');
+        const response = await fetch('data/index.json');
+        const data = await response.json();
 
-        // 使用性能监控
-        if (typeof performanceMonitor !== 'undefined' && performanceMonitor && performanceMonitor.start) {
-            performanceMonitor.start('数据加载');
-        }
-
-        // 暂时禁用FastLoader，使用稳定的标准加载
-        // TODO: 修复FastLoader后重新启用
-        const useFastLoader = false;
-
-        if (useFastLoader && typeof fastLoader !== 'undefined' && fastLoader) {
-            console.log('✨ 使用极速加载模式');
-
-            // 极速加载
-            const articles = await fastLoader.fastLoad();
-            allArticles = articles;
-
-            // 合并本地状态
-            allArticles.forEach(article => {
-                article.is_favorite = favorites.has(article.id);
-                article.is_read = readArticles.has(article.id);
-                article.is_read_later = readLater.has(article.id);
-                article.is_ai_related = isAIRelated(article);
-            });
-
-            // 填充期刊下拉列表
-            populateJournalList();
-
-            // 更新统计信息
-            const data = { articles: allArticles, total: allArticles.length };
-            updateStats(data);
-            updateReadLaterCount();
-
-            // 筛选和显示文章 - 这是关键！
-            filterArticles();
-
-            const loadTime = Math.round(performance.now() - startTime);
-            console.log(`✅ 加载完成: ${allArticles.length} 篇文献，耗时 ${loadTime}ms`);
-
-            // 结束性能监控
-            if (typeof performanceMonitor !== 'undefined' && performanceMonitor && performanceMonitor.end) {
-                performanceMonitor.end('数据加载');
-            }
-
-            return;
-        }
-
-        // 标准加载模式
-        console.log('📦 使用标准加载模式');
-
-        // 尝试从 IndexedDB 加载缓存
-        let articles = null;
-        let fromCache = false;
-
-        if (typeof indexedDBManager !== 'undefined' && indexedDBManager) {
-            try {
-                const cachedArticles = await indexedDBManager.getAllArticles();
-                if (cachedArticles && cachedArticles.length > 0) {
-                    articles = cachedArticles;
-                    fromCache = true;
-                    console.log(`✅ 从缓存加载 ${articles.length} 篇文献`);
-                }
-            } catch (error) {
-                console.warn('从缓存加载失败:', error);
-            }
-        }
-
-        // 如果没有缓存,从网络加载
-        if (!articles) {
-            const response = await fetch('data/index.json');
-            const data = await response.json();
-            articles = data.articles || [];
-
-            // 保存到 IndexedDB
-            if (typeof indexedDBManager !== 'undefined' && indexedDBManager) {
-                try {
-                    await indexedDBManager.saveArticles(articles);
-                    console.log(`✅ 已缓存 ${articles.length} 篇文献`);
-                } catch (error) {
-                    console.warn('保存到缓存失败:', error);
-                }
-            }
-        }
-
-        allArticles = articles;
+        allArticles = data.articles || [];
 
         // 合并本地状态
         allArticles.forEach(article => {
@@ -529,39 +434,12 @@ async function loadArticles() {
             article.is_ai_related = isAIRelated(article);
         });
 
-        // 构建倒排索引（异步，不阻塞）
-        if (typeof invertedIndexSearchEngine !== 'undefined' && invertedIndexSearchEngine) {
-            // 使用setTimeout让UI先渲染
-            setTimeout(() => {
-                invertedIndexSearchEngine.buildIndex(allArticles);
-                const stats = invertedIndexSearchEngine.getIndexStats();
-                console.log(`✅ 搜索索引构建完成: ${stats.totalWords} 个词, ${stats.totalDocuments} 篇文献`);
-            }, 100);
-        }
-
         // 填充期刊下拉列表
         populateJournalList();
 
-        // 更新统计信息
-        const data = { articles: allArticles, total: allArticles.length };
         updateStats(data);
         updateReadLaterCount();
-
-        // 筛选和显示文章
         filterArticles();
-
-        const loadTime = Math.round(performance.now() - startTime);
-        console.log(`✅ 加载完成: ${allArticles.length} 篇文献，耗时 ${loadTime}ms`);
-
-        // 结束性能监控
-        if (typeof performanceMonitor !== 'undefined' && performanceMonitor && performanceMonitor.end) {
-            performanceMonitor.end('数据加载');
-        }
-
-        // 如果是从缓存加载,后台检查更新
-        if (fromCache) {
-            checkForUpdates();
-        }
     } catch (error) {
         console.error('加载数据失败:', error);
         document.getElementById('articleList').innerHTML = `
@@ -571,55 +449,6 @@ async function loadArticles() {
             </div>
         `;
     }
-}
-
-// 后台检查更新
-async function checkForUpdates() {
-    try {
-        const response = await fetch('data/index.json');
-        const data = await response.json();
-        const newArticles = data.articles || [];
-
-        // 比较文章数量
-        if (newArticles.length !== allArticles.length) {
-            console.log(`🔄 发现更新: ${newArticles.length} 篇 (当前 ${allArticles.length} 篇)`);
-
-            // 显示更新提示
-            showUpdateNotification(newArticles.length - allArticles.length);
-        }
-    } catch (error) {
-        console.warn('检查更新失败:', error);
-    }
-}
-
-// 显示更新通知
-function showUpdateNotification(newCount) {
-    const notification = document.createElement('div');
-    notification.className = 'update-notification';
-    notification.innerHTML = `
-        <span>发现 ${Math.abs(newCount)} 篇新文献</span>
-        <button onclick="reloadArticles()">刷新</button>
-        <button onclick="this.parentElement.remove()">忽略</button>
-    `;
-    document.body.appendChild(notification);
-
-    setTimeout(() => notification.classList.add('visible'), 100);
-}
-
-// 重新加载文章
-async function reloadArticles() {
-    // 清除缓存
-    if (typeof indexedDBManager !== 'undefined' && indexedDBManager) {
-        await indexedDBManager.clear();
-    }
-
-    // 移除通知
-    const notification = document.querySelector('.update-notification');
-    if (notification) notification.remove();
-
-    // 重新加载
-    await loadArticles();
-    showToast('已刷新文献列表');
 }
 
 // ========================================
@@ -809,97 +638,52 @@ function clearSearch() {
 }
 
 function filterArticles() {
-    // 使用性能监控
-    const perfMon = typeof performanceMonitor !== 'undefined' && performanceMonitor && performanceMonitor.start
-        ? performanceMonitor
-        : { start: () => { }, end: () => { } };
-
-    perfMon.start('筛选文献');
-
-    const searchTerm = document.getElementById('searchInput')?.value || '';
+    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const favoritesOnly = document.getElementById('favoritesOnly')?.checked || false;
     const dateFrom = document.getElementById('dateFrom')?.value || '';
     const dateTo = document.getElementById('dateTo')?.value || '';
     const journalFilter = document.getElementById('journalFilter')?.value || 'all';
 
-    // 生成缓存键
-    const cacheKey = JSON.stringify({
-        searchTerm,
-        searchMode,
-        favoritesOnly,
-        dateFrom,
-        dateTo,
-        journalFilter,
-        currentCategory,
-        currentReadFilter
-    });
-
-    // 尝试从缓存获取
-    if (typeof searchCache !== 'undefined' && searchCache) {
-        const cached = searchCache.get(cacheKey);
-        if (cached) {
-            filteredArticles = cached;
-            currentPage = 1;
-            focusedIndex = -1;
-            perfMon.end('筛选文献 (缓存命中)');
-            sortArticles();
-            return;
+    filteredArticles = allArticles.filter(article => {
+        if (favoritesOnly && !article.is_favorite) {
+            return false;
         }
-    }
 
-    // 使用倒排索引搜索(如果可用且有搜索词)
-    if (searchTerm && typeof invertedIndexSearchEngine !== 'undefined' && invertedIndexSearchEngine) {
-        filteredArticles = invertedIndexSearchEngine.search(searchTerm);
-
-        // 应用其他筛选条件
-        filteredArticles = filteredArticles.filter(article => {
-            if (favoritesOnly && !article.is_favorite) return false;
-
-            // 日期范围筛选
-            if (dateFrom || dateTo) {
-                const articleDate = article.pub_date || '';
-                if (articleDate) {
-                    if (dateFrom && articleDate < dateFrom) return false;
-                    if (dateTo && articleDate > dateTo) return false;
-                } else {
-                    if (dateFrom || dateTo) return false;
+        // 日期范围筛选
+        if (dateFrom || dateTo) {
+            const articleDate = article.pub_date || '';
+            if (articleDate) {
+                if (dateFrom && articleDate < dateFrom) {
+                    return false;
+                }
+                if (dateTo && articleDate > dateTo) {
+                    return false;
+                }
+            } else {
+                // 没有日期的文献，如果设置了日期筛选则排除
+                if (dateFrom || dateTo) {
+                    return false;
                 }
             }
+        }
 
-            return true;
-        });
-    } else {
-        // 回退到原有筛选逻辑
-        filteredArticles = allArticles.filter(article => {
-            if (favoritesOnly && !article.is_favorite) {
+        if (searchTerm) {
+            const searchText = [
+                article.title,
+                article.title_zh,
+                article.abstract,
+                article.abstract_zh,
+                article.journal,
+                ...(article.authors || [])
+            ].join(' ').toLowerCase();
+
+            if (!searchText.includes(searchTerm)) {
                 return false;
             }
-
-            // 日期范围筛选
-            if (dateFrom || dateTo) {
-                const articleDate = article.pub_date || '';
-                if (articleDate) {
-                    if (dateFrom && articleDate < dateFrom) {
-                        return false;
-                    }
-                    if (dateTo && articleDate > dateTo) {
-                        return false;
-                    }
-                } else {
-                    if (dateFrom || dateTo) {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
-        });
-
-        // 应用高级搜索(如果没有使用倒排索引)
-        if (searchTerm) {
-            filteredArticles = advancedSearch(filteredArticles, searchTerm);
         }
-    }
+
+        return true;
+    });
 
     // 应用分类筛选
     filteredArticles = filterByCategory(filteredArticles, currentCategory);
@@ -910,15 +694,8 @@ function filterArticles() {
     // 应用期刊筛选
     filteredArticles = filterByJournal(filteredArticles, journalFilter);
 
-    // 保存到缓存
-    if (typeof searchCache !== 'undefined' && searchCache) {
-        searchCache.set(cacheKey, filteredArticles);
-    }
-
     currentPage = 1;
     focusedIndex = -1;
-
-    perfMon.end('筛选文献');
     sortArticles();
 }
 
@@ -1028,37 +805,12 @@ function renderArticles() {
         return;
     }
 
-    // 使用虚拟滚动（如果启用且文章数量超过阈值）
-    if (typeof virtualScrollManager !== 'undefined' && virtualScrollManager &&
-        filteredArticles.length > 50) {
-        virtualScrollManager.init(
-            container,
-            filteredArticles,
-            (article, index) => createArticleCard(article, index)
-        );
+    const pageArticles = getCurrentPageArticles();
+    container.innerHTML = pageArticles.map((article, index) =>
+        createArticleCard(article, index)
+    ).join('');
 
-        // 虚拟滚动时不显示分页
-        const paginationContainer = document.getElementById('pagination');
-        if (paginationContainer) {
-            paginationContainer.innerHTML = '';
-        }
-    } else {
-        // 使用传统分页
-        const pageArticles = getCurrentPageArticles();
-        container.innerHTML = pageArticles.map((article, index) =>
-            createArticleCard(article, index)
-        ).join('');
-
-        renderPagination();
-    }
-
-    // 初始化懒加载（如果有图片）
-    if (typeof lazyLoadManager !== 'undefined' && lazyLoadManager) {
-        setTimeout(() => {
-            const images = container.querySelectorAll('img[data-src]');
-            images.forEach(img => lazyLoadManager.observe(img));
-        }, 100);
-    }
+    renderPagination();
 }
 
 function createArticleCard(article, index) {
@@ -1341,14 +1093,6 @@ function createTooltip() {
 }
 
 function showPreview(event, articleId) {
-    // 使用增强的预览系统（如果可用）
-    if (typeof previewSystem !== 'undefined' && previewSystem) {
-        const article = allArticles.find(a => a.id === articleId);
-        previewSystem.showPreview(event, articleId, article);
-        return;
-    }
-
-    // 回退到原有的预览系统
     if (window.innerWidth < 768) return;
     if (expandedCards.has(articleId)) return;
 
@@ -1383,13 +1127,6 @@ function showPreview(event, articleId) {
 }
 
 function hidePreview() {
-    // 使用增强的预览系统（如果可用）
-    if (typeof previewSystem !== 'undefined' && previewSystem) {
-        previewSystem.hidePreview();
-        return;
-    }
-
-    // 回退到原有的预览系统
     clearTimeout(tooltipTimeout);
     if (tooltipElement) {
         tooltipElement.classList.remove('visible');
@@ -1523,298 +1260,3 @@ function showToast(message) {
         setTimeout(() => document.body.removeChild(toast), 300);
     }, 2000);
 }
-
-
-// ========================================
-// 高级搜索功能
-// ========================================
-
-function initSearchMode() {
-    const indicator = document.getElementById('searchModeIndicator');
-    if (indicator) {
-        indicator.addEventListener('click', cycleSearchMode);
-    }
-}
-
-function cycleSearchMode() {
-    const modes = ['normal', 'regex', 'boolean'];
-    const currentIndex = modes.indexOf(searchMode);
-    searchMode = modes[(currentIndex + 1) % modes.length];
-    updateSearchModeUI();
-    filterArticles();
-}
-
-function setSearchMode(mode) {
-    searchMode = mode;
-    updateSearchModeUI();
-    filterArticles();
-}
-
-function updateSearchModeUI() {
-    const indicator = document.getElementById('searchModeIndicator');
-    if (indicator) {
-        const labels = {
-            'normal': '普通',
-            'regex': '正则',
-            'boolean': '布尔'
-        };
-        indicator.textContent = labels[searchMode];
-        indicator.className = `search-mode-indicator mode-${searchMode}`;
-    }
-}
-
-// 正则表达式搜索
-function executeRegexSearch(articles, pattern) {
-    try {
-        const regex = new RegExp(pattern, 'i');
-        return articles.filter(article => {
-            const searchText = [
-                article.title,
-                article.title_zh,
-                article.abstract,
-                article.abstract_zh,
-                article.journal,
-                ...(article.authors || [])
-            ].join(' ');
-            return regex.test(searchText);
-        });
-    } catch (e) {
-        showToast('正则表达式无效: ' + e.message);
-        return articles;
-    }
-}
-
-// 布尔表达式解析和搜索
-function parseBooleanQuery(query) {
-    // 简化的布尔解析器
-    query = query.trim();
-
-    // 处理括号
-    if (query.startsWith('(') && query.endsWith(')')) {
-        let depth = 0;
-        let allInParens = true;
-        for (let i = 0; i < query.length - 1; i++) {
-            if (query[i] === '(') depth++;
-            else if (query[i] === ')') depth--;
-            if (depth === 0 && i > 0) {
-                allInParens = false;
-                break;
-            }
-        }
-        if (allInParens) {
-            query = query.slice(1, -1);
-        }
-    }
-
-    // 查找顶层 OR
-    let depth = 0;
-    for (let i = 0; i < query.length; i++) {
-        if (query[i] === '(') depth++;
-        else if (query[i] === ')') depth--;
-        else if (depth === 0 && query.substring(i, i + 4).toUpperCase() === ' OR ') {
-            return {
-                type: 'OR',
-                children: [
-                    parseBooleanQuery(query.substring(0, i)),
-                    parseBooleanQuery(query.substring(i + 4))
-                ]
-            };
-        }
-    }
-
-    // 查找顶层 AND
-    depth = 0;
-    for (let i = 0; i < query.length; i++) {
-        if (query[i] === '(') depth++;
-        else if (query[i] === ')') depth--;
-        else if (depth === 0 && query.substring(i, i + 5).toUpperCase() === ' AND ') {
-            return {
-                type: 'AND',
-                children: [
-                    parseBooleanQuery(query.substring(0, i)),
-                    parseBooleanQuery(query.substring(i + 5))
-                ]
-            };
-        }
-    }
-
-    // 查找 NOT
-    if (query.toUpperCase().startsWith('NOT ')) {
-        return {
-            type: 'NOT',
-            children: [parseBooleanQuery(query.substring(4))]
-        };
-    }
-
-    // 基本词项
-    return { type: 'TERM', value: query.trim().toLowerCase() };
-}
-
-function executeBooleanSearch(articles, ast) {
-    if (!ast) return articles;
-
-    switch (ast.type) {
-        case 'TERM':
-            return articles.filter(article => {
-                const searchText = [
-                    article.title,
-                    article.title_zh,
-                    article.abstract,
-                    article.abstract_zh,
-                    article.journal,
-                    ...(article.authors || [])
-                ].join(' ').toLowerCase();
-                return searchText.includes(ast.value);
-            });
-
-        case 'AND':
-            let result = articles;
-            for (const child of ast.children) {
-                result = executeBooleanSearch(result, child);
-            }
-            return result;
-
-        case 'OR':
-            const sets = ast.children.map(child =>
-                new Set(executeBooleanSearch(articles, child).map(a => a.id))
-            );
-            const unionIds = new Set();
-            sets.forEach(s => s.forEach(id => unionIds.add(id)));
-            return articles.filter(a => unionIds.has(a.id));
-
-        case 'NOT':
-            const excludeIds = new Set(
-                executeBooleanSearch(articles, ast.children[0]).map(a => a.id)
-            );
-            return articles.filter(a => !excludeIds.has(a.id));
-
-        default:
-            return articles;
-    }
-}
-
-function advancedSearch(articles, searchTerm) {
-    if (!searchTerm || searchTerm.trim().length === 0) {
-        return articles;
-    }
-
-    switch (searchMode) {
-        case 'regex':
-            return executeRegexSearch(articles, searchTerm);
-        case 'boolean':
-            const ast = parseBooleanQuery(searchTerm);
-            return executeBooleanSearch(articles, ast);
-        default:
-            // 普通搜索
-            const term = searchTerm.toLowerCase();
-            return articles.filter(article => {
-                const searchText = [
-                    article.title,
-                    article.title_zh,
-                    article.abstract,
-                    article.abstract_zh,
-                    article.journal,
-                    ...(article.authors || [])
-                ].join(' ').toLowerCase();
-                return searchText.includes(term);
-            });
-    }
-}
-
-// ========================================
-// URL参数处理
-// ========================================
-
-function handleURLParams() {
-    const params = new URLSearchParams(window.location.search);
-
-    const search = params.get('search');
-    if (search) {
-        const input = document.getElementById('searchInput');
-        if (input) {
-            input.value = search;
-            filterArticles();
-        }
-    }
-
-    const journal = params.get('journal');
-    if (journal) {
-        const select = document.getElementById('journalFilter');
-        if (select) {
-            // 尝试找到匹配的选项
-            for (const option of select.options) {
-                if (option.value === journal) {
-                    select.value = journal;
-                    filterArticles();
-                    break;
-                }
-            }
-        }
-    }
-}
-
-// ========================================
-// 性能监控
-// ========================================
-
-const performanceMonitor = {
-    startTime: null,
-
-    start(label) {
-        this.startTime = performance.now();
-        console.log(`[性能] ${label} 开始`);
-    },
-
-    end(label) {
-        if (this.startTime) {
-            const duration = performance.now() - this.startTime;
-            console.log(`[性能] ${label} 完成: ${duration.toFixed(2)}ms`);
-
-            if (duration > 1000) {
-                console.warn(`[性能警告] ${label} 耗时过长: ${duration.toFixed(2)}ms`);
-            }
-
-            this.startTime = null;
-            return duration;
-        }
-        return 0;
-    },
-
-    measurePageLoad() {
-        window.addEventListener('load', () => {
-            const timing = performance.timing;
-            const loadTime = timing.loadEventEnd - timing.navigationStart;
-            console.log(`[性能] 页面加载时间: ${loadTime}ms`);
-
-            if (loadTime > 3000) {
-                console.warn('[性能警告] 页面加载时间过长');
-            }
-        });
-    }
-};
-
-performanceMonitor.measurePageLoad();
-
-
-// ========================================
-// 回到顶部功能
-// ========================================
-
-function scrollToTop() {
-    window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-    });
-}
-
-// 监听滚动，显示/隐藏回到顶部按钮
-window.addEventListener('scroll', () => {
-    const backToTopBtn = document.getElementById('backToTop');
-    if (backToTopBtn) {
-        if (window.pageYOffset > 300) {
-            backToTopBtn.classList.add('visible');
-        } else {
-            backToTopBtn.classList.remove('visible');
-        }
-    }
-});
