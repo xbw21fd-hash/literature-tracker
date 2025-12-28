@@ -637,7 +637,8 @@ function populateJournalList() {
 function highlightKeywords(text) {
     if (!text) return '';
 
-    const escaped = escapeHtml(text);
+    // 保留 LaTeX 语法，只对非 LaTeX 部分进行 HTML 转义
+    const escaped = escapeHtmlPreservingLatex(text);
     const pattern = new RegExp(`(${AI_KEYWORDS.join('|')})`, 'gi');
     return escaped.replace(pattern, '<span class="keyword-highlight">$1</span>');
 }
@@ -647,6 +648,99 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * HTML 转义但保留 LaTeX 语法
+ * 保留 $...$ 和 $$...$$ 以及 \command{} 格式
+ */
+function escapeHtmlPreservingLatex(text) {
+    if (!text) return '';
+
+    // 分割文本：LaTeX 部分和普通文本部分
+    // 匹配 $...$ 或 $$...$$ 或 \command{...} 模式
+    const latexPattern = /(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$|\\[a-zA-Z]+(?:\{[^}]*\})?(?:_\{[^}]*\})?(?:\^\{[^}]*\})?)/g;
+
+    const parts = text.split(latexPattern);
+
+    return parts.map((part, index) => {
+        // 奇数索引是 LaTeX 匹配部分，保持原样
+        if (latexPattern.test(part) || part.match(/^\$[\s\S]*\$$/)) {
+            return part;
+        }
+        // 检查是否是 LaTeX 命令
+        if (part.match(/^\\[a-zA-Z]/)) {
+            return part;
+        }
+        // 普通文本进行 HTML 转义
+        return escapeHtml(part);
+    }).join('');
+}
+
+// ========================================
+// LaTeX 渲染
+// ========================================
+
+/**
+ * 渲染页面中的 LaTeX 公式
+ * 支持 $...$ 行内公式和 $$...$$ 块级公式
+ */
+function renderLatex() {
+    if (typeof renderMathInElement !== 'function') {
+        // KaTeX 尚未加载，稍后重试
+        setTimeout(renderLatex, 100);
+        return;
+    }
+
+    try {
+        renderMathInElement(document.getElementById('articleList'), {
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false },
+                { left: '\\(', right: '\\)', display: false },
+                { left: '\\[', right: '\\]', display: true }
+            ],
+            throwOnError: false,
+            errorColor: '#cc0000',
+            strict: false,
+            trust: true,
+            macros: {
+                "\\mathrm": "\\text"
+            }
+        });
+    } catch (e) {
+        console.warn('LaTeX渲染失败:', e);
+    }
+}
+
+/**
+ * 预处理文本中的 LaTeX，转换常见格式
+ * 处理 \mathrm{}, _{}, ^{} 等
+ */
+function preprocessLatex(text) {
+    if (!text) return '';
+
+    // 如果文本中包含 LaTeX 特征但没有 $ 包裹，尝试识别并包裹
+    // 常见模式: \mathrm{...}, _{...}, ^{...}, \alpha, \beta 等
+
+    // 检测是否已经有 $ 符号
+    if (text.includes('$')) {
+        return text;
+    }
+
+    // 检测 LaTeX 命令模式
+    const latexPattern = /\\(?:mathrm|text|mathbf|mathit|mathcal|frac|sqrt|sum|int|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|nu|pi|sigma|omega|infty|partial|nabla|cdot|times|pm|mp|leq|geq|neq|approx|equiv|sim|propto|rightarrow|leftarrow|Rightarrow|Leftarrow|uparrow|downarrow)\b|\{[^}]*\}|_\{[^}]*\}|\^\{[^}]*\}/g;
+
+    if (latexPattern.test(text)) {
+        // 找到包含 LaTeX 的部分并用 $ 包裹
+        // 简单策略：如果整个文本看起来像是包含公式，就包裹整个公式部分
+        return text.replace(/(\$[^$]+\$|\\[a-zA-Z]+(?:\{[^}]*\})?(?:_\{[^}]*\})?(?:\^\{[^}]*\})?)/g, function (match) {
+            if (match.startsWith('$')) return match;
+            return '$' + match + '$';
+        });
+    }
+
+    return text;
 }
 
 // ========================================
@@ -881,6 +975,11 @@ function renderArticles() {
     ).join('');
 
     renderPagination();
+
+    // 渲染 LaTeX 公式
+    requestAnimationFrame(() => {
+        renderLatex();
+    });
 }
 
 function createArticleCard(article, index) {

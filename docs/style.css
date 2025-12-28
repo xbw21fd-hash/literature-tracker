@@ -3252,3 +3252,55 @@ img.lazy-error {
         width: 100%;
     }
 }
+
+
+/* ========================================
+   LaTeX 公式样式
+   ======================================== */
+
+/* KaTeX 公式容器 */
+.katex {
+    font-size: 1em;
+    line-height: 1.4;
+}
+
+/* 行内公式 */
+.katex-display {
+    margin: 0.5em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* 确保公式在卡片中正确显示 */
+.card-title-zh .katex,
+.card-title-en .katex,
+.card-abstract .katex {
+    font-size: 0.95em;
+}
+
+/* 公式在深色主题下的颜色 */
+[data-theme="dark"] .katex {
+    color: var(--text-primary);
+}
+
+/* 公式错误提示 */
+.katex-error {
+    color: var(--color-error);
+    font-size: 0.85em;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* 确保公式不会溢出 */
+.card-title-zh,
+.card-title-en,
+.card-abstract {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+/* 公式在悬浮预览中的样式 */
+.preview-tooltip .katex {
+    font-size: 0.9em;
+}
