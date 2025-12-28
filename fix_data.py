@@ -247,6 +247,33 @@ def fix_article_files(articles_dir: str):
         filepath.unlink()
 
 
+def fix_history_json(filepath: str):
+    """修复history.json文件"""
+    print(f"处理文件: {filepath}")
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    articles = data.get('articles', {})
+    journal_fixed = 0
+    
+    # history.json的articles是字典格式
+    for article_id, article in articles.items():
+        if isinstance(article, dict):
+            # 修复期刊名
+            old_journal = article.get('journal', '')
+            new_journal = normalize_journal(old_journal)
+            if old_journal != new_journal:
+                article['journal'] = new_journal
+                journal_fixed += 1
+    
+    # 保存
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
+    print(f"  修复期刊: {journal_fixed} 条")
+
+
 def main():
     print("=" * 50)
     print("开始修复数据...")
@@ -259,6 +286,14 @@ def main():
     # 修复 docs/data/index.json
     if os.path.exists('docs/data/index.json'):
         fix_index_json('docs/data/index.json')
+    
+    # 修复 data/history.json
+    if os.path.exists('data/history.json'):
+        fix_history_json('data/history.json')
+    
+    # 修复 docs/data/history.json
+    if os.path.exists('docs/data/history.json'):
+        fix_history_json('docs/data/history.json')
     
     # 修复 articles 目录
     if os.path.exists('articles'):

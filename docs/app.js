@@ -35,39 +35,64 @@ const MAX_SEARCH_HISTORY = 10;
 const JOURNAL_GROUPS = {
     'top': {
         name: '顶刊',
-        patterns: ['nature', 'science', 'physical review letters', 'prl', 'phys. rev. lett', 'phys. rev. x', 'prx', 'journal of the american chemical society', 'jacs', 'angewandte', 'pnas', 'proceedings of the national academy', 'advanced materials', 'adv. mater', 'editor', 'suggestion', 'physics news', 'physics today', 'rev. mod. phys', 'annual reviews']
+        patterns: [
+            // Nature系列顶刊
+            'nature', 'nat. commun', 'nat commun', 'nat. mater', 'nat mater',
+            'nat. phys', 'nat phys', 'nat. chem', 'nat chem', 'nat. nanotechnol',
+            'nat nanotechnol', 'nat. electron', 'nat electron', 'nat. energy',
+            'nat energy', 'nat. rev', 'nat rev', 'nat. methods', 'nat methods',
+            'nat. biotechnol', 'nat biotechnol', 'nat. cell biol', 'nat. struct',
+            // Science系列
+            'science', 'sci. adv', 'sci adv', 'science advances',
+            // APS顶刊
+            'physical review letters', 'prl', 'phys. rev. lett', 'phys rev lett',
+            'phys. rev. x', 'prx', 'rev. mod. phys', 'rev mod phys',
+            // ACS顶刊
+            'journal of the american chemical society', 'jacs', 'j. am. chem. soc',
+            // Wiley顶刊
+            'angewandte', 'angew. chem', 'angew chem',
+            'advanced materials', 'adv. mater', 'adv mater',
+            // 其他顶刊
+            'pnas', 'proceedings of the national academy',
+            'annual review', 'annu. rev',
+            'natl. sci. rev', 'national science review',
+            'sci. bull', 'science bulletin',
+            'nat. mach. intell', 'nat. comput. sci',
+            // 编辑推荐/新闻
+            'editor', 'suggestion', 'physics news', 'physics today'
+        ]
     },
     'nature': {
         name: 'Nature系列',
-        patterns: ['nature', 'npj']
+        patterns: ['nature', 'nat.', 'nat ', 'npj', 'natl']
     },
     'aps': {
         name: 'APS系列',
-        patterns: ['physical review', 'prl', 'prx', 'prb', 'pr materials', 'pr research', 'pr energy', 'pr applied', 'prx energy', 'physics', 'phys. rev.', 'rev. mod. phys']
+        patterns: ['physical review', 'prl', 'prx', 'prb', 'pr materials', 'pr research', 'pr energy', 'pr applied', 'prx energy', 'physics', 'phys. rev.', 'phys rev', 'rev. mod. phys']
     },
     'acs': {
         name: 'ACS系列',
-        patterns: ['acs', 'journal of the american chemical', 'jacs', 'nano letters', 'chemical reviews', 'j. phys. chem', 'j. chem. theory']
+        patterns: ['acs', 'journal of the american chemical', 'jacs', 'j. am. chem', 'nano letters', 'nano lett', 'chemical reviews', 'chem. rev', 'j. phys. chem', 'j. chem. theory', 'j chem theory']
     },
     'wiley': {
         name: 'Wiley系列',
-        patterns: ['wiley', 'angewandte', 'angew', 'advanced materials', 'adv. mater', 'adv. funct', 'advanced functional', 'advanced energy', 'advanced science', 'small', 'chemphyschem']
+        patterns: ['wiley', 'angewandte', 'angew', 'advanced materials', 'adv. mater', 'adv mater', 'adv. funct', 'adv funct', 'advanced functional', 'advanced energy', 'adv. energy', 'advanced science', 'adv. sci', 'small', 'chemphyschem']
     },
     'rsc': {
         name: 'RSC系列',
-        patterns: ['rsc', 'royal society of chemistry', 'digital discovery', 'chem. sci', 'chemical science']
+        patterns: ['rsc', 'royal society of chemistry', 'digital discovery', 'chem. sci', 'chem sci', 'chemical science', 'nanoscale', 'j. mater. chem']
     },
     'elsevier': {
         name: 'Elsevier系列',
-        patterns: ['computational materials science', 'computer physics communications', 'materials today', 'sciencedirect', 'science bulletin']
+        patterns: ['computational materials science', 'comput. mater. sci', 'computer physics communications', 'comput. phys. commun', 'materials today', 'mater. today']
     },
     'iop': {
         name: 'IOP系列',
-        patterns: ['machine learning: science and technology', 'iop', 'journal of physics']
+        patterns: ['machine learning: science and technology', 'mach. learn.: sci. technol', 'iop', 'journal of physics', 'j. phys.:', 'nanotechnology', '2d mater']
     },
     'preprint': {
         name: '预印本',
-        patterns: ['arxiv', 'chemrxiv', 'researchsquare', 'preprint']
+        patterns: ['arxiv', 'chemrxiv', 'researchsquare', 'preprint', 'biorxiv', 'medrxiv']
     }
 };
 
@@ -509,13 +534,34 @@ function setCategory(category) {
 // 期刊筛选
 // ========================================
 
+// 需要精确匹配的模式（避免 "ScienceDirect" 匹配 "science"）
+const EXACT_MATCH_PATTERNS = ['science', 'nature', 'physics', 'small'];
+
+// 排除列表：这些名称不应该被归类为顶刊
+const EXCLUSION_PATTERNS = ['sciencedirect', 'springer nature', 'nature publishing'];
+
 function matchesJournalGroup(journal, groupKey) {
     if (!journal || !JOURNAL_GROUPS[groupKey]) return false;
 
     const journalLower = journal.toLowerCase();
+
+    // 检查是否在排除列表中
+    if (groupKey === 'top' && EXCLUSION_PATTERNS.some(excl => journalLower.includes(excl))) {
+        return false;
+    }
+
     const patterns = JOURNAL_GROUPS[groupKey].patterns;
 
-    return patterns.some(pattern => journalLower.includes(pattern));
+    return patterns.some(pattern => {
+        // 对于需要精确匹配的短模式，使用单词边界匹配
+        if (EXACT_MATCH_PATTERNS.includes(pattern)) {
+            // 使用正则表达式进行单词边界匹配
+            const regex = new RegExp(`(^|[^a-z])${pattern}($|[^a-z])`, 'i');
+            return regex.test(journalLower);
+        }
+        // 其他模式使用普通的 includes 匹配
+        return journalLower.includes(pattern);
+    });
 }
 
 // 获取期刊所属的分组（优先返回top分组）
