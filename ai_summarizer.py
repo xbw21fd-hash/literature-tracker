@@ -289,36 +289,68 @@ class AISummarizer:
         
         articles_str = '\n'.join(articles_text)
         
-        return f"""你是一位专业的科研文献分析助手。请分析以下{date}的{len(articles)}篇新文献，生成一份结构化的每日摘要报告。
+        return f"""你是一位专业的计算材料科学文献分析助手。请分析以下{date}的{len(articles)}篇新文献，生成一份结构化的每日摘要报告。
+
+**重点关注领域**（请优先分析和推荐）：
+1. 机器学习/深度学习在材料科学中的应用（ML势函数、性能预测、材料设计等）
+2. 铁性材料研究（铁电ferroelectric、铁磁ferromagnetic、多铁multiferroic、压电piezoelectric等）
+3. 上述两个领域的交叉研究（如ML预测铁电性能、神经网络势函数模拟铁性材料等）
 
 文献列表:
 {articles_str}
 
 请按以下格式输出（使用JSON格式）:
 {{
-    "overview": "今日文献总览，包括总数、主要研究方向等（2-3句话）",
-    "trends": "研究热点和趋势分析（3-5句话）",
-    "highlights": [
+    "overview": "今日文献总览，包括总数、主要研究方向，特别指出ML和铁性相关文献数量（2-3句话）",
+    "trends": "研究热点和趋势分析，重点关注ML和铁性领域的最新进展（3-5句话）",
+    "ml_highlights": [
         {{
             "title": "文献标题",
             "journal": "期刊名",
             "link": "原文链接",
-            "summary": "一句话核心要点（不超过50字）",
+            "method": "具体ML方法（如GNN/Transformer/MLIP等）",
+            "summary": "核心创新点（不超过50字）",
             "reason": "推荐理由（不超过30字）"
         }}
     ],
-    "by_topic": {{
-        "主题1": ["文献序号1", "文献序号2"],
-        "主题2": ["文献序号3"]
+    "ferro_highlights": [
+        {{
+            "title": "文献标题",
+            "journal": "期刊名",
+            "link": "原文链接",
+            "material": "研究材料体系",
+            "summary": "核心发现（不超过50字）",
+            "reason": "推荐理由（不超过30字）"
+        }}
+    ],
+    "other_highlights": [
+        {{
+            "title": "文献标题",
+            "journal": "期刊名",
+            "link": "原文链接",
+            "summary": "核心要点（不超过50字）",
+            "reason": "推荐理由（不超过30字）"
+        }}
+    ],
+    "by_method": {{
+        "机器学习": ["文献序号"],
+        "第一性原理": ["文献序号"],
+        "分子动力学": ["文献序号"],
+        "其他": ["文献序号"]
     }}
 }}
 
+选择highlights的标准：
+1. ml_highlights: 选择3-5篇机器学习相关的重要文献
+2. ferro_highlights: 选择3-5篇铁性材料相关的重要文献（如有ML+铁性交叉研究，同时放入两个列表）
+3. other_highlights: 选择2-3篇其他值得关注的文献
+4. 优先推荐方法创新性强、解决重要问题、来自高影响力期刊的文献
+
 要求:
-1. highlights中选择5-10篇最值得关注的文献
-2. 每篇文献的summary要精炼准确
-3. by_topic按研究主题分组
-4. 确保所有链接都是原始文献链接
-5. 使用中文输出"""
+1. 如果某类文献数量不足，可以减少该类highlights数量
+2. summary要突出创新点，不要简单复述摘要
+3. 确保所有链接都是原始文献链接
+4. 使用中文输出"""
     
     def _parse_response(self, response: str, articles: List[Dict], date: str) -> Dict:
         """解析AI响应"""
@@ -331,13 +363,20 @@ class AISummarizer:
             else:
                 raise ValueError("无法解析JSON")
             
-            # 补充完整信息
+            # 补充完整信息 - 支持新格式（ml_highlights, ferro_highlights, other_highlights）
             return {
                 'date': date,
                 'total': len(articles),
-                'ai_related': sum(1 for a in articles if self._is_ai_related(a)),
+                'ai_related': sum(1 for a in articles if self._is_ml_related(a)),
+                'ferro_related': sum(1 for a in articles if self._is_ferro_related(a)),
                 'overview': data.get('overview', ''),
                 'trends': data.get('trends', ''),
+                # 新格式字段
+                'ml_highlights': data.get('ml_highlights', []),
+                'ferro_highlights': data.get('ferro_highlights', []),
+                'other_highlights': data.get('other_highlights', []),
+                'by_method': data.get('by_method', {}),
+                # 兼容旧格式
                 'highlights': data.get('highlights', []),
                 'by_topic': data.get('by_topic', {}),
                 'articles': articles,
@@ -348,19 +387,49 @@ class AISummarizer:
             print(f"解析响应失败: {e}")
             return self.fallback_summary(articles, date)
     
-    def _is_ai_related(self, article: Dict) -> bool:
-        """判断是否AI相关"""
+    def _is_ml_related(self, article: Dict) -> bool:
+        """判断是否机器学习相关"""
         text = ' '.join([
             article.get('title', ''),
-            article.get('abstract', '')
+            article.get('title_zh', ''),
+            article.get('abstract', ''),
+            article.get('abstract_zh', '')
         ]).lower()
         
-        ai_keywords = ['machine', 'learn', 'neural', 'network', 'deep learning', 'ai']
-        return any(kw in text for kw in ai_keywords)
+        ml_keywords = [
+            'machine learn', 'deep learn', 'neural network', 'graph neural',
+            'transformer', 'gnn', 'mlip', 'ml potential', 'machine-learn',
+            'artificial intelligence', 'ai-driven', 'data-driven',
+            '机器学习', '深度学习', '神经网络', '人工智能'
+        ]
+        return any(kw in text for kw in ml_keywords)
+    
+    def _is_ferro_related(self, article: Dict) -> bool:
+        """判断是否铁性材料相关"""
+        text = ' '.join([
+            article.get('title', ''),
+            article.get('title_zh', ''),
+            article.get('abstract', ''),
+            article.get('abstract_zh', '')
+        ]).lower()
+        
+        ferro_keywords = [
+            'ferroelectric', 'ferromagnet', 'multiferroic', 'piezoelectric',
+            'antiferroelectric', 'antiferromagnet', 'magnetoelectric',
+            'polarization switch', 'domain wall', 'perovskite',
+            '铁电', '铁磁', '多铁', '压电', '反铁电', '反铁磁', '磁电'
+        ]
+        return any(kw in text for kw in ferro_keywords)
+    
+    def _is_ai_related(self, article: Dict) -> bool:
+        """判断是否AI相关（兼容旧方法）"""
+        return self._is_ml_related(article)
     
     def fallback_summary(self, articles: List[Dict], date: str) -> Dict:
         """API失败时的降级摘要"""
-        ai_count = sum(1 for a in articles if self._is_ai_related(a))
+        ml_articles = [a for a in articles if self._is_ml_related(a)]
+        ferro_articles = [a for a in articles if self._is_ferro_related(a)]
+        other_articles = [a for a in articles if not self._is_ml_related(a) and not self._is_ferro_related(a)]
         
         # 按期刊分组
         by_journal = {}
@@ -373,22 +442,56 @@ class AISummarizer:
                 'link': article.get('link', '')
             })
         
+        # 生成ML亮点
+        ml_highlights = [
+            {
+                'title': a.get('title_zh') or a.get('title', ''),
+                'journal': a.get('journal', ''),
+                'link': a.get('link', ''),
+                'method': 'ML方法',
+                'summary': (a.get('abstract_zh') or a.get('abstract', ''))[:80] + '...',
+                'reason': '机器学习相关研究'
+            }
+            for a in ml_articles[:5]
+        ]
+        
+        # 生成铁性材料亮点
+        ferro_highlights = [
+            {
+                'title': a.get('title_zh') or a.get('title', ''),
+                'journal': a.get('journal', ''),
+                'link': a.get('link', ''),
+                'material': '铁性材料',
+                'summary': (a.get('abstract_zh') or a.get('abstract', ''))[:80] + '...',
+                'reason': '铁性材料相关研究'
+            }
+            for a in ferro_articles[:5]
+        ]
+        
+        # 生成其他亮点
+        other_highlights = [
+            {
+                'title': a.get('title_zh') or a.get('title', ''),
+                'journal': a.get('journal', ''),
+                'link': a.get('link', ''),
+                'summary': (a.get('abstract_zh') or a.get('abstract', ''))[:80] + '...',
+                'reason': '新发表文献'
+            }
+            for a in other_articles[:3]
+        ]
+        
         return {
             'date': date,
             'total': len(articles),
-            'ai_related': ai_count,
-            'overview': f"今日共收录{len(articles)}篇文献，其中AI相关{ai_count}篇。",
-            'trends': '（AI分析暂不可用，显示基础统计）',
-            'highlights': [
-                {
-                    'title': a.get('title_zh') or a.get('title', ''),
-                    'journal': a.get('journal', ''),
-                    'link': a.get('link', ''),
-                    'summary': (a.get('abstract_zh') or a.get('abstract', ''))[:100] + '...',
-                    'reason': '新发表文献'
-                }
-                for a in articles[:10]
-            ],
+            'ai_related': len(ml_articles),
+            'ferro_related': len(ferro_articles),
+            'overview': f"今日共收录{len(articles)}篇文献，其中机器学习相关{len(ml_articles)}篇，铁性材料相关{len(ferro_articles)}篇。",
+            'trends': '（AI分析暂不可用，显示基于关键词的自动分类）',
+            'ml_highlights': ml_highlights,
+            'ferro_highlights': ferro_highlights,
+            'other_highlights': other_highlights,
+            # 兼容旧格式
+            'highlights': ml_highlights + ferro_highlights + other_highlights,
             'by_journal': by_journal,
             'articles': articles,
             'generated_by': 'fallback'
@@ -410,17 +513,41 @@ class AISummarizer:
         
         filepath = os.path.join(output_dir, f"{date}.html")
         
-        # 生成高亮文献HTML
-        highlights_html = ''
-        for h in summary.get('highlights', []):
-            highlights_html += f'''
+        # 生成ML文献HTML
+        def generate_highlight_cards(highlights, category_icon="⭐"):
+            html = ''
+            for h in highlights:
+                method_or_material = h.get('method', '') or h.get('material', '')
+                extra_info = f'<span class="highlight-tag">{method_or_material}</span>' if method_or_material else ''
+                html += f'''
             <div class="highlight-card">
                 <h4><a href="{h.get('link', '#')}" target="_blank">{h.get('title', '')}</a></h4>
-                <div class="highlight-meta">📚 {h.get('journal', '')}</div>
+                <div class="highlight-meta">📚 {h.get('journal', '')} {extra_info}</div>
                 <p class="highlight-summary">{h.get('summary', '')}</p>
                 <div class="highlight-reason">💡 {h.get('reason', '')}</div>
             </div>
             '''
+            return html
+        
+        # 兼容旧格式和新格式
+        ml_highlights = summary.get('ml_highlights', [])
+        ferro_highlights = summary.get('ferro_highlights', [])
+        other_highlights = summary.get('other_highlights', [])
+        old_highlights = summary.get('highlights', [])
+        
+        # 如果是旧格式，使用旧的highlights
+        if not ml_highlights and not ferro_highlights and old_highlights:
+            ml_html = generate_highlight_cards(old_highlights)
+            ferro_html = ''
+            other_html = ''
+        else:
+            ml_html = generate_highlight_cards(ml_highlights)
+            ferro_html = generate_highlight_cards(ferro_highlights)
+            other_html = generate_highlight_cards(other_highlights)
+        
+        # 计算各类文献数量 - 使用summary中的统计数据
+        ml_count = summary.get('ai_related', 0)
+        ferro_count = summary.get('ferro_related', 0)
         
         # 生成完整HTML
         html = f'''<!DOCTYPE html>
@@ -443,7 +570,7 @@ class AISummarizer:
         .summary-stats {{
             display: flex;
             justify-content: center;
-            gap: 30px;
+            gap: 20px;
             margin: 20px 0;
             flex-wrap: wrap;
         }}
@@ -452,6 +579,12 @@ class AISummarizer:
             padding: 15px 25px;
             border-radius: 10px;
             text-align: center;
+        }}
+        .stat-box.ml {{
+            border-left: 4px solid #10b981;
+        }}
+        .stat-box.ferro {{
+            border-left: 4px solid #f59e0b;
         }}
         .stat-value {{
             font-size: 2em;
@@ -472,6 +605,12 @@ class AISummarizer:
         .section h3 {{
             margin-bottom: 15px;
             color: var(--text-primary);
+        }}
+        .section.ml-section {{
+            border-left: 4px solid #10b981;
+        }}
+        .section.ferro-section {{
+            border-left: 4px solid #f59e0b;
         }}
         .highlight-card {{
             border-left: 4px solid var(--accent-primary);
@@ -494,6 +633,14 @@ class AISummarizer:
             font-size: 0.85em;
             color: var(--text-muted);
             margin-bottom: 8px;
+        }}
+        .highlight-tag {{
+            background: var(--accent-primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-left: 8px;
         }}
         .highlight-summary {{
             color: var(--text-secondary);
@@ -534,9 +681,13 @@ class AISummarizer:
                 <div class="stat-value">{summary.get('total', 0)}</div>
                 <div class="stat-label">总文献数</div>
             </div>
-            <div class="stat-box">
-                <div class="stat-value">{summary.get('ai_related', 0)}</div>
-                <div class="stat-label">AI相关</div>
+            <div class="stat-box ml">
+                <div class="stat-value">{ml_count}</div>
+                <div class="stat-label">🤖 ML相关</div>
+            </div>
+            <div class="stat-box ferro">
+                <div class="stat-value">{ferro_count}</div>
+                <div class="stat-label">⚡ 铁性相关</div>
             </div>
         </div>
         
@@ -550,10 +701,11 @@ class AISummarizer:
             <p>{summary.get('trends', '')}</p>
         </div>
         
-        <div class="section">
-            <h3>⭐ 重点推荐</h3>
-            {highlights_html}
-        </div>
+        {'<div class="section ml-section"><h3>🤖 机器学习亮点</h3>' + ml_html + '</div>' if ml_html else ''}
+        
+        {'<div class="section ferro-section"><h3>⚡ 铁性材料亮点</h3>' + ferro_html + '</div>' if ferro_html else ''}
+        
+        {'<div class="section"><h3>📚 其他推荐</h3>' + other_html + '</div>' if other_html else ''}
         
         <div class="generated-by">
             由 {summary.get('generated_by', 'AI')} 生成 | {datetime.now().strftime('%Y-%m-%d %H:%M')}
