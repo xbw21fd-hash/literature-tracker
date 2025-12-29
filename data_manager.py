@@ -132,6 +132,8 @@ link: "{article.link}"
     
     def generate_index_json(self) -> str:
         """生成索引JSON文件供网页使用"""
+        import config
+        
         history = self.load_history()
         favorites = self.load_favorites()
         
@@ -143,11 +145,15 @@ link: "{article.link}"
         # 按日期排序
         articles_list.sort(key=lambda x: x.get("pub_date", ""), reverse=True)
         
+        # 获取用户关键词配置
+        user_keywords = getattr(config, 'USER_KEYWORDS', {})
+        
         index_data = {
             "articles": articles_list,
             "total": len(articles_list),
             "last_update": history.get("last_update"),
             "favorites_count": len(favorites),
+            "user_keywords": user_keywords,  # 添加用户关键词配置
         }
         
         index_file = os.path.join(self.data_dir, "index.json")

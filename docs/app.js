@@ -22,6 +22,10 @@ let currentReadFilter = 'all'; // 'all' | 'unread' | 'read' | 'later'
 let currentTheme = 'light';
 let searchMode = 'normal'; // 'normal' | 'regex' | 'boolean'
 
+// 用户关键词筛选相关状态
+let userKeywords = {};  // 用户关键词配置 {用户名: [关键词列表]}
+let currentKeywordUser = 'all';  // 当前选中的用户关键词筛选
+
 const PAGE_SIZE = 50;
 const AI_KEYWORDS = ['machine', 'learn', 'neural', 'network'];
 const THEME_STORAGE_KEY = 'literature_theme';
@@ -29,6 +33,7 @@ const FAVORITES_STORAGE_KEY = 'literature_favorites';
 const READ_STORAGE_KEY = 'literature_read';
 const READ_LATER_STORAGE_KEY = 'literature_read_later';
 const SEARCH_HISTORY_KEY = 'literature_search_history';
+const KEYWORD_USER_STORAGE_KEY = 'literature_keyword_user';  // 用户关键词选择持久化
 const MAX_SEARCH_HISTORY = 10;
 
 // 期刊分组定义
@@ -460,6 +465,12 @@ async function loadArticles() {
 
         allArticles = data.articles || [];
 
+        // 加载用户关键词配置
+        userKeywords = data.user_keywords || {};
+
+        // 加载用户关键词选择（在填充选择器之前）
+        loadKeywordUser();
+
         // 合并本地状态
         allArticles.forEach(article => {
             article.is_favorite = favorites.has(article.id);
@@ -470,6 +481,9 @@ async function loadArticles() {
 
         // 填充期刊下拉列表
         populateJournalList();
+
+        // 填充用户关键词选择器
+        populateKeywordUserSelector();
 
         updateStats(data);
         updateReadLaterCount();
@@ -610,6 +624,145 @@ function filterByJournal(articles, filterValue) {
 
     // 单独期刊筛选
     return articles.filter(a => a.journal === filterValue);
+}
+
+// ========================================
+// 用户关键词筛选
+// ========================================
+
+/**
+ * 按用户关键词筛选文章
+ * @param {Array} articles - 文章列表
+ * @param {string} userName - 用户名，'all' 表示不筛选
+ * @returns {Array} 筛选后的文章列表
+ */
+function filterByUserKeywords(articles, userName) {
+    if (userName === 'all' || !userKeywords[userName]) {
+        return articles;
+    }
+
+    const keywords = userKeywords[userName];
+    if (!keywords || keywords.length === 0) {
+        return articles;
+    }
+
+    return articles.filter(article => {
+        const searchText = [
+            article.title || '',
+            article.title_zh || '',
+            article.abstract || '',
+            article.abstract_zh || ''
+        ].join(' ').toLowerCase();
+
+        return keywords.some(keyword =>
+            searchText.includes(keyword.toLowerCase())
+        );
+    });
+}
+
+/**
+ * 加载用户关键词选择
+ */
+function loadKeywordUser() {
+    try {
+        const saved = localStorage.getItem(KEYWORD_USER_STORAGE_KEY);
+        if (saved && (saved === 'all' || userKeywords[saved])) {
+            currentKeywordUser = saved;
+        } else {
+            currentKeywordUser = 'all';
+        }
+    } catch (e) {
+        console.warn('无法加载用户关键词选择:', e);
+        currentKeywordUser = 'all';
+    }
+}
+
+/**
+ * 保存用户关键词选择
+ */
+function saveKeywordUser() {
+    try {
+        localStorage.setItem(KEYWORD_USER_STORAGE_KEY, currentKeywordUser);
+    } catch (e) {
+        console.warn('无法保存用户关键词选择:', e);
+    }
+}
+
+/**
+ * 设置当前用户关键词筛选
+ * @param {string} userName - 用户名
+ */
+function setKeywordUser(userName) {
+    currentKeywordUser = userName;
+    saveKeywordUser();
+
+    // 更新下拉框选中状态
+    const select = document.getElementById('keywordUserFilter');
+    if (select) {
+        select.value = userName;
+    }
+
+    filterArticles();
+}
+
+/**
+ * 填充用户关键词选择器
+ */
+function populateKeywordUserSelector() {
+    const select = document.getElementById('keywordUserFilter');
+    if (!select) return;
+
+    // 清空现有选项（保留第一个"全部"选项）
+    const allOption = select.querySelector('option[value="all"]');
+    select.innerHTML = '';
+
+    // 添加"全部"选项
+    const defaultOption = document.createElement('option');
+    defaultOption.value = 'all';
+    defaultOption.textContent = '全部文献';
+    select.appendChild(defaultOption);
+
+    // 添加用户选项
+    for (const [userName, keywords] of Object.entries(userKeywords)) {
+        const option = document.createElement('option');
+        option.value = userName;
+        option.textContent = `${userName} (${keywords.length}个关键词)`;
+        select.appendChild(option);
+    }
+
+    // 恢复之前的选择
+    select.value = currentKeywordUser;
+}
+
+/**
+ * 转义正则表达式特殊字符
+ */
+function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * 根据当前用户关键词高亮文本
+ */
+function highlightUserKeywords(text) {
+    if (!text) return '';
+
+    // 如果没有选择用户关键词筛选，使用原有的 AI 关键词高亮
+    if (currentKeywordUser === 'all' || !userKeywords[currentKeywordUser]) {
+        return highlightKeywords(text);
+    }
+
+    const keywords = userKeywords[currentKeywordUser];
+    if (!keywords || keywords.length === 0) {
+        return escapeHtmlPreservingLatex(text);
+    }
+
+    const escaped = escapeHtmlPreservingLatex(text);
+    const pattern = new RegExp(
+        `(${keywords.map(k => escapeRegex(k)).join('|')})`,
+        'gi'
+    );
+    return escaped.replace(pattern, '<span class="keyword-highlight">$1</span>');
 }
 
 function populateJournalList() {
@@ -858,6 +1011,9 @@ function filterArticles() {
     // 应用期刊筛选
     filteredArticles = filterByJournal(filteredArticles, journalFilter);
 
+    // 应用用户关键词筛选
+    filteredArticles = filterByUserKeywords(filteredArticles, currentKeywordUser);
+
     currentPage = 1;
     focusedIndex = -1;
     sortArticles();
@@ -994,9 +1150,9 @@ function createArticleCard(article, index) {
     const authors = (article.authors || []).slice(0, 3).join(', ');
     const authorsMore = article.authors && article.authors.length > 3 ? ' et al.' : '';
 
-    const titleZhHighlighted = highlightKeywords(article.title_zh || article.title);
-    const titleEnHighlighted = highlightKeywords(article.title);
-    const abstractZhHighlighted = highlightKeywords(article.abstract_zh);
+    const titleZhHighlighted = highlightUserKeywords(article.title_zh || article.title);
+    const titleEnHighlighted = highlightUserKeywords(article.title);
+    const abstractZhHighlighted = highlightUserKeywords(article.abstract_zh);
 
     return `
         <div class="article-card ${isExpanded ? 'expanded' : ''} ${isFav ? 'favorite' : ''} ${isRead ? 'read' : ''} ${isLater ? 'read-later' : ''} ${isFocused ? 'focused' : ''} journal-group-${journalGroup}" 
@@ -1285,7 +1441,7 @@ function showPreview(event, articleId) {
             ? article.abstract_zh.substring(0, 200) + '...'
             : article.abstract_zh;
 
-        tooltipElement.innerHTML = highlightKeywords(preview);
+        tooltipElement.innerHTML = highlightUserKeywords(preview);
         tooltipElement.classList.add('visible');
 
         const rect = event.target.getBoundingClientRect();

@@ -66,17 +66,37 @@ RSS_FEEDS = [
     "http://feeds.aps.org/rss/recent/prapplied.xml",  # Physical Review Applied
 ]
 
-# 关键词列表（用于筛选文献）
-KEYWORDS = [
-    "ferro",
-    "machine",
-    "learn",
-    "magne",
-    "neural",
-    "network",
-    "potential",
-    "hamiltonian",
-]
+# 多用户关键词配置
+# 每个用户可以定义自己的关键词列表，用于在网页上筛选相关文献
+USER_KEYWORDS = {
+    "于宏宇": [
+        "ferro",
+        "machine",
+        "learn",
+        "magne",
+        "neural",
+        "network",
+        "potential",
+        "hamiltonian",
+    ],
+    "朱海燕": [
+        "twist",
+        "magne",
+        "moire",
+        "multiferroics",
+        "magnetoelectric coupling",
+        "CrSBr",
+        "altermagnet",
+        "ferro",
+        "CrTe",
+        "magnetic nanotube",
+        "topological curvature",
+        "curvature-driven",
+    ],
+}
+
+# 关键词列表（保持向后兼容，使用于宏宇的关键词）
+KEYWORDS = USER_KEYWORDS.get("于宏宇", [])
 
 import os
 
