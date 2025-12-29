@@ -93,6 +93,15 @@ USER_KEYWORDS = {
         "topological curvature",
         "curvature-driven",
     ],
+    "戴智浩": [
+        "symmetry",
+        "group theory",
+        "altermagnet",
+        "ferromagnetoelectric",
+        "multiferroics",
+        "compensated magnet",
+        "unconventional magnet",
+    ],
 }
 
 # 关键词列表（保持向后兼容，使用于宏宇的关键词）
