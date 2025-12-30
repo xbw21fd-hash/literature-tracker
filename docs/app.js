@@ -1157,6 +1157,11 @@ function createArticleCard(article, index) {
     // 判断是否有英文标题（且与中文标题不同）
     const hasEnglishTitle = article.title && article.title_zh && article.title !== article.title_zh;
 
+    // 摘要预览（截取前150字符用于网格布局）
+    const abstractPreview = article.abstract_zh ?
+        (article.abstract_zh.length > 150 ? article.abstract_zh.substring(0, 150) + '...' : article.abstract_zh) : '';
+    const abstractPreviewHighlighted = highlightUserKeywords(abstractPreview);
+
     return `
         <div class="article-card ${isExpanded ? 'expanded' : ''} ${isFav ? 'favorite' : ''} ${isRead ? 'read' : ''} ${isLater ? 'read-later' : ''} ${isFocused ? 'focused' : ''} journal-group-${journalGroup}" 
              id="article-${article.id}"
@@ -1178,12 +1183,17 @@ function createArticleCard(article, index) {
                     </div>
                     ` : ''}
                     <div class="card-meta">
-                        <span>📖 ${escapeHtml(article.journal || '未知期刊')}</span>
-                        <span>📅 ${article.pub_date || '未知日期'}</span>
+                        <span class="meta-journal">📖 ${escapeHtml(article.journal || '未知期刊')}</span>
+                        <span class="meta-date">📅 ${article.pub_date || '未知日期'}</span>
                         <span class="ai-tag ${isAI ? 'ai-related' : 'ai-unrelated'}">
                             ${isAI ? '🤖 AI' : '📚 非AI'}
                         </span>
                     </div>
+                    ${abstractPreview ? `
+                    <div class="card-abstract-preview">
+                        ${abstractPreviewHighlighted}
+                    </div>
+                    ` : ''}
                 </div>
                 <div class="card-actions">
                     <button class="read-btn ${isRead ? 'is-read' : ''}" 

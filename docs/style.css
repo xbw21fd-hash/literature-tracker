@@ -1226,6 +1226,11 @@ header h1 {
         -webkit-box-orient: vertical;
     }
 
+    /* 移动端摘要预览 - 列表布局默认隐藏 */
+    .card-abstract-preview {
+        display: none;
+    }
+
     /* 移动端卡片操作按钮 - 放在底部一行 */
     .card-actions {
         width: 100%;
@@ -1268,6 +1273,12 @@ header h1 {
 
     .card-meta span {
         white-space: nowrap;
+    }
+
+    /* 移动端元信息更紧凑 */
+    .card-meta .meta-journal,
+    .card-meta .meta-date {
+        font-size: 11px;
     }
 
     /* AI标签更紧凑 */
@@ -2052,22 +2063,27 @@ header h1 {
     color: white;
 }
 
-/* 布局样式 - 列表 */
+/* 布局样式 - 列表（默认：完整信息展示） */
 .article-list.layout-list {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
 }
 
-/* 布局样式 - 网格 (优化版) */
+/* 列表布局：摘要预览默认隐藏 */
+.article-list.layout-list .card-abstract-preview {
+    display: none;
+}
+
+/* 布局样式 - 网格（卡片式：带摘要预览的瀑布流） */
 .article-list.layout-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: var(--spacing-lg);
 }
 
 .article-list.layout-grid .article-card {
-    height: 100%;
+    height: auto;
     display: flex;
     flex-direction: column;
     border: 1px solid var(--border-color);
@@ -2082,7 +2098,7 @@ header h1 {
 }
 
 .article-list.layout-grid .card-header {
-    padding: var(--spacing-lg);
+    padding: var(--spacing-md);
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-sm);
@@ -2096,15 +2112,28 @@ header h1 {
     flex-direction: column;
 }
 
+/* 网格布局：显示摘要预览 */
+.article-list.layout-grid .card-abstract-preview {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-top: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: var(--bg-primary);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--accent-primary);
+}
+
 .article-list.layout-grid .card-actions {
     order: 2;
     justify-content: space-between;
-    padding-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
     border-top: 1px solid var(--border-color);
     margin-top: auto;
     background: rgba(0, 0, 0, 0.02);
-    margin: var(--spacing-md) calc(-1 * var(--spacing-lg)) calc(-1 * var(--spacing-lg));
-    padding: var(--spacing-sm) var(--spacing-lg);
+    margin: var(--spacing-sm) calc(-1 * var(--spacing-md)) calc(-1 * var(--spacing-md));
+    padding: var(--spacing-sm) var(--spacing-md);
 }
 
 [data-theme="dark"] .article-list.layout-grid .card-actions {
@@ -2112,14 +2141,10 @@ header h1 {
 }
 
 .article-list.layout-grid .card-title-zh {
-    font-size: 1.05em;
+    font-size: 1em;
     font-weight: 600;
     line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
 }
 
 .article-list.layout-grid .card-title-zh a {
@@ -2132,18 +2157,21 @@ header h1 {
     color: var(--accent-primary);
 }
 
+/* 网格布局：英文标题预览隐藏，节省空间 */
+.article-list.layout-grid .card-title-en-preview {
+    display: none;
+}
+
 .article-list.layout-grid .card-meta {
-    font-size: 12px;
+    font-size: 11px;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--spacing-sm);
-    margin-top: auto;
-    padding-top: var(--spacing-sm);
+    gap: var(--spacing-xs);
 }
 
 .article-list.layout-grid .card-meta span {
-    padding: 4px 8px;
+    padding: 2px 6px;
     background: rgba(0, 0, 0, 0.04);
     border-radius: var(--radius-sm);
     white-space: nowrap;
@@ -2166,49 +2194,108 @@ header h1 {
 }
 
 .article-list.layout-grid .card-details-inner {
-    padding: var(--spacing-md) var(--spacing-lg);
+    padding: var(--spacing-md);
 }
 
-/* 布局样式 - 紧凑 */
+/* 布局样式 - 紧凑（极简：只显示标题和关键信息） */
 .article-list.layout-compact {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: 2px;
 }
 
 .article-list.layout-compact .article-card {
-    box-shadow: var(--shadow-sm);
-    border-radius: var(--radius-md);
+    box-shadow: none;
+    border-radius: 0;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    background: transparent;
 }
 
 .article-list.layout-compact .article-card:hover {
-    transform: translateX(4px);
+    transform: none;
+    background: var(--bg-card-hover);
+}
+
+.article-list.layout-compact .article-card::before {
+    display: none;
 }
 
 .article-list.layout-compact .card-header {
     padding: var(--spacing-sm) var(--spacing-md);
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.article-list.layout-compact .card-main {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex-wrap: wrap;
 }
 
 .article-list.layout-compact .card-title-zh {
-    font-size: 0.9em;
+    font-size: 0.95em;
+    font-weight: 500;
+    flex: 1;
+    min-width: 200px;
+    margin: 0;
+    /* 单行显示，超出省略 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 紧凑布局：隐藏英文标题预览和摘要预览 */
+.article-list.layout-compact .card-title-en-preview,
+.article-list.layout-compact .card-abstract-preview {
+    display: none;
 }
 
 .article-list.layout-compact .card-meta {
     font-size: 11px;
     gap: var(--spacing-sm);
+    flex-wrap: nowrap;
+}
+
+/* 紧凑布局：只显示期刊和日期 */
+.article-list.layout-compact .card-meta .ai-tag {
+    display: none;
 }
 
 .article-list.layout-compact .card-actions {
-    gap: 4px;
+    gap: 2px;
+    flex-shrink: 0;
 }
 
 .article-list.layout-compact .favorite-btn,
 .article-list.layout-compact .read-btn,
 .article-list.layout-compact .read-later-btn {
+    font-size: 12px;
+    padding: 2px 4px;
+    min-width: 28px;
+    min-height: 28px;
+}
+
+/* 紧凑布局：隐藏已读/未读文字，只显示图标 */
+.article-list.layout-compact .read-btn {
+    font-size: 0;
+}
+
+.article-list.layout-compact .read-btn::before {
+    content: '○';
     font-size: 14px;
-    padding: 2px;
-    min-width: 32px;
-    min-height: 32px;
+}
+
+.article-list.layout-compact .read-btn.is-read::before {
+    content: '✓';
+}
+
+.article-list.layout-compact .expand-icon {
+    font-size: 12px;
 }
 
 /* 布局控制按钮样式 */
@@ -2616,6 +2703,7 @@ header h1 {
     .font-btn {
         flex: 1;
         text-align: center;
+        justify-content: center;
     }
 
     .shortcut-config-btn {
@@ -2630,8 +2718,63 @@ header h1 {
         max-height: 90vh;
     }
 
+    /* 移动端网格布局：单列 */
     .article-list.layout-grid {
         grid-template-columns: 1fr;
+        gap: var(--spacing-md);
+    }
+
+    /* 移动端网格布局卡片样式 */
+    .article-list.layout-grid .card-header {
+        padding: var(--spacing-md);
+    }
+
+    .article-list.layout-grid .card-title-zh {
+        font-size: 1em;
+        line-height: 1.5;
+    }
+
+    /* 移动端网格布局：摘要预览完整显示 */
+    .article-list.layout-grid .card-abstract-preview {
+        font-size: 13px;
+        line-height: 1.6;
+        padding: var(--spacing-sm);
+        margin-top: var(--spacing-sm);
+    }
+
+    .article-list.layout-grid .card-actions {
+        padding: var(--spacing-xs) var(--spacing-md);
+    }
+
+    /* 移动端紧凑布局优化 */
+    .article-list.layout-compact .card-header {
+        padding: var(--spacing-sm);
+    }
+
+    .article-list.layout-compact .card-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--spacing-xs);
+    }
+
+    .article-list.layout-compact .card-title-zh {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        font-size: 0.9em;
+        line-height: 1.4;
+    }
+
+    .article-list.layout-compact .card-meta {
+        flex-wrap: wrap;
+    }
+
+    .article-list.layout-compact .card-actions {
+        width: 100%;
+        justify-content: flex-end;
+        margin-top: var(--spacing-xs);
+        padding-top: var(--spacing-xs);
+        border-top: 1px solid var(--border-color);
     }
 
     .preview-tooltip-enhanced {
