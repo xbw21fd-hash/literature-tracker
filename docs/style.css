@@ -2120,9 +2120,14 @@ header h1 {
     line-height: 1.6;
     margin-top: var(--spacing-sm);
     padding: var(--spacing-sm);
-    background: var(--bg-primary);
+    background: rgba(99, 102, 241, 0.08);
     border-radius: var(--radius-sm);
     border-left: 3px solid var(--accent-primary);
+}
+
+[data-theme="dark"] .article-list.layout-grid .card-abstract-preview {
+    background: rgba(129, 140, 248, 0.12);
+    color: var(--text-secondary);
 }
 
 .article-list.layout-grid .card-actions {
@@ -2189,12 +2194,36 @@ header h1 {
     display: none;
 }
 
+/* 网格布局展开时的样式修复 */
+.article-list.layout-grid .article-card.expanded {
+    grid-column: 1 / -1;
+    /* 展开时占满整行 */
+}
+
+.article-list.layout-grid .article-card.expanded .card-header {
+    flex: 0;
+}
+
+/* 网格布局展开时隐藏摘要预览，因为详情里有完整摘要 */
+.article-list.layout-grid .article-card.expanded .card-abstract-preview {
+    display: none;
+}
+
 .article-list.layout-grid .card-details {
     flex: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--transition-normal);
+}
+
+.article-list.layout-grid .article-card.expanded .card-details {
+    max-height: 800px;
 }
 
 .article-list.layout-grid .card-details-inner {
     padding: var(--spacing-md);
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
 }
 
 /* 布局样式 - 紧凑（极简：只显示标题和关键信息） */
