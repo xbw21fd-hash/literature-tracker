@@ -4,9 +4,25 @@
 
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 from rss_fetcher import Article
+
+# 北京时间时区
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def get_beijing_time():
+    """获取北京时间"""
+    return datetime.now(BEIJING_TZ)
+
+def format_beijing_time(dt=None):
+    """格式化为北京时间字符串"""
+    if dt is None:
+        dt = get_beijing_time()
+    elif dt.tzinfo is None:
+        # 如果没有时区信息，假设是UTC并转换
+        dt = dt.replace(tzinfo=timezone.utc).astimezone(BEIJING_TZ)
+    return dt.strftime('%Y-%m-%d %H:%M:%S') + ' (北京时间)'
 
 
 class DataManager:
@@ -33,8 +49,8 @@ class DataManager:
         return {"articles": {}, "last_update": None}
     
     def save_history(self, history: dict):
-        """保存历史数据"""
-        history["last_update"] = datetime.now().isoformat()
+        """保存历史数据（使用北京时间）"""
+        history["last_update"] = format_beijing_time()
         with open(self.history_file, 'w', encoding='utf-8') as f:
             json.dump(history, f, ensure_ascii=False, indent=2)
     

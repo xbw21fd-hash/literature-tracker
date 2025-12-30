@@ -1154,6 +1154,9 @@ function createArticleCard(article, index) {
     const titleEnHighlighted = highlightUserKeywords(article.title);
     const abstractZhHighlighted = highlightUserKeywords(article.abstract_zh);
 
+    // 判断是否有不同的中英文标题
+    const hasDifferentTitles = article.title_zh && article.title && article.title_zh !== article.title;
+
     return `
         <div class="article-card ${isExpanded ? 'expanded' : ''} ${isFav ? 'favorite' : ''} ${isRead ? 'read' : ''} ${isLater ? 'read-later' : ''} ${isFocused ? 'focused' : ''} journal-group-${journalGroup}" 
              id="article-${article.id}"
@@ -1169,6 +1172,11 @@ function createArticleCard(article, index) {
                     <div class="card-title-zh">
                         <a href="${article.link}" target="_blank" rel="noopener" onclick="event.stopPropagation();">${titleZhHighlighted}</a>
                     </div>
+                    ${hasDifferentTitles ? `
+                    <div class="card-title-en-preview">
+                        ${titleEnHighlighted}
+                    </div>
+                    ` : ''}
                     <div class="card-meta">
                         <span>📖 ${escapeHtml(article.journal || '未知期刊')}</span>
                         <span>📅 ${article.pub_date || '未知日期'}</span>
@@ -1441,7 +1449,14 @@ function showPreview(event, articleId) {
             ? article.abstract_zh.substring(0, 200) + '...'
             : article.abstract_zh;
 
-        tooltipElement.innerHTML = highlightUserKeywords(preview);
+        // 构建预览内容：英文标题 + 摘要预览
+        let previewHtml = '';
+        if (article.title) {
+            previewHtml += `<div class="preview-title-en">${highlightUserKeywords(article.title)}</div>`;
+        }
+        previewHtml += `<div class="preview-abstract">${highlightUserKeywords(preview)}</div>`;
+
+        tooltipElement.innerHTML = previewHtml;
         tooltipElement.classList.add('visible');
 
         const rect = event.target.getBoundingClientRect();
@@ -1865,6 +1880,20 @@ function scrollToTop() {
         top: 0,
         behavior: 'smooth'
     });
+}
+
+// ========================================
+// 快捷键提示切换
+// ========================================
+
+function toggleKeyboardHints() {
+    const hints = document.getElementById('keyboardHints');
+    const toggle = document.getElementById('keyboardHintsToggle');
+    if (hints && toggle) {
+        const isVisible = hints.style.display !== 'none';
+        hints.style.display = isVisible ? 'none' : 'block';
+        toggle.style.display = isVisible ? 'flex' : 'none';
+    }
 }
 
 // 监听滚动，显示/隐藏回到顶部按钮

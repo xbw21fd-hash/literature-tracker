@@ -5,8 +5,21 @@
 
 import os
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Tuple, Optional
+
+# 北京时间时区
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+def get_beijing_time():
+    """获取北京时间"""
+    return datetime.now(BEIJING_TZ)
+
+def format_beijing_time(dt=None):
+    """格式化为北京时间字符串"""
+    if dt is None:
+        dt = get_beijing_time()
+    return dt.strftime('%Y-%m-%d %H:%M:%S') + ' (北京时间)'
 
 
 class IncrementalIndex:
@@ -167,8 +180,8 @@ class IncrementalIndex:
         # 保存索引
         self._save_index(merged)
         
-        # 更新元数据
-        self.meta['last_update'] = datetime.now().isoformat()
+        # 更新元数据（使用北京时间）
+        self.meta['last_update'] = format_beijing_time()
         self.meta['article_ids'] = [a['id'] for a in merged if a.get('id')]
         self.meta['total_count'] = len(merged)
         self._save_meta()
@@ -181,7 +194,7 @@ class IncrementalIndex:
         
         data = {
             'total': len(articles),
-            'last_update': datetime.now().isoformat(),
+            'last_update': format_beijing_time(),
             'articles': articles
         }
         

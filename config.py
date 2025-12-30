@@ -135,7 +135,7 @@ AI_CONFIG = {
 # 去重配置
 DEDUP_CONFIG = {
     "enabled": True,  # 是否启用去重
-    "similarity_threshold": 0.9,  # 标题相似度阈值（0-1）
+    "similarity_threshold": 0.98,  # 标题相似度阈值（0-1）
 }
 
 # GitHub配置

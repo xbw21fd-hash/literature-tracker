@@ -115,32 +115,66 @@
 
         // 加载摘要列表
         async function loadDailyList() {
-            // 这里可以通过API或静态文件获取摘要列表
-            // 简单实现：检查最近30天的文件
             const container = document.getElementById('dailyList');
-            const items = [];
 
+            try {
+                // 优先尝试从索引文件加载
+                const response = await fetch('summaries.json?t=' + Date.now());
+                if (response.ok) {
+                    const data = await response.json();
+                    const summaries = data.summaries || [];
+
+                    if (summaries.length > 0) {
+                        container.innerHTML = summaries.map(item => {
+                            const date = new Date(item.date + 'T00:00:00');
+                            const weekday = date.toLocaleDateString('zh-CN', { weekday: 'long' });
+                            return `
+                                <a href="${item.file}" class="daily-item">
+                                    <div>
+                                        <div class="daily-date">📅 ${item.date}</div>
+                                        <div class="daily-meta">${weekday}</div>
+                                    </div>
+                                    <span>→</span>
+                                </a>
+                            `;
+                        }).join('');
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('索引文件不存在，尝试扫描文件');
+            }
+
+            // 降级：扫描最近30天的文件
+            const items = [];
             const today = new Date();
+            const checkPromises = [];
+
             for (let i = 0; i < 30; i++) {
                 const date = new Date(today);
                 date.setDate(date.getDate() - i);
                 const dateStr = date.toISOString().slice(0, 10);
 
-                try {
-                    const response = await fetch(`${dateStr}.html`, { method: 'HEAD' });
-                    if (response.ok) {
-                        items.push({
-                            date: dateStr,
-                            weekday: date.toLocaleDateString('zh-CN', { weekday: 'long' })
-                        });
-                    }
-                } catch (e) {
-                    // 文件不存在，跳过
-                }
+                checkPromises.push(
+                    fetch(`${dateStr}.html`, { method: 'GET', cache: 'no-cache' })
+                        .then(response => {
+                            if (response.ok) {
+                                return {
+                                    date: dateStr,
+                                    weekday: date.toLocaleDateString('zh-CN', { weekday: 'long' })
+                                };
+                            }
+                            return null;
+                        })
+                        .catch(() => null)
+                );
             }
 
-            if (items.length > 0) {
-                container.innerHTML = items.map(item => `
+            const results = await Promise.all(checkPromises);
+            const validItems = results.filter(item => item !== null);
+
+            if (validItems.length > 0) {
+                container.innerHTML = validItems.map(item => `
                     <a href="${item.date}.html" class="daily-item">
                         <div>
                             <div class="daily-date">📅 ${item.date}</div>

@@ -157,8 +157,15 @@
 
         <div id="pagination"></div>
 
-        <!-- 键盘快捷键提示 -->
-        <div class="keyboard-hints">
+        <!-- 键盘快捷键提示 - 默认隐藏，点击显示 -->
+        <button class="keyboard-hints-toggle" id="keyboardHintsToggle" onclick="toggleKeyboardHints()" title="显示快捷键">
+            ⌨️
+        </button>
+        <div class="keyboard-hints" id="keyboardHints" style="display: none;">
+            <div class="keyboard-hints-header">
+                <span>快捷键</span>
+                <button class="keyboard-hints-close" onclick="toggleKeyboardHints()">✕</button>
+            </div>
             <div><kbd>j</kbd> / <kbd>k</kbd> 上下导航</div>
             <div><kbd>Enter</kbd> 展开/折叠</div>
             <div><kbd>o</kbd> 打开原文</div>

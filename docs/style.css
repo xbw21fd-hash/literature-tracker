@@ -748,6 +748,19 @@ header h1 {
     color: var(--accent-primary);
 }
 
+/* 卡片英文标题预览（折叠状态下显示） */
+.card-title-en-preview {
+    font-size: 0.85em;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+}
+
 .card-meta {
     display: flex;
     gap: var(--spacing-md);
@@ -1010,9 +1023,59 @@ header h1 {
     border: 1px solid var(--border-color);
     font-size: 12px;
     color: var(--text-muted);
-    opacity: 0.7;
+    opacity: 0.95;
     transition: all var(--transition-normal);
     z-index: 100;
+}
+
+.keyboard-hints-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.keyboard-hints-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.keyboard-hints-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.keyboard-hints-toggle {
+    position: fixed;
+    bottom: var(--spacing-lg);
+    right: var(--spacing-lg);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    z-index: 99;
+    transition: all var(--transition-normal);
+}
+
+.keyboard-hints-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: var(--shadow-lg);
 }
 
 .keyboard-hints:hover {
@@ -1041,6 +1104,22 @@ header h1 {
     font-weight: 600;
     margin-right: 6px;
     box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+}
+
+/* 预览提示框中的英文标题样式 */
+.preview-tooltip .preview-title-en {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.preview-tooltip .preview-abstract {
+    color: var(--text-secondary);
+    line-height: 1.5;
 }
 
 /* ========================================
@@ -1145,7 +1224,8 @@ header h1 {
         margin: var(--spacing-sm) 0 0;
     }
 
-    .keyboard-hints {
+    .keyboard-hints,
+    .keyboard-hints-toggle {
         display: none;
     }
 
@@ -1669,6 +1749,7 @@ header h1 {
 
     .theme-toggle,
     .keyboard-hints,
+    .keyboard-hints-toggle,
     .pagination,
     .controls {
         display: none;
@@ -2704,7 +2785,9 @@ img.lazy-error {
 
 /* 移动端隐藏桌面元素 */
 @media (max-width: 767px) {
-    .keyboard-hints {
+
+    .keyboard-hints,
+    .keyboard-hints-toggle {
         display: none !important;
     }
 

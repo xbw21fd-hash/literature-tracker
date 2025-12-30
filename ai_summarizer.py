@@ -724,7 +724,41 @@ class AISummarizer:
             f.write(html)
         
         print(f"✅ 每日摘要已保存: {filepath}")
+        
+        # 更新摘要索引
+        self._update_summary_index(date)
+        
         return filepath
+    
+    def _update_summary_index(self, date: str):
+        """更新每日摘要索引文件"""
+        import glob
+        
+        daily_dir = 'docs/daily'
+        index_file = os.path.join(daily_dir, 'summaries.json')
+        
+        # 扫描所有摘要文件
+        summary_files = glob.glob(os.path.join(daily_dir, '????-??-??.html'))
+        summaries = []
+        
+        for f in sorted(summary_files, reverse=True):
+            filename = os.path.basename(f)
+            date_str = filename.replace('.html', '')
+            try:
+                date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+                summaries.append({
+                    'date': date_str,
+                    'weekday': date_obj.strftime('%A'),
+                    'file': filename
+                })
+            except ValueError:
+                continue
+        
+        # 保存索引
+        with open(index_file, 'w', encoding='utf-8') as f:
+            json.dump({'summaries': summaries, 'updated': datetime.now().isoformat()}, f, ensure_ascii=False, indent=2)
+        
+        print(f"✅ 摘要索引已更新: {len(summaries)} 个摘要")
 
 
 def generate_daily_summary(articles: List[Dict], date: str = None, 
