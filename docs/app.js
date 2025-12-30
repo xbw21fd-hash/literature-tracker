@@ -1154,8 +1154,8 @@ function createArticleCard(article, index) {
     const titleEnHighlighted = highlightUserKeywords(article.title);
     const abstractZhHighlighted = highlightUserKeywords(article.abstract_zh);
 
-    // 判断是否有不同的中英文标题
-    const hasDifferentTitles = article.title_zh && article.title && article.title_zh !== article.title;
+    // 判断是否有英文标题（且与中文标题不同）
+    const hasEnglishTitle = article.title && article.title_zh && article.title !== article.title_zh;
 
     return `
         <div class="article-card ${isExpanded ? 'expanded' : ''} ${isFav ? 'favorite' : ''} ${isRead ? 'read' : ''} ${isLater ? 'read-later' : ''} ${isFocused ? 'focused' : ''} journal-group-${journalGroup}" 
@@ -1172,7 +1172,7 @@ function createArticleCard(article, index) {
                     <div class="card-title-zh">
                         <a href="${article.link}" target="_blank" rel="noopener" onclick="event.stopPropagation();">${titleZhHighlighted}</a>
                     </div>
-                    ${hasDifferentTitles ? `
+                    ${hasEnglishTitle ? `
                     <div class="card-title-en-preview">
                         ${titleEnHighlighted}
                     </div>
