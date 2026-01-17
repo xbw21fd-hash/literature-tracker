@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>周报列表 - 文献追踪系统</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .weekly-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .weekly-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 16px;
+            color: white;
+            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.35);
+        }
+
+        .weekly-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2.5em;
+            font-weight: 700;
+        }
+
+        .weekly-header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+
+        .weekly-list {
+            display: grid;
+            gap: 20px;
+        }
+
+        .weekly-card {
+            background: var(--bg-card);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-color);
+            transition: all var(--transition-normal);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .weekly-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--accent-primary);
+        }
+
+        .weekly-info {
+            flex: 1;
+        }
+
+        .weekly-date {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .weekly-range {
+            color: var(--text-muted);
+            font-size: 0.95em;
+        }
+
+        .weekly-link {
+            padding: 12px 24px;
+            background: var(--gradient-accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all var(--transition-fast);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+        }
+
+        .weekly-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="weekly-container">
+        <a href="../index.html" class="back-link">← 返回主页</a>
+
+        <div class="weekly-header">
+            <h1>🔬 磁性/铁电周报</h1>
+            <p>每周总结 Nature/Science 系列的磁性/铁电领域重要工作</p>
+        </div>
+
+        <div id="weeklyList" class="weekly-list">
+            <div class="loading">加载中...</div>
+        </div>
+    </div>
+
+    <script>
+        // 主题支持
+        const theme = localStorage.getItem('literature_theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+
+        // 加载周报列表
+        async function loadWeeklies() {
+            try {
+                const response = await fetch('index.json');
+                const data = await response.json();
+
+                const container = document.getElementById('weeklyList');
+
+                if (!data.weeklies || data.weeklies.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3>暂无周报</h3>
+                            <p>周报将在每周自动生成</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = data.weeklies.map(weekly => `
+                    <div class="weekly-card">
+                        <div class="weekly-info">
+                            <div class="weekly-date">第 ${getWeekNumber(weekly.week_start)} 周</div>
+                            <div class="weekly-range">${weekly.week_start} 至 ${weekly.week_end}</div>
+                        </div>
+                        <a href="${weekly.file}" class="weekly-link">查看周报 →</a>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('加载周报列表失败:', error);
+                document.getElementById('weeklyList').innerHTML = `
+                    <div class="empty-state">
+                        <h3>加载失败</h3>
+                        <p>请稍后重试</p>
+                    </div>
+                `;
+            }
+        }
+
+        // 计算周数
+        function getWeekNumber(dateStr) {
+            const date = new Date(dateStr);
+            const startOfYear = new Date(date.getFullYear(), 0, 1);
+            const days = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
+            return Math.ceil((days + startOfYear.getDay() + 1) / 7);
+        }
+
+        // 页面加载时执行
+        loadWeeklies();
+    </script>
+</body>
+
+</html>
