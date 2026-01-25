@@ -145,6 +145,9 @@
         async function loadWeeklies() {
             try {
                 const response = await fetch('index.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const data = await response.json();
 
                 const container = document.getElementById('weeklyList');
@@ -174,7 +177,8 @@
                 document.getElementById('weeklyList').innerHTML = `
                     <div class="empty-state">
                         <h3>加载失败</h3>
-                        <p>请稍后重试</p>
+                        <p>错误信息: ${error.message}</p>
+                        <p>请检查浏览器控制台获取更多信息</p>
                     </div>
                 `;
             }
