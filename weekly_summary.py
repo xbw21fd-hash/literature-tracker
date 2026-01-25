@@ -78,7 +78,7 @@ class WeeklySummarizer:
     def __init__(self, api_key: str = None):
         """初始化周报生成器"""
         if not api_key:
-            api_key = os.environ.get('AI_API_KEY', '') or DEFAULT_AI_CONFIG.get('api_key', '')
+            api_key = (DEFAULT_AI_CONFIG.get('api_key') or '').strip()
         
         if api_key:
             self.provider = GeminiProvider(api_key)
@@ -864,6 +864,9 @@ class WeeklySummarizer:
                 article_id = f"article-{article.get('id', processed)}"
                 has_abstract_zh = bool(abstract_zh and abstract_en)  # 有中英文摘要才显示展开按钮
                 
+                # 先构建按钮HTML，避免在f-string表达式内使用反斜杠
+                toggle_btn = f'<button class="toggle-abstract-btn" onclick="toggleAbstract(\'{article_id}\')">📖 查看完整摘要</button>' if has_abstract_zh else ''
+                
                 article_html = f'''
                 <div class="article-card" id="{article_id}">
                     <div class="article-header">
@@ -880,7 +883,7 @@ class WeeklySummarizer:
                         {f'<div class="article-authors">👤 {authors_str}</div>' if authors_str else ''}
                         {f'<div class="article-ai-analysis">{ai_analysis}</div>' if ai_analysis else ''}
                         {f'<div class="article-abstract-preview">{abstract_zh[:150] if abstract_zh else (abstract_en[:150] if abstract_en else "")}...</div>' if (abstract_zh or abstract_en) else ''}
-                        {f'<button class="toggle-abstract-btn" onclick="toggleAbstract(\'{article_id}\')">📖 查看完整摘要</button>' if has_abstract_zh else ''}
+                        {toggle_btn}
                         <div class="article-abstract-full" id="{article_id}-abstract" style="display: none;">
                             {f'<div class="abstract-section"><strong>中文摘要：</strong><p>{abstract_zh}</p></div>' if abstract_zh else ''}
                             {f'<div class="abstract-section"><strong>English Abstract：</strong><p class="abstract-en">{abstract_en}</p></div>' if abstract_en else ''}
@@ -1086,6 +1089,9 @@ class WeeklySummarizer:
                 article_id = f"article-{article.get('id', i)}"
                 has_abstract_zh = bool(abstract_zh and abstract_en)  # 有中英文摘要才显示展开按钮
                 
+                # 先构建按钮HTML，避免在f-string表达式内使用反斜杠
+                toggle_btn = f'<button class="toggle-abstract-btn" onclick="toggleAbstract(\'{article_id}\')">📖 查看完整摘要</button>' if has_abstract_zh else ''
+                
                 html += f'''
                 <div class="article-card" id="{article_id}">
                     <div class="article-header">
@@ -1102,7 +1108,7 @@ class WeeklySummarizer:
                         {f'<div class="article-authors">👤 {authors_str}</div>' if authors_str else ''}
                         {f'<div class="article-ai-analysis">{ai_analysis}</div>' if ai_analysis else ''}
                         {f'<div class="article-abstract-preview">{abstract_zh[:150] if abstract_zh else (abstract_en[:150] if abstract_en else "")}...</div>' if (abstract_zh or abstract_en) else ''}
-                        {f'<button class="toggle-abstract-btn" onclick="toggleAbstract(\'{article_id}\')">📖 查看完整摘要</button>' if has_abstract_zh else ''}
+                        {toggle_btn}
                         <div class="article-abstract-full" id="{article_id}-abstract" style="display: none;">
                             {f'<div class="abstract-section"><strong>中文摘要：</strong><p>{abstract_zh}</p></div>' if abstract_zh else ''}
                             {f'<div class="abstract-section"><strong>English Abstract：</strong><p class="abstract-en">{abstract_en}</p></div>' if abstract_en else ''}
