@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Generate daily AI-filtered summary pages for GitHub Pages.
+"""Generate daily summary pages for GitHub Pages.
 
-- Input: data/ai_relevant.json (created by run_optimized_sync)
+- Input (preferred): data/index.json (keyword-filtered global index)
+  - Fallback: data/ai_relevant.json (created by run_optimized_sync)
 - Output:
   - docs/daily/YYYY-MM-DD.html
   - docs/daily/summaries.json
@@ -49,6 +50,16 @@ def load_relevant(path: str) -> List[Dict]:
     try:
         with open(path, 'r', encoding='utf-8') as f:
             return json.load(f)
+    except Exception:
+        return []
+
+def load_index_articles(path: str = "data/index.json") -> List[Dict]:
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f) or {}
+        return data.get("articles", []) or []
     except Exception:
         return []
 
@@ -103,8 +114,8 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     <div class=\"section\"><strong>总览：</strong> {overview}</div>
     <div class=\"section\"><strong>热点：</strong> {trends}</div>
     <div class=\"section\">
-      <h2>相关文献（AI筛选）</h2>
-      {items_html if items_html else '<p>今日无相关文献</p>'}
+      <h2>今日文献（每日摘要）</h2>
+      {items_html if items_html else '<p>今日无文献</p>'}
     </div>
   </div>
 </body>
@@ -138,12 +149,16 @@ def main():
     date_str = args.date or beijing_yesterday()
     ensure_dirs()
 
-    relevant = load_relevant('data/ai_relevant.json')
-    day_articles = [a for a in relevant if (a.get('pub_date') or '').startswith(date_str)]
+    # Prefer full daily list from index.json; fallback to ai_relevant.json if index is missing.
+    articles = load_index_articles("data/index.json")
+    if not articles:
+        articles = load_relevant("data/ai_relevant.json")
+
+    day_articles = [a for a in articles if (a.get("pub_date") or "").startswith(date_str)]
 
     if not day_articles:
         # still generate empty page so index shows date
-        summary = {"date": date_str, "total": 0, "overview": "今日无相关文献", "trends": "", "summaries": []}
+        summary = {"date": date_str, "total": 0, "overview": "今日无文献", "trends": "", "summaries": []}
     else:
         api_key = os.environ.get('AI_API_KEY') or os.environ.get('GEMINI_API_KEY')
         provider = os.environ.get('AI_PROVIDER') or 'gemini'
