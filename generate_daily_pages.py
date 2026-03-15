@@ -28,7 +28,9 @@ def beijing_yesterday() -> str:
 
 
 def safe_text(value: str) -> str:
-    return html.escape(value or "", quote=True)
+    if value is None:
+        return ""
+    return html.escape(str(value), quote=True)
 
 
 def safe_url(value: str) -> str:
