@@ -334,6 +334,7 @@ class AISummarizer:
                     "journal": article.get("journal", ""),
                     "authors": article.get("authors", []),
                     "pub_date": article.get("pub_date", ""),
+                    "ai_score": article.get("ai_score"),
                 })
             
             # 处理 highlights
@@ -391,6 +392,7 @@ class AISummarizer:
                     "journal": a.get("journal", ""),
                     "authors": a.get("authors", []),
                     "pub_date": a.get("pub_date", ""),
+                    "ai_score": a.get("ai_score"),
                 } for a in articles
             ],
             'generated_by': 'fallback'
