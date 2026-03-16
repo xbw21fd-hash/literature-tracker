@@ -1,0 +1,34 @@
+name: Smoke Test
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Syntax check
+        run: |
+          python -m py_compile ai_summarizer.py rss_fetcher.py generate_daily_pages.py run_optimized_sync.py translator.py
+
+      - name: Daily page renderer test
+        run: |
+          python test_daily_pages_render.py
+
