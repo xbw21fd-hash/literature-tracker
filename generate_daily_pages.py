@@ -14,6 +14,7 @@ import html
 from urllib.parse import urlparse
 from datetime import datetime, timezone, timedelta
 from typing import List, Dict
+import hashlib
 
 from ai_summarizer import AISummarizer
 
@@ -49,12 +50,27 @@ def format_authors(authors) -> str:
     if not authors:
         return ""
     if isinstance(authors, list):
-        names = [str(a) for a in authors if str(a).strip()]
+        names = [str(a).replace("\n", " ").strip() for a in authors if str(a).strip()]
         if len(names) <= 6:
             return ", ".join(names)
         return ", ".join(names[:6]) + f" 等{len(names)}位作者"
-    return str(authors)
+    return str(authors).replace("\n", " ").strip()
 
+def arxiv_badge(item: Dict) -> str:
+    """Return a readable arXiv category badge from item fields."""
+    journal = (item.get("journal") or "").strip()
+    if journal.lower() != "arxiv":
+        return ""
+    cat = (item.get("arxiv_category") or "").strip()
+    if not cat:
+        # fallback: infer from source_url
+        src = (item.get("source_url") or "").strip()
+        marker = "/rss/"
+        if marker in src:
+            cat = src.split(marker, 1)[1].strip()
+    if not cat:
+        return ""
+    return cat
 
 def load_relevant(path: str) -> List[Dict]:
     if not os.path.exists(path):
@@ -79,16 +95,24 @@ def load_index_articles(path: str = "data/index.json") -> List[Dict]:
 def ensure_dirs():
     os.makedirs('docs/daily', exist_ok=True)
 
+def digest_links(articles: List[Dict]) -> str:
+    links = sorted({(a.get("link") or "").strip() for a in articles if (a.get("link") or "").strip()})
+    raw = "\n".join(links).encode("utf-8")
+    return hashlib.md5(raw).hexdigest()
 
 def render_daily_html(date_str: str, summary: Dict) -> str:
     items = summary.get("full_list") or summary.get("summaries") or []
     def render_item(item: Dict) -> str:
         journal = safe_text(item.get("journal", ""))
+        arxiv_cat = safe_text(arxiv_badge(item))
         authors = safe_text(format_authors(item.get("authors")))
         ai_score = item.get("ai_score")
         meta_parts = []
         if journal:
-            meta_parts.append(f"<span class='meta-journal'>📖 {journal}</span>")
+            if arxiv_cat:
+                meta_parts.append(f"<span class='meta-journal'>📖 {journal} / {arxiv_cat}</span>")
+            else:
+                meta_parts.append(f"<span class='meta-journal'>📖 {journal}</span>")
         if authors:
             meta_parts.append(f"<span class='meta-authors'>👤 {authors}</span>")
         if ai_score is not None and str(ai_score).strip() != "":
@@ -164,15 +188,36 @@ def update_index(date_str: str, total: int):
     with open(index_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+def load_summary_index() -> Dict:
+    index_path = os.path.join("docs/daily", "summaries.json")
+    if not os.path.exists(index_path):
+        return {"summaries": []}
+    try:
+        with open(index_path, "r", encoding="utf-8") as f:
+            return json.load(f) or {"summaries": []}
+    except Exception:
+        return {"summaries": []}
+
+def save_summary_index(summaries: List[Dict]):
+    index_path = os.path.join("docs/daily", "summaries.json")
+    with open(index_path, "w", encoding="utf-8") as f:
+        json.dump({"summaries": summaries}, f, ensure_ascii=False, indent=2)
 
 def main():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument('--date', default=None, help='YYYY-MM-DD (Beijing). 默认使用北京时间昨天以保证日报完整。')
+    parser.add_argument('--days', default="1", help='生成最近 N 天（包含 --date 指定的日期）。用于补回漏抓/晚到数据。')
+    parser.add_argument('--force', action='store_true', help='强制重新生成（忽略 summaries.json 中的 digest/total 缓存）。')
     args = parser.parse_args()
 
     # 默认生成“北京时间昨天”的日报：与 Actions 的抓取频率 (08:00/20:00) 匹配，避免当天数据不全导致“摘要缺失/为0”。
     date_str = args.date or beijing_yesterday()
+    try:
+        days = max(1, int(str(args.days).strip()))
+    except Exception:
+        days = 1
+
     ensure_dirs()
 
     # Prefer full daily list from index.json, but always union with ai_relevant.json
@@ -180,33 +225,72 @@ def main():
     index_articles = load_index_articles("data/index.json")
     relevant_articles = load_relevant("data/ai_relevant.json")
 
-    relevant_day = [a for a in relevant_articles if (a.get("pub_date") or "").startswith(date_str)]
-    relevant_links = {a.get("link") for a in relevant_day if a.get("link")}
+    existing_index = load_summary_index()
+    existing_items = existing_index.get("summaries", []) or []
+    existing_by_date = {s.get("date"): s for s in existing_items if isinstance(s, dict) and s.get("date")}
 
-    index_day = [
-        a for a in index_articles
-        if (a.get("pub_date") or "").startswith(date_str) and (a.get("link") not in relevant_links)
-    ]
+    new_entries: List[Dict] = []
 
-    # Relevant first
-    day_articles = relevant_day + index_day
+    base_dt = datetime.strptime(date_str, "%Y-%m-%d")
+    # Generate newest -> oldest to keep logs intuitive.
+    for i in range(days):
+        day_dt = base_dt - timedelta(days=i)
+        day_str = day_dt.strftime("%Y-%m-%d")
 
-    if not day_articles:
-        # still generate empty page so index shows date
-        summary = {"date": date_str, "total": 0, "overview": "今日无文献", "trends": "", "summaries": []}
-    else:
-        api_key = os.environ.get('AI_API_KEY') or os.environ.get('GEMINI_API_KEY')
-        provider = os.environ.get('AI_PROVIDER') or 'gemini'
-        summarizer = AISummarizer(provider, api_key)
-        summary = summarizer.generate_daily_summary(day_articles, date_str)
+        relevant_day = [a for a in relevant_articles if (a.get("pub_date") or "").startswith(day_str)]
+        relevant_links = {a.get("link") for a in relevant_day if a.get("link")}
 
-    html = render_daily_html(date_str, summary)
-    out_path = os.path.join('docs/daily', f'{date_str}.html')
-    with open(out_path, 'w', encoding='utf-8') as f:
-        f.write(html)
+        index_day = [
+            a for a in index_articles
+            if (a.get("pub_date") or "").startswith(day_str) and (a.get("link") not in relevant_links)
+        ]
 
-    update_index(date_str, summary.get('total', len(day_articles)))
-    print(f"✅ Daily page generated: {out_path}")
+        # Relevant first
+        day_articles = relevant_day + index_day
+
+        total = len(day_articles)
+        digest = digest_links(day_articles) if day_articles else ""
+
+        out_path = os.path.join("docs/daily", f"{day_str}.html")
+        prev = existing_by_date.get(day_str) or {}
+        prev_digest = str(prev.get("digest") or "")
+        prev_total = prev.get("total")
+
+        should_skip = (
+            (not args.force)
+            and os.path.exists(out_path)
+            and prev_digest
+            and prev_digest == digest
+            and isinstance(prev_total, int)
+            and prev_total == total
+        )
+
+        if should_skip:
+            print(f"⏭️  Skip daily page (unchanged): {out_path}")
+        else:
+            if not day_articles:
+                # still generate empty page so index shows date
+                summary = {"date": day_str, "total": 0, "overview": "今日无文献", "trends": "", "summaries": []}
+            else:
+                api_key = os.environ.get('AI_API_KEY') or os.environ.get('GEMINI_API_KEY')
+                provider = os.environ.get('AI_PROVIDER') or 'openrouter'
+                summarizer = AISummarizer(provider, api_key)
+                summary = summarizer.generate_daily_summary(day_articles, day_str)
+
+            page_html = render_daily_html(day_str, summary)
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(page_html)
+            print(f"✅ Daily page generated: {out_path}")
+
+        new_entries.append({"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest})
+
+    # Merge index entries: update our generated dates, keep others, then sort by date desc.
+    updated_dates = {e.get("date") for e in new_entries if e.get("date")}
+    merged = [e for e in existing_items if e.get("date") not in updated_dates]
+    merged.extend(new_entries)
+    merged = [e for e in merged if isinstance(e, dict) and e.get("date")]
+    merged.sort(key=lambda x: x.get("date") or "", reverse=True)
+    save_summary_index(merged[:120])
 
 
 if __name__ == '__main__':

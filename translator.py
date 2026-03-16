@@ -1,21 +1,32 @@
 """
-翻译模块 - 使用免费的翻译API
+翻译模块
+
+优先使用项目的 AI Provider（OpenRouter / Gemini 等）进行翻译与摘要式翻译；
+当未配置 AI_API_KEY 时，降级使用 GoogleTranslator（deep-translator）。
 """
 
+from __future__ import annotations
+
+import os
 from deep_translator import GoogleTranslator
 import time
 import re
 
+from ai_summarizer import build_provider
 
 class Translator:
     def __init__(self):
         self.translator = GoogleTranslator(source='en', target='zh-CN')
+        self._ai_provider = None
+        self._ai_provider_name = (os.environ.get("AI_PROVIDER") or "openrouter").strip()
+        self._ai_key = (os.environ.get("AI_API_KEY") or "").strip()
+        self._ai_model = (os.environ.get("AI_MODEL") or "").strip() or None
     
     def translate(self, text: str) -> str:
         """翻译文本到中文"""
         if not text or not text.strip():
             return ""
-        
+
         try:
             # 清理HTML标签
             clean_text = re.sub(r'<[^>]+>', '', text)
@@ -23,6 +34,20 @@ class Translator:
             
             if not clean_text:
                 return ""
+
+            # Prefer AI provider when configured
+            if self._ai_key:
+                if self._ai_provider is None:
+                    self._ai_provider = build_provider(self._ai_provider_name, self._ai_key, model=self._ai_model)
+
+                # Keep translation prompt simple to reduce hallucination.
+                prompt = (
+                    "你是专业的学术翻译助手。请将下面英文翻译为简体中文，保持术语准确，"
+                    "只输出译文，不要解释：\n\n"
+                    f"{clean_text}\n"
+                )
+                resp = self._ai_provider.call_api(prompt)
+                return (resp or "").strip() or clean_text
             
             # deep-translator有字符限制，需要分段翻译
             if len(clean_text) > 4500:

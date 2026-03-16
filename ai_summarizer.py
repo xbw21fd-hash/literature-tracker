@@ -128,6 +128,9 @@ class OpenRouterProvider(AIProvider):
             "temperature": 0.2,
             "max_tokens": int(os.environ.get("AI_MAX_TOKENS", "4096")),
         }
+        # Optional JSON mode. Some models do not support `response_format`, so keep it opt-in.
+        if (os.environ.get("AI_RESPONSE_JSON", "") or "").strip().lower() in ("1", "true", "yes"):
+            payload["response_format"] = {"type": "json_object"}
 
         for attempt in range(self.max_retries):
             try:
@@ -335,6 +338,8 @@ class AISummarizer:
                     "authors": article.get("authors", []),
                     "pub_date": article.get("pub_date", ""),
                     "ai_score": article.get("ai_score"),
+                    "source_url": article.get("source_url", ""),
+                    "arxiv_category": article.get("arxiv_category", ""),
                 })
             
             # 处理 highlights
@@ -350,7 +355,13 @@ class AISummarizer:
                         "title_zh": info.get('title_zh'),
                         "link": art.get('link'),
                         "summary": info.get('one_sentence_summary'),
-                        "reason": h.get('reason')
+                        "reason": h.get('reason'),
+                        "journal": art.get("journal", ""),
+                        "authors": art.get("authors", []),
+                        "pub_date": art.get("pub_date", ""),
+                        "ai_score": art.get("ai_score"),
+                        "source_url": art.get("source_url", ""),
+                        "arxiv_category": art.get("arxiv_category", ""),
                     }
                     # 简单分类（也可以让 AI 返回分类）
                     if self._is_ml_related(art): ml_highlights.append(h_item)
@@ -393,6 +404,8 @@ class AISummarizer:
                     "authors": a.get("authors", []),
                     "pub_date": a.get("pub_date", ""),
                     "ai_score": a.get("ai_score"),
+                    "source_url": a.get("source_url", ""),
+                    "arxiv_category": a.get("arxiv_category", ""),
                 } for a in articles
             ],
             'generated_by': 'fallback'

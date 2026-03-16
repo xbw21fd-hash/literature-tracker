@@ -22,6 +22,57 @@ def get_beijing_time():
 def get_beijing_today():
     return get_beijing_time().strftime('%Y-%m-%d')
 
+def _heuristic_ai4s_relevant(a) -> bool:
+    """Heuristic fallback when AI_API_KEY is not configured."""
+    title = (getattr(a, "title", "") or "").lower()
+    abstract = (getattr(a, "abstract", "") or "").lower()
+    text = f"{title} {abstract}"
+    src = (getattr(a, "source_url", "") or "").lower()
+    arxiv_cat = (getattr(a, "arxiv_category", "") or "").lower()
+
+    # arXiv: keep high recall for AI/comp-physics/chem/materials categories
+    arxiv_signals = [
+        "cs.lg", "stat.ml", "cs.ai",
+        "physics.comp-ph", "physics.chem-ph",
+        "cond-mat.mtrl-sci", "cond-mat.str-el", "cond-mat.supr-con",
+    ]
+    if "rss.arxiv.org/rss/" in src and any(sig in arxiv_cat for sig in arxiv_signals):
+        return True
+
+    ai_terms = [
+        "machine learning", "deep learning", "neural", "transformer", "llm", "large language model",
+        "diffusion", "generative", "graph neural", "gnn", "foundation model",
+        "bayesian", "active learning", "reinforcement learning",
+        "ml potential", "mlip",
+    ]
+    sci_terms = [
+        "material", "materials", "molecule", "molecular", "chemical", "chemistry",
+        "catalyst", "catalysis", "battery", "electrode", "crystal", "phase",
+        "quantum", "dft", "density functional", "condensed matter",
+    ]
+    is_ai = any(t in text for t in ai_terms)
+    is_sci = any(t in text for t in sci_terms)
+    return is_ai and is_sci
+
+def _normalize_existing_articles(articles: list[dict]) -> int:
+    """In-place normalize historical schema quirks (e.g., arXiv journal naming). Returns number of changed items."""
+    changed = 0
+    for a in articles:
+        if not isinstance(a, dict):
+            continue
+        src = (a.get("source_url") or "").strip()
+        link = (a.get("link") or "").strip()
+        if ("rss.arxiv.org/rss/" in src) or ("arxiv.org" in link):
+            if (a.get("journal") or "") != "arXiv":
+                a["journal"] = "arXiv"
+                changed += 1
+            if not (a.get("arxiv_category") or "").strip():
+                marker = "/rss/"
+                if marker in src:
+                    a["arxiv_category"] = src.split(marker, 1)[1].strip()
+                    changed += 1
+    return changed
+
 def run_optimized_sync():
     print(f"\n{'='*60}")
     print(f"开始优化同步 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
@@ -64,9 +115,18 @@ def run_optimized_sync():
         except Exception:
             processed_ids = set()
 
-    analysis_dates = [yesterday]
+    # 默认回看最近几天，避免 RSS 晚到导致「相关文献漏收/日报不完整」
+    try:
+        days_back = max(1, int((os.environ.get("AI_RELEVANCE_DAYS_BACK", "3") or "3").strip()))
+    except Exception:
+        days_back = 3
+
+    analysis_dates = [
+        (get_beijing_time() - timedelta(days=i)).strftime("%Y-%m-%d")
+        for i in range(1, days_back + 1)
+    ]
     if (os.environ.get("AI_RELEVANCE_INCLUDE_TODAY", "0") or "").strip().lower() in ("1", "true", "yes"):
-        analysis_dates.append(today)
+        analysis_dates.insert(0, today)
 
     recent_candidates = [a for a in all_articles if a.pub_date in analysis_dates and a.link not in processed_ids]
     print(f"近期(全量)待相关性分析: {len(recent_candidates)} 篇 (日期: {', '.join(analysis_dates)})")
@@ -91,43 +151,63 @@ def run_optimized_sync():
     notify_queue = []
 
     if recent_candidates:
-        analyses = batch_analyze_relevance(
-            [a.to_dict() for a in recent_candidates],
-            provider_name=ai_provider,
-            api_key=ai_key,
-            model=ai_model,
-            batch_size=relevance_batch_size,
-        )
+        if ai_key:
+            analyses = batch_analyze_relevance(
+                [a.to_dict() for a in recent_candidates],
+                provider_name=ai_provider,
+                api_key=ai_key,
+                model=ai_model,
+                batch_size=relevance_batch_size,
+            )
 
-        for article, analysis in zip(recent_candidates, analyses):
-            processed_ids.add(article.link)
+            for article, analysis in zip(recent_candidates, analyses):
+                processed_ids.add(article.link)
 
-            score = int(analysis.get("score", 0) or 0)
-            is_rel = bool(analysis.get("is_relevant")) or score >= relevance_threshold
+                score = int(analysis.get("score", 0) or 0)
+                is_rel = bool(analysis.get("is_relevant")) or score >= relevance_threshold
 
-            if not is_rel:
-                continue
+                if not is_rel:
+                    continue
 
-            relevant_recent.append(article)
-            newly_relevant_count += 1
+                relevant_recent.append(article)
+                newly_relevant_count += 1
 
-            if article.link and article.link not in existing_relevant_links:
-                item = article.to_dict()
-                item.update(
-                    {
-                        "ai_score": score,
-                        "ai_explanation": analysis.get("explanation"),
-                        "ai_detailed_summary": analysis.get("detailed_summary"),
-                    }
-                )
-                ai_relevant_list.append(item)
-                existing_relevant_links.add(article.link)
+                if article.link and article.link not in existing_relevant_links:
+                    item = article.to_dict()
+                    item.update(
+                        {
+                            "ai_score": score,
+                            "ai_explanation": analysis.get("explanation"),
+                            "ai_detailed_summary": analysis.get("detailed_summary"),
+                        }
+                    )
+                    ai_relevant_list.append(item)
+                    existing_relevant_links.add(article.link)
 
-            if score >= notify_score_min:
-                notify_queue.append((score, article, analysis))
+                if score >= notify_score_min:
+                    notify_queue.append((score, article, analysis))
 
-        with open(processed_file, "w", encoding="utf-8") as f:
-            json.dump(sorted(list(processed_ids)), f, ensure_ascii=False, indent=2)
+            with open(processed_file, "w", encoding="utf-8") as f:
+                json.dump(sorted(list(processed_ids)), f, ensure_ascii=False, indent=2)
+        else:
+            # Heuristic fallback: do NOT mark as processed so that once AI key is added
+            # the same items can be re-analysed with LLM.
+            for article in recent_candidates:
+                if not _heuristic_ai4s_relevant(article):
+                    continue
+                relevant_recent.append(article)
+                newly_relevant_count += 1
+                if article.link and article.link not in existing_relevant_links:
+                    item = article.to_dict()
+                    item.update(
+                        {
+                            "ai_score": relevance_threshold,
+                            "ai_explanation": "未配置 AI_API_KEY，使用关键词/分类启发式纳入（高召回）",
+                            "ai_detailed_summary": "",
+                        }
+                    )
+                    ai_relevant_list.append(item)
+                    existing_relevant_links.add(article.link)
 
     # Persist ai_relevant.json even if empty (stable downstream daily generation)
     os.makedirs("data", exist_ok=True)
@@ -178,6 +258,10 @@ def run_optimized_sync():
                 existing_articles = json.load(f).get("articles", [])
         except Exception:
             existing_articles = []
+
+    normalized = _normalize_existing_articles(existing_articles)
+    if normalized:
+        print(f"🧹 已规范化历史字段: {normalized} 处 (e.g., arXiv journal/category)")
 
     existing_links = {a.get("link") for a in existing_articles if a.get("link")}
     new_count = 0

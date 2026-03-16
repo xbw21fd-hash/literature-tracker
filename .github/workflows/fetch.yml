@@ -53,7 +53,8 @@ jobs:
           AI_MODEL: ${{ secrets.AI_MODEL }}
           AI_DAILY_MAX_PER_CALL: "20"
         run: |
-          python generate_daily_pages.py
+          # 回填最近一周：避免 RSS 晚到/Actions 偶发失败导致「每日摘要缺失或不完整」
+          python generate_daily_pages.py --days 7
 
       - name: 复制数据到docs目录
         run: |
