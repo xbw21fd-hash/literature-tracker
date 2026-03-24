@@ -203,6 +203,14 @@ def save_summary_index(summaries: List[Dict]):
     with open(index_path, "w", encoding="utf-8") as f:
         json.dump({"summaries": summaries}, f, ensure_ascii=False, indent=2)
 
+def preserve_existing_entry(prev: Dict, date_str: str) -> Dict:
+    preserved = dict(prev or {})
+    preserved["date"] = date_str
+    preserved["file"] = preserved.get("file") or f"{date_str}.html"
+    if "total" not in preserved:
+        preserved["total"] = 0
+    return preserved
+
 def main():
     import argparse
     parser = argparse.ArgumentParser()
@@ -230,6 +238,9 @@ def main():
     existing_by_date = {s.get("date"): s for s in existing_items if isinstance(s, dict) and s.get("date")}
 
     new_entries: List[Dict] = []
+    api_key = os.environ.get('AI_API_KEY') or os.environ.get('GEMINI_API_KEY')
+    provider = os.environ.get('AI_PROVIDER') or 'openrouter'
+    summarizer = AISummarizer(provider, api_key) if api_key else None
 
     base_dt = datetime.strptime(date_str, "%Y-%m-%d")
     # Generate newest -> oldest to keep logs intuitive.
@@ -267,22 +278,29 @@ def main():
 
         if should_skip:
             print(f"⏭️  Skip daily page (unchanged): {out_path}")
+            new_entries.append({"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest})
         else:
-            if not day_articles:
-                # still generate empty page so index shows date
-                summary = {"date": day_str, "total": 0, "overview": "今日无文献", "trends": "", "summaries": []}
-            else:
-                api_key = os.environ.get('AI_API_KEY') or os.environ.get('GEMINI_API_KEY')
-                provider = os.environ.get('AI_PROVIDER') or 'openrouter'
-                summarizer = AISummarizer(provider, api_key)
-                summary = summarizer.generate_daily_summary(day_articles, day_str)
+            try:
+                if not day_articles:
+                    # still generate empty page so index shows date
+                    summary = {"date": day_str, "total": 0, "overview": "今日无文献", "trends": "", "summaries": []}
+                else:
+                    if summarizer is None:
+                        raise ValueError("AI_API_KEY is empty; cannot generate daily summary")
+                    summary = summarizer.generate_daily_summary(day_articles, day_str)
 
-            page_html = render_daily_html(day_str, summary)
-            with open(out_path, "w", encoding="utf-8") as f:
-                f.write(page_html)
-            print(f"✅ Daily page generated: {out_path}")
-
-        new_entries.append({"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest})
+                page_html = render_daily_html(day_str, summary)
+                with open(out_path, "w", encoding="utf-8") as f:
+                    f.write(page_html)
+                print(f"✅ Daily page generated: {out_path}")
+                new_entries.append({"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest})
+            except Exception as exc:
+                has_existing_page = os.path.exists(out_path)
+                if has_existing_page:
+                    print(f"⚠️ Daily page generation failed for {day_str}, preserving existing page: {exc}")
+                    new_entries.append(preserve_existing_entry(prev, day_str))
+                else:
+                    print(f"⚠️ Daily page generation failed for {day_str}, skipping this date for now: {exc}")
 
     # Merge index entries: update our generated dates, keep others, then sort by date desc.
     updated_dates = {e.get("date") for e in new_entries if e.get("date")}

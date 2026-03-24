@@ -8,6 +8,7 @@ AI摘要生成器 - 使用免费AI API生成每日文献摘要
 import os
 import json
 import time
+import re
 import requests
 from datetime import datetime
 from typing import List, Dict, Optional, Any
@@ -17,6 +18,11 @@ try:
     from config import AI_CONFIG as DEFAULT_AI_CONFIG
 except ImportError:
     DEFAULT_AI_CONFIG = {}
+
+try:
+    from json_repair import repair_json
+except ImportError:
+    repair_json = None
 
 
 class AIProvider(ABC):
@@ -143,16 +149,7 @@ class OpenRouterProvider(AIProvider):
         wait_max_seconds = int(os.environ.get("AI_WAIT_MAX_SECONDS", "0") or "0")
         wait_base_seconds = float(os.environ.get("AI_WAIT_BASE_SECONDS", "10") or "10")
         wait_max_sleep_seconds = float(os.environ.get("AI_WAIT_MAX_SLEEP_SECONDS", "300") or "300")
-
-        payload: Dict[str, Any] = {
-            "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-            "max_tokens": int(os.environ.get("AI_MAX_TOKENS", "4096")),
-        }
-        # Optional JSON mode. Some models do not support `response_format`, so keep it opt-in.
-        if (os.environ.get("AI_RESPONSE_JSON", "") or "").strip().lower() in ("1", "true", "yes"):
-            payload["response_format"] = {"type": "json_object"}
+        json_mode_enabled = (os.environ.get("AI_RESPONSE_JSON", "") or "").strip().lower() in ("1", "true", "yes")
 
         start = time.monotonic()
         attempt = 0
@@ -162,6 +159,16 @@ class OpenRouterProvider(AIProvider):
             attempt += 1
             response = None
             try:
+                payload: Dict[str, Any] = {
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.2,
+                    "max_tokens": int(os.environ.get("AI_MAX_TOKENS", "4096")),
+                }
+                # Optional JSON mode. Some models do not support `response_format`.
+                if json_mode_enabled:
+                    payload["response_format"] = {"type": "json_object"}
+
                 response = requests.post(
                     self.base_url, headers=self._headers(), json=payload, timeout=self.timeout
                 )
@@ -176,6 +183,19 @@ class OpenRouterProvider(AIProvider):
                     if not content:
                         raise Exception("OpenRouter API返回空 content")
                     return content
+
+                if (
+                    response.status_code == 400
+                    and json_mode_enabled
+                    and any(
+                        token in response.text.lower()
+                        for token in ("response_format", "json_object", "structured output", "not support")
+                    )
+                ):
+                    print("⚠️ OpenRouter JSON mode unsupported by current model, retrying without response_format")
+                    json_mode_enabled = False
+                    attempt -= 1
+                    continue
 
                 # Retryable server / rate limit errors
                 if response.status_code in (429, 500, 502, 503, 504):
@@ -340,16 +360,9 @@ class AISummarizer:
             attempt += 1
             try:
                 response = self.provider.call_api(prompt)
-                import re
-                m = re.search(r'\{[\s\S]*\}', response)
-                if not m:
-                    raise ValueError("overview/trends: no JSON object found")
-                raw = m.group()
-                try:
-                    data = json.loads(raw)
-                except json.JSONDecodeError:
-                    raw2 = re.sub(r",\s*([}\]])", r"\1", raw)
-                    data = json.loads(raw2)
+                data = self._load_json_lenient(response, context="overview/trends")
+                if not isinstance(data, dict):
+                    raise ValueError("overview/trends: response is not an object")
                 return data.get("overview", ""), data.get("trends", "")
             except Exception:
                 if wait_max_seconds <= 0:
@@ -414,19 +427,192 @@ class AISummarizer:
 3. 不要输出任何链接，链接将由 Python 程序根据序号自动补全。
 """
 
+    def _build_missing_summaries_prompt(self, original_articles: List[Dict], missing_indices: List[int], date: str) -> str:
+        articles_text = []
+        for idx in missing_indices:
+            article = original_articles[idx - 1]
+            title = article.get('title', 'Unknown Title')
+            journal = article.get("journal", "")
+            authors = article.get("authors", [])
+            if isinstance(authors, list):
+                authors = ", ".join([str(a) for a in authors[:6]]) + (" 等" if len(authors) > 6 else "")
+            else:
+                authors = str(authors or "")
+            abstract = (article.get('abstract', ''))[:300]
+            articles_text.append(
+                f"[{idx}] Title: {title}\nJournal: {journal}\nAuthors: {authors}\nAbstract: {abstract}\n"
+            )
+
+        articles_str = "\n".join(articles_text)
+        return f"""你是一位专业的计算材料科学文献分析助手。请只补全以下 {date} 缺失的文献条目。
+
+文献列表:
+{articles_str}
+
+请严格输出 JSON：
+{{
+  "summaries": [
+    {{
+      "index": 1,
+      "title_zh": "中文标题",
+      "one_sentence_summary": "一句话中文总结"
+    }}
+  ]
+}}
+
+要求：
+1. 只返回上面给出的缺失 index。
+2. 每个 index 都必须返回 title_zh 和 one_sentence_summary，且都使用中文。
+3. 不要输出 JSON 以外的任何内容。
+"""
+
+    @staticmethod
+    def _strip_code_fence(text: str) -> str:
+        value = (text or "").strip()
+        if not value.startswith("```"):
+            return value
+        lines = value.splitlines()
+        if lines:
+            lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        return "\n".join(lines).strip()
+
+    @classmethod
+    def _extract_json_object(cls, text: str) -> str:
+        value = cls._strip_code_fence(text)
+        start = value.find("{")
+        if start < 0:
+            raise ValueError("No JSON object found in model response")
+
+        depth = 0
+        in_string = False
+        escape = False
+
+        for idx in range(start, len(value)):
+            ch = value[idx]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return value[start:idx + 1]
+
+        return value[start:].strip()
+
+    @classmethod
+    def _candidate_json_strings(cls, response: str) -> List[str]:
+        raw = response or ""
+        stripped = raw.strip()
+        candidates = [raw, stripped, cls._strip_code_fence(stripped)]
+        try:
+            candidates.append(cls._extract_json_object(stripped))
+        except Exception:
+            pass
+
+        normalized_candidates: List[str] = []
+        seen = set()
+        for candidate in candidates:
+            candidate = (candidate or "").strip()
+            if not candidate or candidate in seen:
+                continue
+            normalized_candidates.append(candidate)
+            seen.add(candidate)
+        return normalized_candidates
+
+    @staticmethod
+    def _normalize_json_string(raw: str) -> str:
+        return (
+            (raw or "")
+            .replace("\ufeff", "")
+            .replace("“", '"')
+            .replace("”", '"')
+            .replace("‘", "'")
+            .replace("’", "'")
+        )
+
+    @classmethod
+    def _load_json_lenient(cls, response: str, *, context: str = "response") -> Any:
+        last_error: Optional[Exception] = None
+        for candidate in cls._candidate_json_strings(response):
+            for attempt_text in (
+                candidate,
+                cls._normalize_json_string(candidate),
+                re.sub(r",\s*([}\]])", r"\1", cls._normalize_json_string(candidate)),
+            ):
+                try:
+                    return json.loads(attempt_text)
+                except Exception as exc:
+                    last_error = exc
+
+            if repair_json is not None:
+                try:
+                    return repair_json(candidate, return_objects=True)
+                except Exception as exc:
+                    last_error = exc
+
+        raise ValueError(f"{context}: failed to parse model JSON ({last_error})")
+
+    @staticmethod
+    def _summary_fields_missing(item: Optional[Dict[str, Any]]) -> bool:
+        if not isinstance(item, dict):
+            return True
+        return not str(item.get("title_zh") or "").strip() or not str(item.get("one_sentence_summary") or "").strip()
+
+    def _fill_missing_summaries(
+        self,
+        summaries_map: Dict[int, Dict[str, Any]],
+        original_articles: List[Dict],
+        date: str,
+    ) -> Dict[int, Dict[str, Any]]:
+        missing_indices = [
+            idx
+            for idx in range(1, len(original_articles) + 1)
+            if self._summary_fields_missing(summaries_map.get(idx))
+        ]
+        if not missing_indices:
+            return summaries_map
+
+        print(f"⚠️ AI summaries incomplete for {len(missing_indices)} article(s); requesting targeted refill")
+        try:
+            prompt = self._build_missing_summaries_prompt(original_articles, missing_indices, date)
+            response = self.provider.call_api(prompt)
+            data = self._load_json_lenient(response, context="missing summaries")
+            if not isinstance(data, dict):
+                return summaries_map
+            for item in data.get("summaries", []) or []:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    idx = int(item.get("index"))
+                except Exception:
+                    continue
+                if idx not in missing_indices:
+                    continue
+                current = dict(summaries_map.get(idx) or {})
+                current.update(item)
+                summaries_map[idx] = current
+        except Exception as exc:
+            print(f"⚠️ Failed to refill missing summaries: {exc}")
+        return summaries_map
+
     def _parse_response(self, response: str, original_articles: List[Dict], date: str) -> Dict:
         """解析响应并与原始文章精准合并链接"""
         try:
-            import re
-            json_match = re.search(r'\{[\s\S]*\}', response)
-            if not json_match: raise ValueError("Invalid JSON response")
-            raw = json_match.group()
-            try:
-                data = json.loads(raw)
-            except json.JSONDecodeError:
-                # Common model mistake: trailing commas.
-                raw2 = re.sub(r",\s*([}\]])", r"\1", raw)
-                data = json.loads(raw2)
+            data = self._load_json_lenient(response, context="daily summary")
+            if not isinstance(data, dict):
+                raise ValueError("Invalid JSON response: root is not an object")
             
             # 建立序号到原始文章的映射 (1-based index)
             # original_articles 是按顺序传入的
@@ -441,6 +627,8 @@ class AISummarizer:
                 except Exception:
                     continue
                 summaries_map[idx] = item
+
+            summaries_map = self._fill_missing_summaries(summaries_map, original_articles, date)
             
             for i, article in enumerate(original_articles, 1):
                 ai_info = summaries_map.get(i, {})
