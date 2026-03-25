@@ -10,6 +10,7 @@ from datetime import datetime, timezone, timedelta
 from dateutil import parser as date_parser
 from typing import Optional
 from bs4 import BeautifulSoup
+from focus_filter import is_target_domain
 
 # 北京时间 UTC+8，用于统一存储 pub_date 为「北京时间的日历日」，避免 Actions(UTC) 与统计日期时差
 BEIJING_TZ = timezone(timedelta(hours=8))
@@ -157,7 +158,7 @@ class RSSFetcher:
         filtered = []
         for article in articles:
             text = f"{article.title} {article.abstract}".lower()
-            if any(kw in text for kw in self.keywords):
+            if any(kw in text for kw in self.keywords) and is_target_domain(article.to_dict()):
                 filtered.append(article)
         return filtered
     

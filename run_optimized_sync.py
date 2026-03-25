@@ -14,6 +14,7 @@ from notion_tg_notifier import NotionTGNotifier
 from ai_summarizer import AISummarizer
 from zh_enricher import enrich_articles_zh
 from relevance_enricher import batch_analyze_relevance
+from focus_filter import analyze_focus, filter_daily_focus_items, filter_focus_items, is_daily_focus, is_target_domain, is_hard_offtopic
 
 def get_beijing_time():
     beijing_tz = timezone(timedelta(hours=8))
@@ -24,35 +25,16 @@ def get_beijing_today():
 
 def _heuristic_ai4s_relevant(a) -> bool:
     """Heuristic fallback when AI_API_KEY is not configured."""
-    title = (getattr(a, "title", "") or "").lower()
-    abstract = (getattr(a, "abstract", "") or "").lower()
-    text = f"{title} {abstract}"
-    src = (getattr(a, "source_url", "") or "").lower()
-    arxiv_cat = (getattr(a, "arxiv_category", "") or "").lower()
+    article_dict = a.to_dict() if hasattr(a, "to_dict") else dict(a or {})
+    if is_hard_offtopic(article_dict):
+        return False
+    signals = analyze_focus(article_dict)
+    return is_daily_focus(article_dict) or signals['ai_science']
 
-    # arXiv: keep high recall for AI/comp-physics/chem/materials categories
-    arxiv_signals = [
-        "cs.lg", "stat.ml", "cs.ai",
-        "physics.comp-ph", "physics.chem-ph",
-        "cond-mat.mtrl-sci", "cond-mat.str-el", "cond-mat.supr-con",
-    ]
-    if "rss.arxiv.org/rss/" in src and any(sig in arxiv_cat for sig in arxiv_signals):
-        return True
 
-    ai_terms = [
-        "machine learning", "deep learning", "neural", "transformer", "llm", "large language model",
-        "diffusion", "generative", "graph neural", "gnn", "foundation model",
-        "bayesian", "active learning", "reinforcement learning",
-        "ml potential", "mlip",
-    ]
-    sci_terms = [
-        "material", "materials", "molecule", "molecular", "chemical", "chemistry",
-        "catalyst", "catalysis", "battery", "electrode", "crystal", "phase",
-        "quantum", "dft", "density functional", "condensed matter",
-    ]
-    is_ai = any(t in text for t in ai_terms)
-    is_sci = any(t in text for t in sci_terms)
-    return is_ai and is_sci
+def _is_ai4science_relevant(article_dict: dict) -> bool:
+    signals = analyze_focus(article_dict)
+    return is_daily_focus(article_dict) or signals['ai_science']
 
 def _normalize_existing_articles(articles: list[dict]) -> int:
     """In-place normalize historical schema quirks (e.g., arXiv journal naming). Returns number of changed items."""
@@ -139,6 +121,7 @@ def run_optimized_sync():
                 ai_relevant_list = json.load(f) or []
         except Exception:
             ai_relevant_list = []
+    ai_relevant_list = [item for item in ai_relevant_list if isinstance(item, dict) and _is_ai4science_relevant(item)]
     existing_relevant_links = {a.get("link") for a in ai_relevant_list if isinstance(a, dict)}
 
     relevance_threshold = int(os.environ.get("AI_RELEVANCE_THRESHOLD", "6"))
@@ -164,7 +147,8 @@ def run_optimized_sync():
                 processed_ids.add(article.link)
 
                 score = int(analysis.get("score", 0) or 0)
-                is_rel = bool(analysis.get("is_relevant")) or score >= relevance_threshold
+                article_dict = article.to_dict()
+                is_rel = (bool(analysis.get("is_relevant")) or score >= relevance_threshold) and _is_ai4science_relevant(article_dict)
 
                 if not is_rel:
                     continue
@@ -173,7 +157,7 @@ def run_optimized_sync():
                 newly_relevant_count += 1
 
                 if article.link and article.link not in existing_relevant_links:
-                    item = article.to_dict()
+                    item = article_dict
                     item.update(
                         {
                             "ai_score": score,
@@ -264,6 +248,8 @@ def run_optimized_sync():
         print(f"🧹 已规范化历史字段: {normalized} 处 (e.g., arXiv journal/category)")
 
     existing_links = {a.get("link") for a in existing_articles if a.get("link")}
+    existing_articles = [a for a in existing_articles if isinstance(a, dict) and is_target_domain(a)]
+    existing_links = {a.get("link") for a in existing_articles if a.get("link")}
     new_count = 0
     for a in filtered:
         if a.link and a.link not in existing_links:
@@ -292,29 +278,34 @@ def run_optimized_sync():
 
 def send_daily_summary():
     print(f"[{datetime.now()}] 正在生成每日汇总报告...")
-    today = get_beijing_today()
-    
+    offset_days = int((os.environ.get('AI_DAILY_SUMMARY_OFFSET_DAYS', '1') or '1').strip())
+    day_str = (get_beijing_time() - timedelta(days=max(0, offset_days))).strftime('%Y-%m-%d')
+
     index_path = "data/index.json"
     if not os.path.exists(index_path):
         print("未发现文献数据，跳过报告")
         return
-        
+
     with open(index_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    
+
     articles = data.get("articles", [])
-    today_articles = [a for a in articles if (a.get('pub_date') or '').startswith(today)]
-    
-    if not today_articles:
-        print(f"今日 ({today}) 无新文献，跳过报告")
+    day_articles = [a for a in articles if (a.get('pub_date') or '').startswith(day_str)]
+    focused_articles, _ = filter_focus_items(day_articles)
+    daily_articles, _ = filter_daily_focus_items(focused_articles, min_keep=12, max_keep=60)
+
+    if not daily_articles:
+        print(f"目标日期 ({day_str}) 无适合日报推送的交叉文献，跳过报告")
         return
-        
+
     api_key = os.environ.get('AI_API_KEY') or os.environ.get('GEMINI_API_KEY')
     provider = os.environ.get('AI_PROVIDER') or 'gemini'
-    
+
     summarizer = AISummarizer(provider, api_key)
-    summary = summarizer.generate_daily_summary(today_articles, today)
-    
+    summary = summarizer.generate_daily_summary(daily_articles, day_str)
+    summary['focused_total'] = len(focused_articles)
+    summary['raw_total'] = len(day_articles)
+
     notifier = NotionTGNotifier()
     notifier.send_daily_report(summary)
     print("✅ 每日报告已推送至 TG 和 Notion")

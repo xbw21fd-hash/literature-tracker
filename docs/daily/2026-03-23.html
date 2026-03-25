@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2026-03-23 文献日报 - 文献追踪系统</title>
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    body { background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(248, 250, 252, 0.85) 220px), var(--bg-primary); overflow-x: hidden; }
+    body::before { content: none !important; }
+    .daily-shell { max-width: 1260px; margin: 0 auto; padding: 28px 20px 48px; }
+    .daily-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .daily-topbar-left, .daily-topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-primary); text-decoration: none; font-weight: 600; }
+    .back-link:hover { color: var(--accent-hover); }
+    .daily-mini-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.75); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.92rem; backdrop-filter: blur(8px); }
+    .daily-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; }
+    .daily-article { background: rgba(255,255,255,0.76); border: 1px solid rgba(148,163,184,0.28); border-radius: 28px; box-shadow: var(--shadow-lg); backdrop-filter: blur(14px); padding: 32px; }
+    .daily-hero { padding-bottom: 18px; border-bottom: 1px solid var(--border-color); }
+    .daily-kicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: var(--accent-primary); font-weight: 700; letter-spacing: 0.04em; }
+    .daily-title { margin: 18px 0 10px; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; letter-spacing: -0.03em; }
+    .daily-subtitle { font-size: 1.02rem; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.8; }
+    .daily-quote { margin: 0; padding: 16px 18px; border-left: 4px solid var(--accent-primary); border-radius: 16px; background: rgba(99,102,241,0.08); color: var(--text-secondary); font-size: 1rem; }
+    .daily-tags { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 22px; }
+    .daily-tag { display: inline-flex; align-items: center; padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.92rem; }
+    .daily-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .daily-stat { padding: 18px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92)); border: 1px solid var(--border-color); }
+    .daily-stat-label { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 6px; }
+    .daily-stat-value { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; }
+    .daily-filter-note { margin-top: 16px; color: var(--text-secondary); line-height: 1.8; }
+    .daily-section { margin-top: 28px; }
+    .daily-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .daily-section-index { font-size: 0.92rem; font-weight: 800; color: var(--accent-primary); padding: 5px 10px; border-radius: 999px; background: rgba(99,102,241,0.1); }
+    .daily-section-title { font-size: 1.45rem; letter-spacing: -0.02em; }
+    .daily-summary-card { padding: 18px 20px; border-radius: 20px; background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); line-height: 1.85; }
+    .daily-summary-card p + p { margin-top: 12px; }
+    .daily-topic-group + .daily-topic-group { margin-top: 22px; }
+    .daily-topic-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .daily-topic-title { font-size: 1.15rem; margin: 0 0 6px; }
+    .daily-topic-desc { color: var(--text-secondary); line-height: 1.75; }
+    .daily-topic-count { padding: 8px 12px; border-radius: 999px; background: rgba(99,102,241,0.1); color: var(--accent-primary); font-weight: 700; white-space: nowrap; }
+    .daily-news-list, .daily-paper-list { list-style: none; margin: 0; padding: 0; }
+    .daily-news-item, .daily-paper-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; padding: 20px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,250,251,0.92)); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); align-items: flex-start; }
+    .daily-news-item + .daily-news-item, .daily-paper-card + .daily-paper-card { margin-top: 16px; }
+    .daily-news-index, .daily-paper-number { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 800; color: white; background: var(--gradient-accent); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+    .daily-news-body, .daily-paper-body { min-width: 0; }
+    .daily-paper-body { display: flex; flex-direction: column; }
+    .daily-news-title-zh, .daily-paper-title-zh { font-size: 1.12rem; font-weight: 700; line-height: 1.5; margin-bottom: 6px; }
+    .daily-news-title-en, .daily-paper-title-en { color: var(--text-secondary); font-size: 0.96rem; line-height: 1.6; }
+    .daily-news-meta, .daily-paper-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .daily-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 0.88rem; color: var(--text-secondary); background: rgba(99,102,241,0.08); }
+    .daily-chip-authors { background: rgba(16,185,129,0.08); }
+    .daily-chip-score { background: rgba(245,158,11,0.12); }
+    .daily-chip-topic { background: rgba(139,92,246,0.12); color: var(--accent-primary); }
+    .daily-news-summary, .daily-paper-summary { color: var(--text-primary); line-height: 1.8; }
+    .daily-news-reason { margin-top: 10px; color: var(--text-secondary); }
+    .daily-paper-actions, .daily-news-link { margin-top: 14px; }
+    .daily-news-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-primary); text-decoration: none; font-weight: 600; }
+    .daily-news-link:hover { color: var(--accent-hover); }
+    .daily-paper-head { display: flex; gap: 16px; align-items: flex-start; }
+    .daily-paper-titles { min-width: 0; }
+    .daily-toc { position: sticky; top: 24px; }
+    .daily-toc-card { padding: 18px; border-radius: 20px; background: rgba(255,255,255,0.78); border: 1px solid var(--border-color); box-shadow: var(--shadow-md); backdrop-filter: blur(12px); }
+    .daily-toc-title, .daily-sidebar-title { font-size: 0.95rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .daily-toc a { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 14px; color: var(--text-secondary); text-decoration: none; }
+    .daily-toc a:hover { background: rgba(99,102,241,0.08); color: var(--accent-primary); }
+    .daily-sidebar-block + .daily-sidebar-block { margin-top: 18px; }
+    .daily-sidebar-stats { display: grid; gap: 10px; }
+    .daily-sidebar-fact { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); }
+    .daily-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.94rem; line-height: 1.8; }
+    @media (max-width: 980px) {
+      .daily-layout { grid-template-columns: 1fr; }
+      .daily-toc { position: static; order: -1; }
+    }
+    @media (max-width: 720px) {
+      .daily-shell { padding: 16px 12px 36px; }
+      .daily-article { padding: 22px 16px; border-radius: 22px; }
+      .daily-stats { grid-template-columns: 1fr; }
+      .daily-news-item, .daily-paper-card { grid-template-columns: 1fr; }
+      .daily-news-index, .daily-paper-number { width: 38px; height: 38px; }
+      .daily-paper-head, .daily-topic-head { flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="daily-shell">
+    <div class="daily-topbar">
+      <div class="daily-topbar-left">
+        <a href="../index.html" class="back-link">← 返回主页</a>
+        <span class="daily-mini-chip">AI × Science Daily</span>
+      </div>
+      <div class="daily-topbar-right">
+        <span class="daily-mini-chip">2026-03-23</span>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
+      </div>
+    </div>
+    <div class="daily-layout">
+      <article class="daily-article">
+        <div class="daily-hero">
+          <div class="daily-kicker">AI 文献日报</div>
+          <h1 class="daily-title">AI × Science 文献日报 2026/03/23</h1>
+          <p class="daily-subtitle">聚焦 AI × 物理 / 化学 / 材料交叉方向，自动过滤明显偏题的医学、教育与社会科学内容，并按主题重新排版，便于快速深读。</p>
+          <blockquote class="daily-quote">AI | 物理 | 化学 | 材料 | 交叉学科 | arXiv | 预印本追踪</blockquote>
+          <div class="daily-tags"><span class='daily-tag'>AI</span><span class='daily-tag'>物理</span><span class='daily-tag'>化学</span><span class='daily-tag'>材料</span><span class='daily-tag'>交叉学科</span><span class='daily-tag'>arXiv</span><span class='daily-tag'>预印本追踪</span></div>
+          <div class="daily-stats">
+            <div class="daily-stat">
+              <div class="daily-stat-label">日报精选</div>
+              <div class="daily-stat-value">14</div>
+            </div>
+            <div class="daily-stat">
+              <div class="daily-stat-label">主线候选</div>
+              <div class="daily-stat-value">342</div>
+            </div>
+            <div class="daily-stat">
+              <div class="daily-stat-label">期刊 / 来源</div>
+              <div class="daily-stat-value">6</div>
+            </div>
+            <div class="daily-stat">
+              <div class="daily-stat-label">arXiv 相关</div>
+              <div class="daily-stat-value">7</div>
+            </div>
+          </div>
+          <p class='daily-filter-note'>原始候选 342 篇中，已剔除 0 篇明显偏离主线的内容，并从剩余 342 篇主线相关文献中精选 14 篇进入日报页，优先保留 AI × 物理 / 化学 / 材料交叉与关键计算方法工作。</p>
+        </div>
+
+        <section id="summary" class="daily-section">
+          <div class="daily-section-head">
+            <span class="daily-section-index">01</span>
+            <h2 class="daily-section-title">今日摘要</h2>
+          </div>
+          <div class="daily-summary-card">
+            <p><strong>总览：</strong>今日文献聚焦计算材料学前沿，涵盖机器学习势函数、第一性原理计算、拓扑磁性材料、界面催化设计、新型电子器件及先进计算方法等多个方向，充分体现了计算模拟与人工智能技术深度融合、驱动材料设计与机理揭示的鲜明趋势。</p>
+            <p><strong>热点：</strong>[&#x27;机器学习互作用势（MLIP）正朝着基于超大规模数据集（如OMol25）训练、实现接近DFT精度与超大规模时间尺度模拟的方向快速发展。&#x27;, &#x27;拓扑与磁性材料的计算研究日益深入，重点在于从第一性原理出发，精细解析贝里曲率、高阶交换等微观因素对输运性质（如非线性霍尔效应）和拓扑磁结构（如斯格明子）稳定性的影响。&#x27;, &#x27;界面与纳米尺度电子结构的调控是催化与能源材料研究的核心，通过合金化、配体工程等手段精准修饰活性位点，以优化反应路径与选择性。&#x27;, &#x27;新型计算方法的开发持续突破精度与效率瓶颈，例如规范协变形式下的磁性理论、基于流形约束的协方差追踪等，为复杂物性模拟提供更坚实的理论基础。&#x27;, &#x27;计算与实验的紧密结合成为常态，通过模拟预测指导实验设计，并用实验数据验证和优化计算模型，形成高效的‘预测-验证’闭环。&#x27;]</p>
+          </div>
+        </section>
+
+        <section id="highlights" class="daily-section">
+          <div class="daily-section-head">
+            <span class="daily-section-index">02</span>
+            <h2 class="daily-section-title">交叉重点</h2>
+          </div>
+          <ol class="daily-news-list">
+        <li class="daily-news-item">
+            <div class="daily-news-index">01</div>
+            <div class="daily-news-body">
+                <div class="daily-news-title-zh">机器学习设计百叶窗启发多孔碳薄片实现超宽带吸波</div>
+                <div class="daily-news-title-en">Machine Learning Driven Window Blinds Inspired Porous Carbon‐Based Flake for Ultra‐Broadband Electromagnetic Wave Absorption</div>
+                <div class="daily-news-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 Wiley: Advanced Science: Table of Contents</span><span class='daily-chip daily-chip-authors'>👤 Zhe Wang,  Wanchong Li,  Lu Feng,  Zaiqing Yang,  Shicheng Jin,  Dongxu Zhao,  Xiaoyong Wu,  Yan Wang,  Yu Mao,  Jinsong Zhang</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <p class="daily-news-summary">受百叶窗结构启发，通过机器学习优化设计多孔碳基复合材料，实现宽频高效电磁波吸收。</p>
+                <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 5</p>
+                <a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202521130?af=R" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>
+            </div>
+        </li>
+        
+        <li class="daily-news-item">
+            <div class="daily-news-index">02</div>
+            <div class="daily-news-body">
+                <div class="daily-news-title-zh">基于OMol25机器学习势的电解质溶剂化结构预测与验证</div>
+                <div class="daily-news-title-en">Prediction and Experimental Verification of Electrolyte Solvation Structure from an OMol25-Trained Interatomic Potential</div>
+                <div class="daily-news-meta"><span class='daily-chip daily-chip-topic'>🧭 化学 / 分子</span><span class='daily-chip daily-chip-journal'>📖 arXiv / physics</span><span class='daily-chip daily-chip-authors'>👤 Nitesh Kumar, Jianwei Lai, Casey S. Mezerkor, Jiaqi Wang, Kamila M. Wiaderek, J. David Bazak, Samuel M. Blau, Ethan J. Crumlin</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <p class="daily-news-summary">利用大化学多样性数据集训练的MLIP，高效准确模拟电池电解质溶剂化结构，并与实验吻合。</p>
+                <p class="daily-news-reason"><strong>关注理由：</strong>展示大化学多样性数据集训练MLIP的标杆应用，推动电池模拟范式。</p>
+                <a class="daily-news-link" href="https://arxiv.org/abs/2603.20183" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>
+            </div>
+        </li>
+        
+        <li class="daily-news-item">
+            <div class="daily-news-index">03</div>
+            <div class="daily-news-body">
+                <div class="daily-news-title-zh">物理感知神经网络实现低剂量原子电子断层全结构解析</div>
+                <div class="daily-news-title-en">Physics-aware neural networks enable robust and full atomic structure determination via low-dose atomic electron tomography</div>
+                <div class="daily-news-meta"><span class='daily-chip daily-chip-topic'>🧭 化学 / 分子</span><span class='daily-chip daily-chip-journal'>📖 arXiv / cond-mat</span><span class='daily-chip daily-chip-authors'>👤 Yao Zhang, Lanyi Cao, Zhen Sun, Jihan Zhou</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <p class="daily-news-summary">通过结合物理约束的深度学习，从低剂量扫描透射电镜图像中精确重建三维原子坐标与化学种类。</p>
+                <p class="daily-news-reason"><strong>关注理由：</strong>开创性将物理感知神经网络用于低剂量AET，解决实验关键瓶颈。</p>
+                <a class="daily-news-link" href="https://arxiv.org/abs/2603.19942" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>
+            </div>
+        </li>
+        
+        <li class="daily-news-item">
+            <div class="daily-news-index">04</div>
+            <div class="daily-news-body">
+                <div class="daily-news-title-zh">级联SOA长距离相干传输的低复杂度神经网络均衡</div>
+                <div class="daily-news-title-en">Low-complexity neural network equalization for long-haul coherent transmission with cascaded semiconductor optical amplifiers</div>
+                <div class="daily-news-meta"><span class='daily-chip daily-chip-topic'>🧭 材料 / 器件</span><span class='daily-chip daily-chip-journal'>📖 arXiv / physics</span><span class='daily-chip daily-chip-authors'>👤 S. Bogdanov, S. Sygletos, O. Sidelnikov, G. Gomes, M. Kamalian-Kopae, S. K. Turitsyn</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <p class="daily-news-summary">设计可实时实现的低复杂度神经网络，有效补偿级联半导体光放大器引入的传输损伤。</p>
+                <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 5</p>
+                <a class="daily-news-link" href="https://arxiv.org/abs/2603.20138" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>
+            </div>
+        </li>
+        
+        <li class="daily-news-item">
+            <div class="daily-news-index">05</div>
+            <div class="daily-news-body">
+                <div class="daily-news-title-zh">LiFeAs晶格动力学的非弹性中子散射与DFT研究</div>
+                <div class="daily-news-title-en">Lattice Dynamics of LiFeAs studied by Inelastic Neutron Scattering and Density Functional Theory calculations</div>
+                <div class="daily-news-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 arXiv / cond-mat</span><span class='daily-chip daily-chip-authors'>👤 Akshay Tewari, Navid Qureshi, Rolf Heid, Andrea Piovano, Yvan Sidis, Luminita Harnagea, Sabine Wurmehl, Bernd Buchner, Markus Braden</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <p class="daily-news-summary">结合非弹性中子散射实验与DFT计算，系统表征超导体LiFeAs的声子谱。</p>
+                <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 5</p>
+                <a class="daily-news-link" href="https://arxiv.org/abs/2603.19956" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>
+            </div>
+        </li>
+        
+        <li class="daily-news-item">
+            <div class="daily-news-index">06</div>
+            <div class="daily-news-body">
+                <div class="daily-news-title-zh">二茂钴与CrI3/Fe3GeTe2二维磁体sp界面的第一性原理</div>
+                <div class="daily-news-title-en">First principles characterization of spinterfaces between magnetic Cobaltocene molecule and 2D magnets (CrI$_3$, Fe$_3$GeTe$_2$)</div>
+                <div class="daily-news-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 arXiv / cond-mat</span><span class='daily-chip daily-chip-authors'>👤 Nikola Machacova, Biplab Sanyal</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <p class="daily-news-summary">采用第一性原理方法，研究自旋极化分子与二维磁体半导体/金属界面的电子与磁性质。</p>
+                <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 5</p>
+                <a class="daily-news-link" href="https://arxiv.org/abs/2603.19511" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>
+            </div>
+        </li>
+        </ol>
+        </section>
+
+        <section id="papers" class="daily-section">
+          <div class="daily-section-head">
+            <span class="daily-section-index">03</span>
+            <h2 class="daily-section-title">完整速览</h2>
+          </div>
+          
+        <section class="daily-topic-group">
+            <div class="daily-topic-head">
+                <div>
+                    <h3 class="daily-topic-title">AI × 物理 / 凝聚态</h3>
+                    <p class="daily-topic-desc">量子、自旋、凝聚态、电子结构与相关物理方法。</p>
+                </div>
+                <div class="daily-topic-count">5 篇</div>
+            </div>
+            <ol class="daily-paper-list">
+        <li class="daily-paper-card" id="paper-1">
+            <span class="daily-paper-number">01</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">规范协变形式下轨道磁性的第一性原理逐项分析</div>
+                        <div class="daily-paper-title-en">Anatomy of the modern theory of orbital magnetism from first-principles: term-by-term analysis in the gauge-covariant formalism</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 arXiv / cond-mat</span><span class='daily-chip daily-chip-authors'>👤 Hojun Lee, Insu Baek, Mirco Sastges, Yuriy Mokrousov, Hyun-Woo Lee, Dongwook Go</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">在规范协变框架下，对d过渡金属、sp金属、TMDs等材料中的轨道磁性进行微观项级分解。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="https://arxiv.org/abs/2603.19875" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        
+        <li class="daily-paper-card" id="paper-2">
+            <span class="daily-paper-number">02</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">NHC保护Cu7纳米团簇铜位点电子结构的远程调控与CO2电还原</div>
+                        <div class="daily-paper-title-en">Remotely Tuning the Electronic Structures of Cu Site Over N‐Heterocyclic Carbene‐Protected Cu7 Nanocluster for Steering CO2 Electroreduction to Hydrocarbons</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 Wiley</span><span class='daily-chip daily-chip-authors'>👤 Li‐Juan Gong,  Duan‐Hui Si,  Sha Bai,  Li‐Yao Liu,  Le Zhang,  Yuan‐Biao Huang,  Ying‐Feng Han</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">利用配体工程远程调控Cu7纳米团簇活性铜中心的电子结构，高选择性催化CO2电还原生成烃类。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="https://onlinelibrary.wiley.com/doi/10.1002/anie.4862058?af=R" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        
+        <li class="daily-paper-card" id="paper-3">
+            <span class="daily-paper-number">03</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">拓扑材料磁输运与非线性能带拓扑霍尔效应的第一性原理研究</div>
+                        <div class="daily-paper-title-en">Magnetotransport in topological materials and nonlinear Hall effect via first-principles electronic interactions and band topology</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 Phys. Rev. Materials</span><span class='daily-chip daily-chip-authors'>👤 Dhruv C. Desai, Lauren A. Tan, Jin-Jian Zhou, Shiyu Peng, Jinsoo Park, and Marco Bernardi</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">建立统一的第一性原理框架，研究拓扑材料中由贝里曲率驱动的反常输运现象，包括手征异常和非线性霍尔效应。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="http://link.aps.org/doi/10.1103/fl5l-dhn3" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        
+        <li class="daily-paper-card" id="paper-4">
+            <span class="daily-paper-number">04</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">铂基合金电子结构调制增强光催化丙烷脱氢</div>
+                        <div class="daily-paper-title-en">Enhancing Photocatalytic Propane Dehydrogenation via Electronic Structure Modulation of Platinum Sites Over Platinum‐Based Alloys</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 Wiley</span><span class='daily-chip daily-chip-authors'>👤 Chi Duan,  Jiaqi Zhao,  Run Shi,  Jinjia Liu,  Li‐Ping Zhang,  Li‐Zhu Wu,  Zhenhua Li,  Tierui Zhang</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">通过合金化调控铂活性位点的电子结构，显著提升光催化丙烷脱氢制丙烯的效率。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="https://onlinelibrary.wiley.com/doi/10.1002/anie.202524711?af=R" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        
+        <li class="daily-paper-card" id="paper-5">
+            <span class="daily-paper-number">05</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">高阶交换作用对斯格明子与反斯格明子寿命的影响</div>
+                        <div class="daily-paper-title-en">Impact of higher-order exchange on the lifetime of skyrmions and antiskyrmions</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 物理 / 凝聚态</span><span class='daily-chip daily-chip-journal'>📖 npj Computational Materials</span><span class='daily-chip daily-chip-authors'>👤 Hendrik Schrautzer, Moritz A. Goerzen, Bjarne Beyer, Soumyajyoti Haldar, Pavel F. Bessarab, Stefan Heinze</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">基于第一性原理计算，揭示高阶交换相互作用对磁性斯格明子及其反斯格明子热稳定性的关键影响。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="https://www.nature.com/articles/s41524-026-02034-9" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        </ol>
+        </section>
+        
+        <section class="daily-topic-group">
+            <div class="daily-topic-head">
+                <div>
+                    <h3 class="daily-topic-title">AI × 化学 / 分子 / 催化</h3>
+                    <p class="daily-topic-desc">分子设计、反应、催化、电化学与化学计算。</p>
+                </div>
+                <div class="daily-topic-count">2 篇</div>
+            </div>
+            <ol class="daily-paper-list">
+        <li class="daily-paper-card" id="paper-6">
+            <span class="daily-paper-number">06</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">氖的密度与声速维里系数第一性原理计算</div>
+                        <div class="daily-paper-title-en">Third and fourth density and acoustic virial coefficients of neon from first-principles calculations</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 化学 / 分子</span><span class='daily-chip daily-chip-journal'>📖 The Journal of Chemical Physics Current Issue</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">采用路径积分蒙特卡洛方法，基于第一性原理计算氖在宽温区的第三、第四维里系数。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="https://pubs.aip.org/aip/jcp/article/164/12/124302/3384347/Third-and-fourth-density-and-acoustic-virial" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        
+        <li class="daily-paper-card" id="paper-7">
+            <span class="daily-paper-number">07</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">电解质门控突触晶体管中离子浓度对线性权重调制的分子动力学与实验研究</div>
+                        <div class="daily-paper-title-en">Tunable Linear Weight Modulation via Ion Dynamics in Electrolyte‐Gated Synaptic Transistors: Molecular Dynamics and Experimental Insights into Ion Concentration Effects</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 化学 / 分子</span><span class='daily-chip daily-chip-journal'>📖 Wiley</span><span class='daily-chip daily-chip-authors'>👤 Haeyeon Lee,  Sobin Alosious,  Minho Jin,  Yeonseo Kim,  Tengfei Luo,  Youn Sang Kim</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">结合分子动力学模拟与实验，揭示电解质中离子浓度对突触晶体管线性权重调制性能的影响机制。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.202517100?af=R" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        </ol>
+        </section>
+        
+        <section class="daily-topic-group">
+            <div class="daily-topic-head">
+                <div>
+                    <h3 class="daily-topic-title">相关方法 / 计算工具</h3>
+                    <p class="daily-topic-desc">AI 方法、模拟工具与具有直接科研支撑价值的工作。</p>
+                </div>
+                <div class="daily-topic-count">1 篇</div>
+            </div>
+            <ol class="daily-paper-list">
+        <li class="daily-paper-card" id="paper-8">
+            <span class="daily-paper-number">08</span>
+            <div class="daily-paper-body">
+                <div class="daily-paper-head">
+                    <div class="daily-paper-titles">
+                        <div class="daily-paper-title-zh">李群上协方差追踪的动力学高斯-马尔可夫随机场方法</div>
+                        <div class="daily-paper-title-en">K-GMRF: Kinetic Gauss-Markov Random Field for First-Principles Covariance Tracking on Lie Groups</div>
+                    </div>
+                </div>
+                <div class="daily-paper-meta"><span class='daily-chip daily-chip-topic'>🧭 方法 / 工具</span><span class='daily-chip daily-chip-journal'>📖 arXiv / cs.LG</span><span class='daily-chip daily-chip-authors'>👤 ZhiMing Li</span><span class='daily-chip daily-chip-score'>🔥 AI 5</span></div>
+                <div class="daily-paper-summary">提出K-GMRF新方法，通过引入动力学约束和流形结构，在李群上实现无相位滞后、高精度的非平稳协方差矩阵追踪。</div>
+                <div class="daily-paper-actions">
+                    <a class="daily-news-link" href="https://arxiv.org/abs/2603.19601" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
+                </div>
+            </div>
+        </li>
+        </ol>
+        </section>
+        
+        </section>
+
+        <div class="daily-footer">
+          本页由文献追踪系统自动生成，仅保留 AI × 物理 / 化学 / 材料主线相关文献，并按专题重新整理，方便快速筛选与深度阅读。
+        </div>
+      </article>
+
+      <aside class="daily-toc">
+        <div class="daily-toc-card">
+          <div class="daily-toc-title">目录</div>
+          <a href="#summary"><span>今日摘要</span><span>01</span></a>
+          <a href="#highlights"><span>交叉重点</span><span>02</span></a>
+          <a href="#papers"><span>完整速览</span><span>03</span></a>
+
+          <div class="daily-sidebar-block">
+            <div class="daily-sidebar-title">专题分布</div>
+            <div class="daily-sidebar-stats"><div class='daily-sidebar-fact'><span>AI × 物理 / 凝聚态</span><strong>5</strong></div><div class='daily-sidebar-fact'><span>AI × 化学 / 分子 / 催化</span><strong>2</strong></div><div class='daily-sidebar-fact'><span>相关方法 / 计算工具</span><strong>1</strong></div></div>
+          </div>
+
+          <div class="daily-sidebar-block">
+            <div class="daily-sidebar-title">阅读建议</div>
+            <ul class="insight-note-list">
+              <li class="insight-note-item">先看交叉重点，再按物理、化学、材料与方法分区深读。</li>
+              <li class="insight-note-item">明显偏离主线的医学、教育等内容已自动剔除。</li>
+              <li class="insight-note-item">若需回看历史日报，可从日报索引页按日期倒序进入。</li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const THEME_KEY = 'literature_theme';
+
+    function initTheme() {
+      const theme = localStorage.getItem(THEME_KEY) || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeButton();
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'light' ? 'dark' : 'light';
+      localStorage.setItem(THEME_KEY, next);
+      document.documentElement.setAttribute('data-theme', next);
+      updateThemeButton();
+    }
+
+    function updateThemeButton() {
+      const btn = document.getElementById('themeToggle');
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+
+    initTheme();
+  </script>
+</body>
+</html>

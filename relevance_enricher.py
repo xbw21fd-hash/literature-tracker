@@ -13,6 +13,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from ai_summarizer import build_provider
+from focus_filter import is_daily_focus
 
 
 def _extract_json(text: str) -> Any:
@@ -75,11 +76,13 @@ def batch_analyze_relevance(
         for i in range(1, len(batch) + 1):
             item = mapping.get(i)
             if not item:
+                article = batch[i - 1]
+                fallback_rel = is_daily_focus(article)
                 results.append(
                     {
-                        "is_relevant": True,  # recall-first fallback
-                        "score": 5,
-                        "explanation": "AI 返回不完整，按高召回策略暂时纳入",
+                        "is_relevant": fallback_rel,
+                        "score": 6 if fallback_rel else 0,
+                        "explanation": "AI 返回不完整，已按本地 AI×物理/化学/材料规则回退判定。",
                         "detailed_summary": "",
                     }
                 )
@@ -105,7 +108,7 @@ def _build_prompt(batch: List[Dict[str, Any]]) -> str:
 
     joined = "\n".join(lines)
 
-    return f"""你是一位研究助理，专注于 AI 与物理/化学/材料科学交叉学科（AI4Science）。\n\n请逐条判断以下论文是否与“AI×物理/化学/材料/计算科学”相关。\n\n高召回要求：\n- 宁可多收录，也不要漏掉潜在相关论文。\n- 只要论文可能涉及：机器学习/深度学习/生成模型/图网络/大模型在物理、化学、材料、计算模拟、自动化发现中的应用；或 AI 用于实验/计算数据驱动；或与材料/凝聚态/化学计算强相关且可能与 AI 方法结合，都应判为相关。\n- 只有在明显与上述方向无关（如纯临床医学、生态、社会科学等）时才判为不相关。\n\n输入列表：\n{joined}\n\n请严格输出 JSON（不要 markdown，不要多余解释），并且 items 必须覆盖全部输入序号：\n{{\n  \"items\": [\n    {{\n      \"index\": 1,\n      \"is_relevant\": true,\n      \"score\": 0,\n      \"explanation\": \"中文1-2句，说明为何相关/不相关\",\n      \"detailed_summary\": \"中文3-4句，总结研究对象、方法（AI或物理/化学/材料方法）、主要发现与启发\"\n    }}\n  ]\n}}\n\n注意：除 is_relevant/score 外，其余字段必须是简体中文。"""
+    return f"""你是一位研究助理，专注于 AI 与物理/化学/材料科学交叉学科（AI4Science）。\n\n请逐条判断以下论文是否与“AI×物理/化学/材料/计算科学”相关。\n\n高召回要求：\n- 宁可多收录，也不要漏掉潜在相关论文。\n- 只要论文可能涉及：机器学习/深度学习/生成模型/图网络/大模型在物理、化学、材料、计算模拟、自动化发现中的应用；或 AI 用于实验/计算数据驱动；或与材料/凝聚态/化学计算强相关且可能与 AI 方法结合，都应判为相关。\n- 纯临床医学、生物医学治疗/诊断、公共卫生、教育、社会科学等，即使使用 AI，也判为不相关；除非论文核心问题明确属于物理/化学/材料/计算模拟方法本身。\n\n输入列表：\n{joined}\n\n请严格输出 JSON（不要 markdown，不要多余解释），并且 items 必须覆盖全部输入序号：\n{{\n  \"items\": [\n    {{\n      \"index\": 1,\n      \"is_relevant\": true,\n      \"score\": 0,\n      \"explanation\": \"中文1-2句，说明为何相关/不相关\",\n      \"detailed_summary\": \"中文3-4句，总结研究对象、方法（AI或物理/化学/材料方法）、主要发现与启发\"\n    }}\n  ]\n}}\n\n注意：除 is_relevant/score 外，其余字段必须是简体中文。"""
 
 
 def _parse_items(data: Any) -> Dict[int, Dict[str, Any]]:

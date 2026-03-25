@@ -2,6 +2,7 @@
 """
 Deterministic sanity test (no network):
 - Verify daily page renderer uses `full_list` (and falls back to `summaries`).
+- Verify daily page renderer carries the layout fixes that avoid global header/body bleed-through.
 """
 
 from generate_daily_pages import render_daily_html
@@ -35,6 +36,9 @@ def main() -> int:
     assert "今日摘要" in html
     assert "交叉重点" in html
     assert "完整速览" in html
+    assert '<div class="daily-hero">' in html
+    assert '<header class="daily-hero">' not in html
+    assert 'body::before { content: none !important; }' in html
 
     summary_summaries_only = {
         "overview": "总览测试2",
