@@ -4,195 +4,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>周报列表 - 文献追踪系统</title>
+    <title>周报索引 - 文献追踪系统</title>
     <link rel="stylesheet" href="../style.css">
-    <style>
-        .weekly-container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .weekly-header {
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 40px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            color: white;
-            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.35);
-        }
-
-        .weekly-header h1 {
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
-            font-weight: 700;
-        }
-
-        .weekly-header p {
-            font-size: 1.1em;
-            opacity: 0.95;
-        }
-
-        .weekly-list {
-            display: grid;
-            gap: 20px;
-        }
-
-        .weekly-card {
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border-color);
-            transition: all var(--transition-normal);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .weekly-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-lg);
-            border-color: var(--accent-primary);
-        }
-
-        .weekly-info {
-            flex: 1;
-        }
-
-        .weekly-date {
-            font-size: 1.3em;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-
-        .weekly-range {
-            color: var(--text-muted);
-            font-size: 0.95em;
-        }
-
-        .weekly-link {
-            padding: 12px 24px;
-            background: var(--gradient-accent);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
-            font-weight: 500;
-            transition: all var(--transition-fast);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
-        }
-
-        .weekly-link:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35);
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: var(--accent-primary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-        }
-
-        .empty-state h3 {
-            font-size: 1.5em;
-            margin-bottom: 10px;
-            color: var(--text-secondary);
-        }
-
-        .loading {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-            font-size: 1.1em;
-        }
-    </style>
 </head>
 
 <body>
-    <div class="weekly-container">
-        <a href="../index.html" class="back-link">← 返回主页</a>
-
-        <div class="weekly-header">
-            <h1>🔬 磁性/铁电周报</h1>
-            <p>每周总结 Nature/Science 系列的磁性/铁电领域重要工作</p>
+    <div class="insight-shell">
+        <div class="insight-topbar">
+            <div class="insight-topbar-left">
+                <a href="../index.html" class="insight-back-link">← 返回主页</a>
+                <span class="insight-mini-chip">AI × Science Weekly</span>
+            </div>
+            <div class="insight-topbar-right">
+                <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
+            </div>
         </div>
 
-        <div id="weeklyList" class="weekly-list">
-            <div class="loading">加载中...</div>
+        <section class="insight-page-hero">
+            <div class="insight-kicker">周报归档</div>
+            <h1 class="insight-title">AI × Science 周报索引</h1>
+            <p class="insight-subtitle">统一切换到资讯周报式入口：先看最新一周的交叉重点，再回溯历史周报，跟踪 AI × 物理 / 化学 / 材料交叉方向在一周尺度上的演化。</p>
+            <div class="insight-tags">
+                <span class="insight-tag">本周总览</span>
+                <span class="insight-tag">交叉研究</span>
+                <span class="insight-tag">期刊分布</span>
+                <span class="insight-tag">历史周报</span>
+            </div>
+            <div class="insight-stat-grid">
+                <div class="insight-stat">
+                    <div class="insight-stat-label">周报总期数</div>
+                    <div class="insight-stat-value" id="weeklyIssueCount">-</div>
+                </div>
+                <div class="insight-stat">
+                    <div class="insight-stat-label">最新周起始</div>
+                    <div class="insight-stat-value" id="latestWeeklyStart">-</div>
+                </div>
+                <div class="insight-stat">
+                    <div class="insight-stat-label">最新周结束</div>
+                    <div class="insight-stat-value" id="latestWeeklyEnd">-</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="insight-layout">
+            <main>
+                <section class="insight-panel">
+                    <h2 class="insight-panel-title">最新一期</h2>
+                    <div id="latestWeeklyCard" class="insight-empty">正在加载最新周报...</div>
+                </section>
+
+                <section class="insight-panel">
+                    <h2 class="insight-panel-title">历史归档</h2>
+                    <p class="insight-panel-subtitle">按时间倒序浏览历史周报，适合做阶段性回顾与主题追踪。</p>
+                    <div id="weeklyArchiveList" class="insight-archive-list">
+                        <div class="insight-empty">正在加载周报归档...</div>
+                    </div>
+                </section>
+            </main>
+
+            <aside class="insight-sidebar-card">
+                <h3 class="insight-sidebar-title">如何阅读周报</h3>
+                <p class="insight-sidebar-text">周报适合做阶段性回顾：先读本周总览，再看交叉研究，最后按磁性/铁电与 AI 分区深挖。</p>
+                <ul class="insight-note-list">
+                    <li class="insight-note-item">周报比日报更适合看趋势、热点收敛与主题延伸。</li>
+                    <li class="insight-note-item">期刊分布可以帮助快速判断本周成果来源结构。</li>
+                    <li class="insight-note-item">想追某一周的重点工作，可直接进入详细周报页面。</li>
+                </ul>
+                <div class="insight-action-row">
+                    <a class="insight-btn insight-btn-primary" href="../daily/">查看日报</a>
+                    <a class="insight-btn insight-btn-secondary" href="../index.html">返回总览</a>
+                </div>
+            </aside>
         </div>
     </div>
 
     <script>
-        // 主题支持
-        const theme = localStorage.getItem('literature_theme') || 'light';
-        document.documentElement.setAttribute('data-theme', theme);
+        const THEME_KEY = 'literature_theme';
 
-        // 加载周报列表
+        function initTheme() {
+            const theme = localStorage.getItem(THEME_KEY) || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeButton();
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, next);
+            document.documentElement.setAttribute('data-theme', next);
+            updateThemeButton();
+        }
+
+        function updateThemeButton() {
+            const btn = document.getElementById('themeToggle');
+            const theme = document.documentElement.getAttribute('data-theme') || 'light';
+            if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        function renderLatestWeekly(item) {
+            return `
+                <a href="${item.file}" class="insight-feature-card">
+                    <div class="insight-feature-kicker">Latest Weekly</div>
+                    <div class="insight-feature-title">${item.week_start} → ${item.week_end}</div>
+                    <div class="insight-feature-meta">
+                        <span>阶段回顾</span>
+                        <span>趋势整合</span>
+                    </div>
+                    <div class="insight-feature-desc">查看本周总览、交叉重点、专题分区和期刊分布。</div>
+                    <div class="insight-action-row">
+                        <span class="insight-btn insight-btn-primary">打开周报 ↗</span>
+                    </div>
+                </a>
+            `;
+        }
+
+        function renderArchiveItem(item) {
+            return `
+                <a href="${item.file}" class="insight-archive-item">
+                    <div class="insight-archive-date">${item.week_start} → ${item.week_end}</div>
+                    <div class="insight-archive-meta">
+                        <span>周报归档</span>
+                        <span>${item.file}</span>
+                    </div>
+                    <div class="insight-archive-summary">浏览这一周的总览、交叉研究与分主题综述。</div>
+                </a>
+            `;
+        }
+
         async function loadWeeklies() {
+            const latestCard = document.getElementById('latestWeeklyCard');
+            const archiveList = document.getElementById('weeklyArchiveList');
             try {
-                const response = await fetch('index.json');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                const response = await fetch('index.json?t=' + Date.now());
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
+                const weeklies = data.weeklies || [];
 
-                const container = document.getElementById('weeklyList');
+                document.getElementById('weeklyIssueCount').textContent = weeklies.length;
 
-                if (!data.weeklies || data.weeklies.length === 0) {
-                    container.innerHTML = `
-                        <div class="empty-state">
-                            <h3>暂无周报</h3>
-                            <p>周报将在每周自动生成</p>
-                        </div>
-                    `;
+                if (!weeklies.length) {
+                    latestCard.innerHTML = '<div class="insight-empty">暂无周报数据</div>';
+                    archiveList.innerHTML = '<div class="insight-empty">周报生成后会自动出现在这里。</div>';
+                    document.getElementById('latestWeeklyStart').textContent = '-';
+                    document.getElementById('latestWeeklyEnd').textContent = '-';
                     return;
                 }
 
-                container.innerHTML = data.weeklies.map(weekly => `
-                    <div class="weekly-card">
-                        <div class="weekly-info">
-                            <div class="weekly-date">第 ${getWeekNumber(weekly.week_start)} 周</div>
-                            <div class="weekly-range">${weekly.week_start} 至 ${weekly.week_end}</div>
-                        </div>
-                        <a href="${weekly.file}" class="weekly-link">查看周报 →</a>
-                    </div>
-                `).join('');
-
+                const latest = weeklies[0];
+                document.getElementById('latestWeeklyStart').textContent = latest.week_start;
+                document.getElementById('latestWeeklyEnd').textContent = latest.week_end;
+                latestCard.innerHTML = renderLatestWeekly(latest);
+                archiveList.innerHTML = weeklies.map(renderArchiveItem).join('');
             } catch (error) {
-                console.error('加载周报列表失败:', error);
-                document.getElementById('weeklyList').innerHTML = `
-                    <div class="empty-state">
-                        <h3>加载失败</h3>
-                        <p>错误信息: ${error.message}</p>
-                        <p>请检查浏览器控制台获取更多信息</p>
-                    </div>
-                `;
+                console.error('加载周报归档失败:', error);
+                latestCard.innerHTML = `<div class="insight-empty">加载失败：${error.message}</div>`;
+                archiveList.innerHTML = '<div class="insight-empty">请稍后刷新重试。</div>';
             }
         }
 
-        // 计算周数
-        function getWeekNumber(dateStr) {
-            const date = new Date(dateStr);
-            const startOfYear = new Date(date.getFullYear(), 0, 1);
-            const days = Math.floor((date - startOfYear) / (24 * 60 * 60 * 1000));
-            return Math.ceil((days + startOfYear.getDay() + 1) / 7);
-        }
-
-        // 页面加载时执行
+        initTheme();
         loadWeeklies();
     </script>
 </body>

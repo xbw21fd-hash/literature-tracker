@@ -28,6 +28,37 @@
                     rel="noopener">于宏宇（Hongyu Yu）</a> with AI</p>
         </header>
 
+        <section class="insight-home-section">
+            <div class="insight-card-grid">
+                <a href="daily/" class="insight-home-card" id="homeDailyCard">
+                    <div class="insight-home-kicker">Latest Daily</div>
+                    <h2 class="insight-home-title">每日摘要入口</h2>
+                    <p class="insight-home-text">正在加载最新日报...</p>
+                    <div class="insight-action-row">
+                        <span class="insight-btn insight-btn-primary">打开日报 ↗</span>
+                    </div>
+                </a>
+
+                <a href="weekly/" class="insight-home-card" id="homeWeeklyCard">
+                    <div class="insight-home-kicker">Latest Weekly</div>
+                    <h2 class="insight-home-title">周报入口</h2>
+                    <p class="insight-home-text">正在加载最新周报...</p>
+                    <div class="insight-action-row">
+                        <span class="insight-btn insight-btn-primary">打开周报 ↗</span>
+                    </div>
+                </a>
+
+                <div class="insight-home-card">
+                    <div class="insight-home-kicker">Quick Archive</div>
+                    <h2 class="insight-home-title">快速浏览</h2>
+                    <p class="insight-home-text">直接从首页跳转到最新几期日报与周报。</p>
+                    <div class="insight-inline-list" id="homeArchiveQuickList">
+                        <div class="insight-empty">正在加载归档...</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <div class="controls">
             <div class="nav-links">
                 <a href="analytics.html" class="nav-link">📊 数据分析</a>
@@ -191,8 +222,91 @@
     <script src="advanced-features.js?v=2"></script>
     <script src="app.js?v=18"></script>
     <script>
+        async function loadInsightHub() {
+            const dailyCard = document.getElementById('homeDailyCard');
+            const weeklyCard = document.getElementById('homeWeeklyCard');
+            const quickList = document.getElementById('homeArchiveQuickList');
+
+            const [dailyResult, weeklyResult] = await Promise.allSettled([
+                fetch('daily/summaries.json?t=' + Date.now()).then(r => r.ok ? r.json() : Promise.reject(new Error(`daily ${r.status}`))),
+                fetch('weekly/index.json?t=' + Date.now()).then(r => r.ok ? r.json() : Promise.reject(new Error(`weekly ${r.status}`)))
+            ]);
+
+            if (dailyResult.status === 'fulfilled') {
+                const summaries = dailyResult.value.summaries || [];
+                if (summaries.length) {
+                    const latest = summaries[0];
+                    dailyCard.innerHTML = `
+                        <div class="insight-home-kicker">Latest Daily</div>
+                        <h2 class="insight-home-title">${latest.date} 每日摘要</h2>
+                        <div class="insight-inline-meta">
+                            <span>收录 ${latest.total ?? 0} 篇文献</span>
+                            <span>日报已生成</span>
+                        </div>
+                        <p class="insight-home-text">进入最新一期日报，查看今日摘要、交叉重点和完整速览。</p>
+                        <div class="insight-action-row">
+                            <span class="insight-btn insight-btn-primary">打开日报 ↗</span>
+                        </div>
+                    `;
+                    dailyCard.href = `daily/${latest.file}`;
+                }
+            }
+
+            if (weeklyResult.status === 'fulfilled') {
+                const weeklies = weeklyResult.value.weeklies || [];
+                if (weeklies.length) {
+                    const latest = weeklies[0];
+                    weeklyCard.innerHTML = `
+                        <div class="insight-home-kicker">Latest Weekly</div>
+                        <h2 class="insight-home-title">${latest.week_start} → ${latest.week_end}</h2>
+                        <div class="insight-inline-meta">
+                            <span>本周总览</span>
+                            <span>交叉研究</span>
+                        </div>
+                        <p class="insight-home-text">查看周报总结、交叉重点与期刊分布。</p>
+                        <div class="insight-action-row">
+                            <span class="insight-btn insight-btn-primary">打开周报 ↗</span>
+                        </div>
+                    `;
+                    weeklyCard.href = `weekly/${latest.file}`;
+                }
+            }
+
+            const quickItems = [];
+            if (dailyResult.status === 'fulfilled') {
+                const summaries = dailyResult.value.summaries || [];
+                for (const item of summaries.slice(0, 3)) {
+                    quickItems.push(`
+                        <a class="insight-inline-item" href="daily/${item.file}">
+                            <div class="insight-inline-title">日报 · ${item.date}</div>
+                            <div class="insight-inline-meta"><span>${item.total ?? 0} 篇文献</span></div>
+                        </a>
+                    `);
+                }
+            }
+            if (weeklyResult.status === 'fulfilled') {
+                const weeklies = weeklyResult.value.weeklies || [];
+                for (const item of weeklies.slice(0, 2)) {
+                    quickItems.push(`
+                        <a class="insight-inline-item" href="weekly/${item.file}">
+                            <div class="insight-inline-title">周报 · ${item.week_start}</div>
+                            <div class="insight-inline-meta"><span>${item.week_start} → ${item.week_end}</span></div>
+                        </a>
+                    `);
+                }
+            }
+            if (quickItems.length) {
+                quickList.innerHTML = quickItems.join('');
+            } else {
+                quickList.innerHTML = '<div class="insight-empty">暂时无法加载日报/周报入口。</div>';
+            }
+        }
+
         // 初始化高级功能（在app.js加载后，等待数据加载完成）
         document.addEventListener('DOMContentLoaded', function () {
+            loadInsightHub().catch(error => {
+                console.error('首页日报/周报入口加载失败:', error);
+            });
             // 延迟初始化高级功能，确保app.js已完成基础初始化
             setTimeout(function () {
                 if (typeof initAdvancedFeatures === 'function') {

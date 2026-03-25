@@ -1079,919 +1079,1052 @@ class WeeklySummarizer:
         html += '</div>'
         return html
     
-    def save_summary_html(self, summary: Dict, output_dir: str = 'docs/weekly') -> str:
-        """保存周报为HTML"""
-        week_start = summary['week_start']
-        week_end = summary['week_end']
-        os.makedirs(output_dir, exist_ok=True)
-        
-        filepath = os.path.join(output_dir, f"{week_start}.html")
-        
-        # 生成文献列表HTML（使用新的卡片式设计，包含AI分析和展开/折叠功能）
-        def generate_article_list(articles, category_name=""):
-            if not articles:
-                return '<p class="no-articles">本周暂无相关文献</p>'
-            
-            html = ''
-            total_articles = len(articles)
-            
-            for i, article in enumerate(articles, 1):
-                raw_title_zh = (article.get('title_zh') or '').strip()
-                raw_title_en = (article.get('title') or '').strip()
-                raw_title = raw_title_zh or raw_title_en
-                raw_journal = (article.get('journal') or '').strip()
-                raw_link = (article.get('link') or '#').strip()
-                raw_date = (article.get('pub_date') or article.get('date') or '').strip()
 
-                title_zh = _safe_text(raw_title_zh)
-                title_en = _safe_text(raw_title_en)
+    def save_summary_html(self, summary: Dict, output_dir: str = 'docs/weekly') -> str:
+        # 保存周报为HTML（资讯周报风格）
+        week_start = str(summary['week_start'])
+        week_end = str(summary.get('week_end') or '')
+        os.makedirs(output_dir, exist_ok=True)
+
+        filepath = os.path.join(output_dir, f"{week_start}.html")
+
+        def shorten_text(value, limit: int = 160) -> str:
+            compact = ' '.join(str(value or '').split())
+            if len(compact) <= limit:
+                return compact
+            return compact[: max(0, limit - 1)].rstrip() + '…'
+
+        def article_key(article: Dict, fallback: str) -> str:
+            raw = article.get('link') or article.get('id') or article.get('title_zh') or article.get('title') or fallback
+            return str(raw)
+
+        def article_anchor(article: Dict, fallback: str) -> str:
+            raw = article.get('id') or article.get('link') or article.get('title_zh') or article.get('title') or fallback
+            raw_str = str(raw)
+            if raw_str.startswith('article-'):
+                raw_str = raw_str[8:]
+            return f"article-{_safe_id(raw_str)}"
+
+        def authors_label(article: Dict) -> str:
+            authors = article.get('authors')
+            if isinstance(authors, list):
+                cleaned = [str(item).strip() for item in authors if str(item).strip()]
+                if len(cleaned) > 4:
+                    return ', '.join(cleaned[:4]) + f' 等{len(cleaned)}位作者'
+                return ', '.join(cleaned)
+            return str(authors or '').strip()
+
+        def article_teaser(article: Dict, limit: int = 180) -> str:
+            for key in ('ai_analysis', 'abstract_zh', 'abstract', 'title_zh', 'title'):
+                value = str(article.get(key) or '').strip()
+                if value:
+                    return shorten_text(value, limit)
+            return ''
+
+        both_articles = list(summary.get('both_articles') or [])
+        ferro_articles = list(summary.get('ferro_articles') or [])
+        ai_articles = list(summary.get('ai_articles') or [])
+        all_articles = list(summary.get('all_articles') or summary.get('articles') or [])
+
+        if not all_articles:
+            deduped = []
+            seen_all = set()
+            for index, article in enumerate(both_articles + ferro_articles + ai_articles, 1):
+                key = article_key(article, f'all-{index}')
+                if key in seen_all:
+                    continue
+                seen_all.add(key)
+                deduped.append(article)
+            all_articles = deduped
+
+        if not week_end and week_start:
+            try:
+                week_end = (datetime.strptime(week_start, '%Y-%m-%d') + timedelta(days=6)).strftime('%Y-%m-%d')
+            except Exception:
+                week_end = ''
+
+        displayed_keys = set()
+        for index, article in enumerate(both_articles + ferro_articles + ai_articles, 1):
+            displayed_keys.add(article_key(article, f'display-{index}'))
+
+        other_articles = []
+        seen_other = set()
+        for index, article in enumerate(all_articles, 1):
+            key = article_key(article, f'other-{index}')
+            if key in displayed_keys or key in seen_other:
+                continue
+            seen_other.add(key)
+            other_articles.append(article)
+
+        raw_by_journal = summary.get('by_journal') or {}
+        by_journal = {}
+        if isinstance(raw_by_journal, dict) and raw_by_journal:
+            has_article_lists = any(isinstance(value, list) for value in raw_by_journal.values())
+            if has_article_lists:
+                by_journal = raw_by_journal
+
+        if not by_journal:
+            for article in all_articles:
+                journal = str(article.get('journal') or '其他来源').strip() or '其他来源'
+                by_journal.setdefault(journal, []).append(article)
+
+        def journal_item_count(value) -> int:
+            if isinstance(value, list):
+                return len(value)
+            if isinstance(value, tuple):
+                return len(value)
+            try:
+                return int(value)
+            except Exception:
+                return len(value or [])
+
+        journal_items = sorted(by_journal.items(), key=lambda item: (-journal_item_count(item[1]), str(item[0])))
+        journal_count = len(journal_items)
+        arxiv_count = sum(
+            1
+            for article in all_articles
+            if 'arxiv' in str(article.get('journal') or '').lower() or 'arxiv' in str(article.get('link') or '').lower()
+        )
+        top_journal_text = '、'.join(
+            f"{str(journal).strip() or '其他来源'} {journal_item_count(items)}篇"
+            for journal, items in journal_items[:4]
+        )
+
+        hero_quote_raw = (
+            str(summary.get('trends') or '').strip()
+            or str(summary.get('outlook') or '').strip()
+            or str(summary.get('overview') or '').strip()
+            or '覆盖 AI × 物理 / 化学 / 材料交叉研究的一周重点，并保留全文速览入口。'
+        )
+        hero_quote = _safe_text(shorten_text(hero_quote_raw, 180))
+
+        tag_labels = ['本周总览', '交叉研究', '磁性/铁电', 'AI/机器学习', '期刊分布']
+        if other_articles:
+            tag_labels.append('其他相关文献')
+        if arxiv_count:
+            tag_labels.append('含 arXiv 预印本')
+        tags_html = ''.join(f'<span class="insight-tag">{_safe_text(tag)}</span>' for tag in tag_labels)
+
+        def render_overview_bucket(title: str, icon: str, articles: List[Dict], tone_class: str, limit: int = 4) -> str:
+            if not articles:
+                return ''
+            item_html = []
+            for idx, article in enumerate(articles[:limit], 1):
+                journal = _safe_text(str(article.get('journal') or '来源').strip() or '来源')
+                teaser = _safe_text(article_teaser(article, 82))
+                anchor = article_anchor(article, f'{tone_class}-{idx}')
+                item_html.append(
+                    f'<li class="weekly-digest-item"><a href="#{anchor}"><span class="weekly-digest-journal">[{journal}]</span>{teaser}</a></li>'
+                )
+            more_html = ''
+            if len(articles) > limit:
+                more_html = f'<div class="weekly-digest-more">+ {len(articles) - limit} 篇继续下拉查看</div>'
+            title_html = _safe_text(title)
+            icon_html = _safe_text(icon)
+            return f'''
+            <div class="weekly-digest-card {tone_class}">
+                <div class="weekly-digest-title"><span>{icon_html} {title_html}</span><span>{len(articles)} 篇</span></div>
+                <ul class="weekly-digest-list">{''.join(item_html)}</ul>
+                {more_html}
+            </div>
+            '''
+
+        def render_article_cards(articles: List[Dict], tone_class: str) -> str:
+            if not articles:
+                return '<div class="insight-empty">本栏目本周暂无相关文献。</div>'
+
+            cards = []
+            for idx, article in enumerate(articles, 1):
+                raw_title_zh = str(article.get('title_zh') or '').strip()
+                raw_title_en = str(article.get('title') or '').strip()
+                raw_title = raw_title_zh or raw_title_en or '未命名文献'
+                raw_journal = str(article.get('journal') or '').strip()
+                raw_link = str(article.get('link') or '#').strip()
+                raw_date = str(article.get('pub_date') or article.get('date') or '').strip()
+                raw_authors = authors_label(article)
+                raw_ai_analysis = str(article.get('ai_analysis') or '').strip()
+                raw_abstract_zh = str(article.get('abstract_zh') or '').strip()
+                raw_abstract_en = str(article.get('abstract') or '').strip()
+
                 title = _safe_text(raw_title)
+                title_en = _safe_text(raw_title_en)
                 journal = _safe_text(raw_journal)
                 link = _safe_url(raw_link)
                 date = _safe_text(raw_date)
-                
-                # 获取摘要
-                raw_abstract_zh = (article.get('abstract_zh') or '').strip()
-                raw_abstract_en = (article.get('abstract') or '').strip()
+                authors = _safe_text(raw_authors)
                 abstract_zh = _safe_multiline(raw_abstract_zh)
                 abstract_en = _safe_multiline(raw_abstract_en)
-                
-                # 获取作者
-                authors = article.get('authors', [])
-                authors_str_raw = ''
-                if authors:
-                    if isinstance(authors, list):
-                        if len(authors) <= 3:
-                            authors_str_raw = ', '.join([str(a) for a in authors])
-                        else:
-                            authors_str_raw = ', '.join([str(a) for a in authors[:3]]) + f' 等{len(authors)}位作者'
-                    else:
-                        authors_str_raw = str(authors)
-                authors_str = _safe_text(authors_str_raw)
-                
-                # 确定文章类型标签
-                tags = []
+                anchor = article_anchor(article, f'{tone_class}-{idx}')
+
+                title_en_block = f'<div class="weekly-paper-title-en">{title_en}</div>' if raw_title_en and raw_title_zh else ''
+
+                meta_parts = []
+                if raw_journal:
+                    meta_parts.append(f'<span class="weekly-chip weekly-chip-journal">📚 {journal}</span>')
+                if raw_authors:
+                    meta_parts.append(f'<span class="weekly-chip weekly-chip-authors">👤 {authors}</span>')
+                if raw_date:
+                    meta_parts.append(f'<span class="weekly-chip">📅 {date}</span>')
                 if article.get('is_ferro'):
-                    tags.append('<span class="article-type-tag ferro-tag">⚡ 磁性/铁电</span>')
+                    meta_parts.append('<span class="weekly-chip weekly-chip-ferro">⚡ 磁性/铁电</span>')
                 if article.get('is_ai'):
-                    tags.append('<span class="article-type-tag ai-tag">🤖 AI/机器学习</span>')
-                
-                tags_html = ''.join(tags) if tags else ''
-                
-                # 获取AI简要分析（已在前面并行处理）
-                ai_analysis_raw = (article.get('ai_analysis') or '').strip()
-                
-                # 如果没有AI分析，使用摘要预览
-                if not ai_analysis_raw:
-                    if raw_abstract_zh or raw_abstract_en:
-                        preview = (raw_abstract_zh or raw_abstract_en)[:100]
-                        ai_analysis_raw = preview + ("..." if len(preview) == 100 else "")
-                ai_analysis = _safe_multiline(ai_analysis_raw)
-                
-                # 构建HTML - 添加展开/折叠功能
-                article_id = f"article-{_safe_id(article.get('id', i))}"
-                has_abstract_zh = bool(raw_abstract_zh and raw_abstract_en)  # 有中英文摘要才显示展开按钮
-                
-                # 先构建按钮HTML，避免在f-string表达式内使用反斜杠
-                toggle_btn = f'<button class="toggle-abstract-btn" onclick="toggleAbstract(\'{article_id}\')">📖 查看完整摘要</button>' if has_abstract_zh else ''
+                    meta_parts.append('<span class="weekly-chip weekly-chip-ai">🤖 AI/机器学习</span>')
+                meta_html = ''.join(meta_parts)
 
-                title_en_block = f'<p class="article-title-en">{title_en}</p>' if raw_title_en and raw_title_zh else ''
-                journal_block = f'<div class="article-journal">📚 {journal}</div>' if raw_journal else ''
-                authors_block = f'<div class="article-authors">👤 {authors_str}</div>' if authors_str_raw else ''
-                ai_analysis_block = f'<div class="article-ai-analysis">{ai_analysis}</div>' if ai_analysis_raw else ''
+                note_raw = raw_ai_analysis or article_teaser(article, 180)
+                note_label = 'AI 解读' if raw_ai_analysis else '核心摘录'
+                note_html = ''
+                if note_raw:
+                    note_html = f'<div class="weekly-paper-summary"><strong>{_safe_text(note_label)}：</strong>{_safe_multiline(note_raw)}</div>'
 
-                preview_src = (raw_abstract_zh or raw_abstract_en)
-                preview_block = ''
-                if preview_src:
-                    preview_text = _safe_text(preview_src[:150])
-                    preview_block = f'<div class="article-abstract-preview">{preview_text}...</div>'
+                preview_raw = ''
+                if raw_abstract_zh or raw_abstract_en:
+                    preview_source = raw_abstract_zh or raw_abstract_en
+                    preview_raw = shorten_text(preview_source, 220)
+                preview_html = ''
+                if preview_raw and preview_raw != note_raw:
+                    preview_html = f'<div class="weekly-paper-preview">{_safe_text(preview_raw)}</div>'
 
-                abstract_full_parts = []
-                if raw_abstract_zh:
-                    abstract_full_parts.append(
-                        f'<div class="abstract-section"><strong>中文摘要：</strong><p>{abstract_zh}</p></div>'
-                    )
-                if raw_abstract_en:
-                    abstract_full_parts.append(
-                        f'<div class="abstract-section"><strong>English Abstract：</strong><p class="abstract-en">{abstract_en}</p></div>'
-                    )
-                abstract_full_html = ''.join(abstract_full_parts)
+                has_full_abstract = bool(raw_abstract_zh or raw_abstract_en)
+                toggle_html = ''
+                abstract_html = ''
+                if has_full_abstract:
+                    abstract_blocks = []
+                    if raw_abstract_zh:
+                        abstract_blocks.append(
+                            f'<div class="weekly-abstract-block"><div class="weekly-abstract-label">中文摘要</div><p>{abstract_zh}</p></div>'
+                        )
+                    if raw_abstract_en:
+                        abstract_blocks.append(
+                            f'<div class="weekly-abstract-block"><div class="weekly-abstract-label">English Abstract</div><p class="weekly-abstract-en">{abstract_en}</p></div>'
+                        )
+                    toggle_html = f'<button class="toggle-abstract-btn" onclick="toggleAbstract(\'{anchor}\', this)">📖 查看完整摘要</button>'
+                    abstract_html = f'<div class="weekly-paper-abstract" id="{anchor}-abstract" style="display:none;">{"".join(abstract_blocks)}</div>'
 
-                date_block = f'<div class="article-date">📅 {date}</div>' if raw_date else ''
-                
-                html += f'''
-                <div class="article-card" id="{article_id}">
-                    <div class="article-header">
-                        <div class="article-number">{i}</div>
-                        <div class="article-title-wrapper">
-                            <h4 class="article-title">
-                                <a href="{link}" target="_blank" rel="noopener noreferrer">{title}</a>
-                            </h4>
+                cards.append(f'''
+                <article class="weekly-paper-card {tone_class}" id="{anchor}">
+                    <div class="weekly-paper-head">
+                        <span class="weekly-paper-number">{idx:02d}</span>
+                        <div class="weekly-paper-titles">
+                            <h3 class="weekly-paper-title-zh"><a href="{link}" target="_blank" rel="noopener noreferrer">{title}</a></h3>
                             {title_en_block}
-                            {journal_block}
                         </div>
                     </div>
-                    <div class="article-body">
-                        {authors_block}
-                        {ai_analysis_block}
-                        {preview_block}
-                        {toggle_btn}
-                        <div class="article-abstract-full" id="{article_id}-abstract" style="display: none;">
-                            {abstract_full_html}
-                        </div>
+                    <div class="weekly-paper-meta">{meta_html}</div>
+                    {note_html}
+                    {preview_html}
+                    <div class="weekly-paper-actions">
+                        {toggle_html}
+                        <a class="insight-btn insight-btn-secondary" href="{link}" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
                     </div>
-                    <div class="article-footer">
-                        <div class="article-tags">
-                            {tags_html}
-                        </div>
-                        {date_block}
-                        <a href="{link}" target="_blank" rel="noopener noreferrer" class="article-link">阅读原文 →</a>
-                    </div>
-                </div>
-                '''
-            return html
-        
-        # 获取各类文献
-        ferro_articles = summary.get('ferro_articles', [])
-        ai_articles = summary.get('ai_articles', [])
-        both_articles = summary.get('both_articles', [])
-        all_articles = summary.get('all_articles', [])
-        
-        # 生成期刊统计HTML
-        journal_stats_html = ''
-        by_journal = summary.get('by_journal', {})
-        for journal, arts in sorted(by_journal.items(), key=lambda x: -len(x[1])):
-            journal_escaped = _safe_text(journal)
-            journal_stats_html += f'''
-            <div class="journal-stat">
-                <div class="journal-name">{journal_escaped}</div>
-                <div class="journal-count">{len(arts)} 篇</div>
+                    {abstract_html}
+                </article>
+                ''')
+            return f'<div class="weekly-paper-list">{"".join(cards)}</div>'
+
+        def render_journal_stats() -> str:
+            if not journal_items:
+                return '<div class="insight-empty">暂无期刊统计。</div>'
+            items_html = []
+            for journal, items in journal_items:
+                count = journal_item_count(items)
+                items_html.append(
+                    f'<div class="weekly-journal-item"><div class="weekly-journal-name">{_safe_text(str(journal) or "其他来源")}</div><div class="weekly-journal-count">{count} 篇</div></div>'
+                )
+            return f'<div class="weekly-journal-list">{"".join(items_html)}</div>'
+
+        overview_cards = [
+            f'''
+            <div class="weekly-summary-card">
+                <div class="weekly-summary-title">整体概览</div>
+                <p>{_safe_multiline(summary.get('overview', '本周暂无周报概览。'))}</p>
             </div>
             '''
-        
-        # 生成完整HTML
+        ]
+
+        secondary_title = '趋势观察'
+        secondary_text = str(summary.get('trends') or '').strip()
+        if not secondary_text:
+            secondary_title = '来源分布'
+            secondary_text = f'本周主要来源包括：{top_journal_text}。' if top_journal_text else '本周来源结构将在新数据写入后自动更新。'
+        overview_cards.append(
+            f'''
+            <div class="weekly-summary-card">
+                <div class="weekly-summary-title">{_safe_text(secondary_title)}</div>
+                <p>{_safe_multiline(secondary_text)}</p>
+            </div>
+            '''
+        )
+
+        outlook_text = str(summary.get('outlook') or '').strip()
+        if outlook_text:
+            overview_cards.append(
+                f'''
+                <div class="weekly-summary-card">
+                    <div class="weekly-summary-title">后续展望</div>
+                    <p>{_safe_multiline(outlook_text)}</p>
+                </div>
+                '''
+            )
+        else:
+            overview_cards.append(
+                '''
+                <div class="weekly-summary-card">
+                    <div class="weekly-summary-title">阅读提示</div>
+                    <p>先看交叉研究，再按磁性/铁电与 AI 专题分区深读；所有卡片均保留中英标题、期刊、作者与摘要入口。</p>
+                </div>
+                '''
+            )
+
+        digest_cards = [
+            render_overview_bucket('交叉研究', '🔀', both_articles, 'cross'),
+            render_overview_bucket('磁性/铁电', '⚡', ferro_articles, 'ferro'),
+            render_overview_bucket('AI / 机器学习', '🤖', ai_articles, 'ai'),
+            render_overview_bucket('其他相关文献', '🧩', other_articles, 'other', limit=3),
+        ]
+        digest_cards = [card for card in digest_cards if card]
+        overview_body = f'<div class="weekly-summary-grid">{"".join(overview_cards)}</div>'
+        if digest_cards:
+            overview_body += f'<div class="weekly-digest-grid">{"".join(digest_cards)}</div>'
+
+        sections = []
+        toc_links = []
+        section_counter = {'value': 1}
+
+        def add_section(section_id: str, title: str, subtitle: str, body_html: str, count_text: str = '') -> None:
+            number = section_counter['value']
+            num_text = f'{number:02d}'
+            title_html = _safe_text(title)
+            subtitle_html = _safe_text(subtitle)
+            count_block = f'<span class="weekly-toc-meta">{_safe_text(count_text)}</span>' if count_text else f'<span class="weekly-toc-meta">{num_text}</span>'
+            sections.append(f'''
+            <section id="{section_id}" class="insight-panel weekly-report-section">
+                <div class="weekly-section-head">
+                    <span class="weekly-section-index">{num_text}</span>
+                    <div class="weekly-section-copy">
+                        <h2 class="insight-panel-title">{title_html}</h2>
+                        <p class="insight-panel-subtitle">{subtitle_html}</p>
+                    </div>
+                </div>
+                {body_html}
+            </section>
+            ''')
+            toc_links.append(f'<a class="weekly-toc-link" href="#{section_id}"><span>{title_html}</span>{count_block}</a>')
+            section_counter['value'] += 1
+
+        add_section(
+            'overview',
+            '本周总览',
+            '先把握一周的主线，再进入交叉重点与专题全文速览。',
+            overview_body,
+            f'{len(all_articles)} 篇文献' if all_articles else '总览',
+        )
+
+        if both_articles:
+            add_section(
+                'cross',
+                '交叉研究',
+                '优先覆盖 AI × 物理 / 化学 / 材料的直接交叉工作。',
+                render_article_cards(both_articles, 'cross'),
+                f'{len(both_articles)} 篇',
+            )
+        if ferro_articles:
+            add_section(
+                'ferro',
+                '磁性 / 铁电专题',
+                '聚焦自旋、铁电、多铁与相关功能材料研究。',
+                render_article_cards(ferro_articles, 'ferro'),
+                f'{len(ferro_articles)} 篇',
+            )
+        if ai_articles:
+            add_section(
+                'ai',
+                'AI / 机器学习专题',
+                '覆盖模型、方法与 AI for Science 应用工作。',
+                render_article_cards(ai_articles, 'ai'),
+                f'{len(ai_articles)} 篇',
+            )
+        if other_articles:
+            add_section(
+                'other',
+                '其他相关文献',
+                '补充未落入前三个专题但仍与本周主题相关的工作。',
+                render_article_cards(other_articles, 'other'),
+                f'{len(other_articles)} 篇',
+            )
+        if journal_items:
+            add_section(
+                'journals',
+                '期刊分布',
+                '按来源快速判断本周成果主要集中在哪些期刊或预印本平台。',
+                render_journal_stats(),
+                f'{journal_count} 个来源',
+            )
+
+        sidebar_facts = [
+            ('交叉研究', len(both_articles)),
+            ('磁性/铁电', len(ferro_articles)),
+            ('AI/机器学习', len(ai_articles)),
+        ]
+        if other_articles:
+            sidebar_facts.append(('其他相关', len(other_articles)))
+        sidebar_stats_html = ''.join(
+            f'<div class="weekly-sidebar-fact"><span>{_safe_text(label)}</span><strong>{value}</strong></div>'
+            for label, value in sidebar_facts
+        )
+
+        generated_by = _safe_text(summary.get('generated_by', 'AI'))
+        generated_at = datetime.now().strftime('%Y-%m-%d %H:%M')
+        section_count = max(section_counter['value'] - 1, 1)
+
         html = f'''<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>周报 - {week_start} 至 {week_end}</title>
+    <title>AI × Science 周报 - {week_start} 至 {week_end}</title>
     <link rel="stylesheet" href="../style.css">
     <style>
-        .weekly-container {{
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+        body {{
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(248, 250, 252, 0.85) 240px), var(--bg-primary);
         }}
-        
-        .weekly-header {{
-            text-align: center;
-            margin-bottom: 40px;
-            padding: 40px 30px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 16px;
-            color: white;
-            box-shadow: 0 20px 60px rgba(102, 126, 234, 0.35);
-        }}
-        
-        .weekly-header h1 {{
-            margin: 0 0 10px 0;
-            font-size: 2.5em;
-            font-weight: 700;
-        }}
-        
-        .weekly-header .date-range {{
-            font-size: 1.2em;
-            opacity: 0.95;
-        }}
-        
-        .stats-grid {{
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }}
-        
-        .stat-card {{
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border-color);
-        }}
-        
-        .stat-card.ferro {{
-            border-left: 4px solid #f59e0b;
-        }}
-        
-        .stat-card.ai {{
-            border-left: 4px solid #10b981;
-        }}
-        
-        .stat-card.both {{
-            border-left: 4px solid #8b5cf6;
-        }}
-        
-        .stat-value {{
-            font-size: 2.5em;
-            font-weight: bold;
-            color: var(--accent-primary);
-            margin-bottom: 5px;
-        }}
-        
-        .stat-label {{
-            color: var(--text-muted);
-            font-size: 0.9em;
-        }}
-        
-        .section {{
-            background: var(--bg-card);
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 25px;
-            box-shadow: var(--shadow-md);
-            border: 1px solid var(--border-color);
-        }}
-        
-        .section h2 {{
-            margin: 0 0 20px 0;
-            color: var(--text-primary);
-            border-bottom: 2px solid var(--accent-primary);
-            padding-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }}
-        
-        .section.ferro-section h2 {{
-            border-bottom-color: #f59e0b;
-        }}
-        
-        .section.ai-section h2 {{
-            border-bottom-color: #10b981;
-        }}
-        
-        .section.both-section h2 {{
-            border-bottom-color: #8b5cf6;
-        }}
-        
-        .overview-text {{
-            font-size: 1.05em;
-            line-height: 1.8;
-            color: var(--text-primary);
-            margin-bottom: 25px;
-            padding: 15px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
-            border-radius: 8px;
-            border-left: 4px solid var(--accent-primary);
-        }}
-        
-        .overview-article-list {{
-            margin-top: 25px;
-        }}
-        
-        .overview-group {{
-            margin-bottom: 30px;
-        }}
-        
-        .overview-group-title {{
-            font-size: 1.15em;
-            font-weight: 700;
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            background: var(--bg-card);
-            border-radius: 8px;
-            border-left: 4px solid var(--accent-primary);
-        }}
-        
-        .overview-group.both-group .overview-group-title {{
-            border-left-color: #8b5cf6;
-        }}
-        
-        .overview-group.ferro-group .overview-group-title {{
-            border-left-color: #f59e0b;
-        }}
-        
-        .overview-group.ai-group .overview-group-title {{
-            border-left-color: #10b981;
-        }}
-        
-        .overview-list {{
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }}
-        
-        .overview-item {{
-            margin-bottom: 12px;
-            padding: 12px 15px;
-            background: var(--bg-primary);
-            border-radius: 6px;
-            border-left: 3px solid transparent;
-            transition: all 0.2s ease;
-        }}
-        
-        .overview-item:hover {{
-            background: var(--bg-card);
-            border-left-color: var(--accent-primary);
-            transform: translateX(5px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }}
-        
-        .overview-link {{
-            color: var(--text-primary);
-            text-decoration: none;
-            display: block;
-            line-height: 1.6;
-        }}
-        
-        .overview-link:hover {{
-            color: var(--accent-primary);
-        }}
-        
-        .overview-journal {{
-            color: var(--accent-primary);
-            font-weight: 600;
-            margin-right: 8px;
-            font-size: 0.9em;
-        }}
-        
-        .article-item {{
-            display: flex;
-            gap: 15px;
-            padding: 20px;
-            margin-bottom: 15px;
-            background: var(--bg-primary);
-            border-radius: 8px;
-            border-left: 3px solid var(--accent-primary);
-            transition: all var(--transition-fast);
-        }}
-        
-        .article-item:hover {{
-            transform: translateX(5px);
-            box-shadow: var(--shadow-md);
-        }}
-        
-        .article-number {{
-            flex-shrink: 0;
-            width: 32px;
-            height: 32px;
-            background: var(--gradient-accent);
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 0.9em;
-        }}
-        
-        .article-content {{
-            flex: 1;
+
+        .weekly-report-main {{
             min-width: 0;
         }}
-        
-        .article-title {{
-            margin: 0 0 8px 0;
-            font-size: 1.05em;
-            line-height: 1.4;
-        }}
-        
-        .article-title a {{
-            color: var(--text-primary);
-            text-decoration: none;
-            transition: color var(--transition-fast);
-        }}
-        
-        .article-title a:hover {{
-            color: var(--accent-primary);
-        }}
-        
-        .article-title-en {{
-            font-size: 1.05em;
-            color: var(--text-secondary);
-            font-style: italic;
-            margin: 8px 0 0 0;
-            line-height: 1.5;
-            opacity: 0.9;
-            font-weight: 700;
-        }}
-        
-        .article-journal {{
-            font-size: 0.9em;
-            color: var(--accent-primary);
-            margin: 8px 0 0 0;
-            font-weight: 600;
-            display: inline-block;
-            padding: 4px 12px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            border-radius: 6px;
-            border-left: 3px solid var(--accent-primary);
-        }}
-        
-        .article-meta {{
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin: 8px 0;
-        }}
-        
-        .journal-badge {{
-            background: var(--accent-primary);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 0.85em;
-            font-weight: 500;
-        }}
-        
-        .all-articles-section {{
-            background: var(--bg-card);
-        }}
-        
-        .section-description {{
-            color: var(--text-secondary);
-            margin-bottom: 30px;
-            font-size: 0.95em;
-            line-height: 1.6;
-            padding: 15px;
-            background: var(--bg-primary);
-            border-radius: 8px;
-            border-left: 3px solid var(--accent-primary);
-        }}
-        
-        .journal-group-title {{
-            color: var(--text-primary);
-            font-size: 1.2em;
-            font-weight: 700;
-            margin: 35px 0 20px 0;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }}
-        
-        .article-list {{
-            margin-bottom: 30px;
-            display: grid;
-            gap: 20px;
-        }}
-        
-        .article-card {{
-            background: var(--bg-primary);
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
+
+        .weekly-report-hero {{
             position: relative;
             overflow: hidden;
         }}
-        
-        .article-card::before {{
+
+        .weekly-report-hero::after {{
+            content: '';
+            position: absolute;
+            inset: auto -80px -110px auto;
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.22), transparent 70%);
+            pointer-events: none;
+        }}
+
+        .weekly-report-quote {{
+            margin: 18px 0 0;
+            padding: 16px 18px;
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 16px;
+            background: rgba(99, 102, 241, 0.08);
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }}
+
+        .weekly-hero-actions {{
+            margin-top: 18px;
+        }}
+
+        .weekly-report-section + .weekly-report-section {{
+            margin-top: 20px;
+        }}
+
+        .weekly-section-head {{
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+        }}
+
+        .weekly-section-copy {{
+            min-width: 0;
+        }}
+
+        .weekly-section-copy .insight-panel-title {{
+            margin-bottom: 6px;
+        }}
+
+        .weekly-section-index {{
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: white;
+            background: var(--gradient-accent);
+            box-shadow: var(--shadow-sm);
+            flex-shrink: 0;
+        }}
+
+        .weekly-summary-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }}
+
+        .weekly-summary-card,
+        .weekly-digest-card,
+        .weekly-paper-card,
+        .weekly-journal-item,
+        .weekly-sidebar-fact,
+        .weekly-toc-link {{
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(244, 247, 255, 0.96));
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+        }}
+
+        [data-theme="dark"] .weekly-summary-card,
+        [data-theme="dark"] .weekly-digest-card,
+        [data-theme="dark"] .weekly-paper-card,
+        [data-theme="dark"] .weekly-journal-item,
+        [data-theme="dark"] .weekly-sidebar-fact,
+        [data-theme="dark"] .weekly-toc-link {{
+            background: linear-gradient(180deg, rgba(30, 41, 59, 0.96), rgba(15, 23, 42, 0.92));
+        }}
+
+        .weekly-summary-card {{
+            padding: 18px 20px;
+            border-radius: 20px;
+            line-height: 1.8;
+        }}
+
+        .weekly-summary-title {{
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--accent-primary);
+            margin-bottom: 10px;
+        }}
+
+        .weekly-digest-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 18px;
+        }}
+
+        .weekly-digest-card {{
+            padding: 18px;
+            border-radius: 20px;
+        }}
+
+        .weekly-digest-card.cross {{
+            border-top: 3px solid #8b5cf6;
+        }}
+
+        .weekly-digest-card.ferro {{
+            border-top: 3px solid #f59e0b;
+        }}
+
+        .weekly-digest-card.ai {{
+            border-top: 3px solid #10b981;
+        }}
+
+        .weekly-digest-card.other {{
+            border-top: 3px solid #64748b;
+        }}
+
+        .weekly-digest-title {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }}
+
+        .weekly-digest-list {{
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            gap: 10px;
+        }}
+
+        .weekly-digest-item a {{
+            color: var(--text-primary);
+            text-decoration: none;
+            line-height: 1.7;
+        }}
+
+        .weekly-digest-item a:hover {{
+            color: var(--accent-primary);
+        }}
+
+        .weekly-digest-journal {{
+            color: var(--accent-primary);
+            font-weight: 700;
+            margin-right: 8px;
+        }}
+
+        .weekly-digest-more {{
+            margin-top: 12px;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+        }}
+
+        .weekly-paper-list {{
+            display: grid;
+            gap: 16px;
+        }}
+
+        .weekly-paper-card {{
+            border-radius: 22px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast), border-color var(--transition-fast);
+        }}
+
+        .weekly-paper-card::before {{
             content: '';
             position: absolute;
             top: 0;
             left: 0;
             width: 4px;
             height: 100%;
-            background: linear-gradient(180deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+            background: var(--gradient-accent);
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity var(--transition-fast);
         }}
-        
-        .article-card:hover {{
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+
+        .weekly-paper-card.cross::before {{
+            background: linear-gradient(180deg, #8b5cf6 0%, #6366f1 100%);
+        }}
+
+        .weekly-paper-card.ferro::before {{
+            background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+        }}
+
+        .weekly-paper-card.ai::before {{
+            background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+        }}
+
+        .weekly-paper-card.other::before {{
+            background: linear-gradient(180deg, #64748b 0%, #334155 100%);
+        }}
+
+        .weekly-paper-card:hover {{
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
             border-color: var(--accent-primary);
         }}
-        
-        .article-card:hover::before {{
+
+        .weekly-paper-card:hover::before {{
             opacity: 1;
         }}
-        
-        .article-header {{
+
+        .weekly-paper-head {{
             display: flex;
-            gap: 16px;
-            margin-bottom: 16px;
             align-items: flex-start;
+            gap: 16px;
         }}
-        
-        .article-number {{
-            flex-shrink: 0;
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            color: white;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1em;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }}
-        
-        .article-title-wrapper {{
-            flex: 1;
-            min-width: 0;
-        }}
-        
-        .article-title {{
-            margin: 0 0 8px 0;
-            font-size: 1.15em;
-            line-height: 1.5;
-            font-weight: 600;
-        }}
-        
-        .article-title a {{
-            color: var(--text-primary);
-            text-decoration: none;
-            transition: color 0.2s ease;
-        }}
-        
-        .article-title a:hover {{
-            color: var(--accent-primary);
-        }}
-        
-        .article-title-en {{
-            font-size: 1.05em;
-            color: var(--text-secondary);
-            font-style: italic;
-            margin: 8px 0 0 0;
-            line-height: 1.5;
-            opacity: 0.9;
-            font-weight: 700;
-        }}
-        
-        .article-journal {{
-            font-size: 0.9em;
-            color: var(--accent-primary);
-            margin: 8px 0 0 0;
-            font-weight: 600;
-            display: inline-block;
-            padding: 4px 12px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            border-radius: 6px;
-            border-left: 3px solid var(--accent-primary);
-        }}
-        
-        .article-body {{
-            margin: 16px 0;
-            padding: 16px;
-            background: var(--bg-card);
-            border-radius: 8px;
-            border-left: 3px solid var(--border-color);
-        }}
-        
-        .article-authors {{
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            margin-bottom: 12px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }}
-        
-        .article-ai-analysis {{
-            font-size: 0.95em;
-            color: var(--accent-primary);
-            line-height: 1.7;
-            margin: 12px 0;
-            padding: 12px;
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-            border-radius: 8px;
-            border-left: 3px solid var(--accent-primary);
-            font-weight: 500;
-        }}
-        
-        .article-abstract-preview {{
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin: 12px 0 8px 0;
-            opacity: 0.9;
-        }}
-        
-        .toggle-abstract-btn {{
-            background: var(--accent-primary);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-size: 0.85em;
-            cursor: pointer;
-            margin: 8px 0;
-            transition: all 0.2s ease;
-            font-weight: 500;
-        }}
-        
-        .toggle-abstract-btn:hover {{
-            background: var(--accent-secondary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }}
-        
-        .article-abstract-full {{
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-        }}
-        
-        .abstract-section {{
-            margin-bottom: 16px;
-        }}
-        
-        .abstract-section strong {{
-            color: var(--text-primary);
-            font-size: 0.9em;
-            display: block;
-            margin-bottom: 8px;
-        }}
-        
-        .abstract-section p {{
-            font-size: 0.9em;
-            color: var(--text-secondary);
-            line-height: 1.7;
-            margin: 0;
-        }}
-        
-        .abstract-en {{
-            font-style: italic;
-            color: var(--text-muted);
-        }}
-        
-        .article-abstract {{
-            font-size: 0.95em;
-            color: var(--text-secondary);
-            line-height: 1.7;
-            margin: 0;
-        }}
-        
-        .article-footer {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px;
-            padding-top: 16px;
-            border-top: 1px solid var(--border-color);
-        }}
-        
-        .article-tags {{
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }}
-        
-        .article-type-tag {{
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85em;
-            font-weight: 600;
-            color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: transform 0.2s ease;
-        }}
-        
-        .article-type-tag:hover {{
-            transform: scale(1.05);
-        }}
-        
-        .ferro-tag {{
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        }}
-        
-        .ai-tag {{
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }}
-        
-        .article-date {{
-            font-size: 0.85em;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }}
-        
-        .article-link {{
-            color: var(--accent-primary);
-            text-decoration: none;
-            font-size: 0.9em;
-            font-weight: 600;
-            padding: 8px 16px;
-            border-radius: 6px;
-            background: var(--bg-primary);
-            border: 2px solid var(--accent-primary);
-            transition: all 0.2s ease;
+
+        .weekly-paper-number {{
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
             display: inline-flex;
             align-items: center;
-            gap: 4px;
-        }}
-        
-        .article-link:hover {{
-            background: var(--accent-primary);
+            justify-content: center;
+            flex-shrink: 0;
+            font-weight: 800;
             color: white;
-            transform: translateX(4px);
+            background: var(--gradient-accent);
+            box-shadow: var(--shadow-sm);
         }}
-        
-        .authors {{
-            font-size: 0.85em;
-            color: var(--text-muted);
+
+        .weekly-paper-titles {{
+            min-width: 0;
         }}
-        
-        .article-abstract {{
-            font-size: 0.9em;
-            color: var(--text-secondary);
+
+        .weekly-paper-title-zh {{
+            margin: 0;
+            font-size: 1.14rem;
             line-height: 1.6;
-            margin: 10px 0 0 0;
         }}
-        
-        .article-abstract-en {{
-            font-size: 0.85em;
-            color: var(--text-muted);
+
+        .weekly-paper-title-zh a {{
+            color: var(--text-primary);
+            text-decoration: none;
+        }}
+
+        .weekly-paper-title-zh a:hover {{
+            color: var(--accent-primary);
+        }}
+
+        .weekly-paper-title-en {{
+            margin-top: 8px;
+            color: var(--text-secondary);
+            font-size: 0.96rem;
+            line-height: 1.7;
+        }}
+
+        .weekly-paper-meta {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }}
+
+        .weekly-chip {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 12px;
+            border-radius: 999px;
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            background: rgba(99, 102, 241, 0.08);
+        }}
+
+        .weekly-chip-authors {{
+            background: rgba(16, 185, 129, 0.08);
+        }}
+
+        .weekly-chip-journal {{
+            background: rgba(99, 102, 241, 0.12);
+        }}
+
+        .weekly-chip-ferro {{
+            color: #92400e;
+            background: rgba(245, 158, 11, 0.16);
+        }}
+
+        .weekly-chip-ai {{
+            color: #065f46;
+            background: rgba(16, 185, 129, 0.16);
+        }}
+
+        [data-theme="dark"] .weekly-chip-ferro {{
+            color: #fcd34d;
+            background: rgba(245, 158, 11, 0.18);
+        }}
+
+        [data-theme="dark"] .weekly-chip-ai {{
+            color: #6ee7b7;
+            background: rgba(16, 185, 129, 0.18);
+        }}
+
+        .weekly-paper-summary {{
+            margin-top: 14px;
+            line-height: 1.85;
+            color: var(--text-primary);
+        }}
+
+        .weekly-paper-summary strong {{
+            color: var(--accent-primary);
+        }}
+
+        .weekly-paper-preview {{
+            margin-top: 12px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }}
+
+        .weekly-paper-actions {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+        }}
+
+        .toggle-abstract-btn {{
+            appearance: none;
+            border: none;
+            border-radius: 14px;
+            padding: 10px 16px;
+            background: var(--gradient-accent);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+        }}
+
+        .toggle-abstract-btn:hover {{
+            transform: translateY(-2px);
+        }}
+
+        .weekly-paper-abstract {{
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+            display: grid;
+            gap: 14px;
+        }}
+
+        .weekly-abstract-block {{
+            line-height: 1.8;
+        }}
+
+        .weekly-abstract-label {{
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+            margin-bottom: 6px;
+        }}
+
+        .weekly-abstract-en {{
+            color: var(--text-secondary);
             font-style: italic;
-            line-height: 1.5;
-            margin: 8px 0 0 0;
         }}
-        
-        .journal-stat {{
+
+        .weekly-journal-list {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }}
+
+        .weekly-journal-item {{
+            padding: 16px 18px;
+            border-radius: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px;
-            margin-bottom: 8px;
-            background: var(--bg-primary);
-            border-radius: 8px;
+            gap: 14px;
         }}
-        
-        .journal-name {{
-            font-weight: 500;
-            color: var(--text-primary);
+
+        .weekly-journal-name {{
+            font-weight: 700;
         }}
-        
-        .journal-count {{
-            background: var(--accent-primary);
+
+        .weekly-journal-count {{
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 78px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: var(--gradient-accent);
             color: white;
-            padding: 4px 12px;
-            border-radius: 6px;
-            font-size: 0.9em;
+            font-weight: 700;
         }}
-        
-        .back-link {{
-            display: inline-block;
-            margin-bottom: 20px;
-            color: var(--accent-primary);
+
+        .weekly-report-sidebar {{
+            position: sticky;
+            top: 24px;
+        }}
+
+        .weekly-toc-list,
+        .weekly-sidebar-stats {{
+            display: grid;
+            gap: 10px;
+        }}
+
+        .weekly-toc-link {{
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px 14px;
+            border-radius: 16px;
+            color: var(--text-primary);
             text-decoration: none;
-            font-weight: 500;
         }}
-        
-        .back-link:hover {{
-            text-decoration: underline;
+
+        .weekly-toc-link:hover {{
+            color: var(--accent-primary);
+            border-color: rgba(99, 102, 241, 0.22);
         }}
-        
-        .generated-by {{
-            text-align: center;
+
+        .weekly-toc-meta {{
             color: var(--text-muted);
-            font-size: 0.85em;
-            margin-top: 40px;
-            padding-top: 20px;
+            font-size: 0.88rem;
+            white-space: nowrap;
+        }}
+
+        .weekly-sidebar-block + .weekly-sidebar-block {{
+            margin-top: 18px;
+        }}
+
+        .weekly-sidebar-heading {{
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }}
+
+        .weekly-sidebar-fact {{
+            padding: 12px 14px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }}
+
+        .weekly-sidebar-fact strong {{
+            font-size: 1.05rem;
+        }}
+
+        .weekly-report-footer {{
+            margin-top: 22px;
+            padding: 18px 0 0;
             border-top: 1px solid var(--border-color);
-        }}
-        
-        .no-articles {{
-            text-align: center;
             color: var(--text-muted);
-            padding: 30px;
-            font-style: italic;
+            font-size: 0.94rem;
+            line-height: 1.8;
         }}
-        
-        @media (max-width: 767px) {{
-            .stats-grid {{
-                grid-template-columns: repeat(2, 1fr);
+
+        @media (max-width: 980px) {{
+            .weekly-report-sidebar {{
+                position: static;
             }}
-            
-            .article-item {{
+        }}
+
+        @media (max-width: 720px) {{
+            .weekly-section-head,
+            .weekly-paper-head {{
                 flex-direction: column;
             }}
-            
-            .article-number {{
-                align-self: flex-start;
-            }}
-            
-            .article-card {{
-                padding: 16px;
-            }}
-            
-            .article-header {{
+
+            .weekly-paper-actions {{
                 flex-direction: column;
-                gap: 12px;
+                align-items: stretch;
             }}
-            
-            .article-footer {{
-                flex-direction: column;
-                align-items: flex-start;
-            }}
-            
-            .article-link {{
+
+            .toggle-abstract-btn,
+            .weekly-paper-actions .insight-btn {{
                 width: 100%;
                 justify-content: center;
             }}
-            
-            .journal-group-title {{
-                font-size: 1em;
-                padding: 10px 16px;
+
+            .weekly-journal-item {{
+                align-items: flex-start;
+                flex-direction: column;
             }}
         }}
     </style>
 </head>
 <body>
-    <div class="weekly-container">
-        <a href="../index.html" class="back-link">← 返回主页</a>
-        
-        <div class="weekly-header">
-            <h1>🔬 周报</h1>
-            <div class="date-range">{week_start} 至 {week_end}</div>
-        </div>
-        
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value">{summary.get('total', 0)}</div>
-                <div class="stat-label">本周文献</div>
+    <div class="insight-shell">
+        <div class="insight-topbar">
+            <div class="insight-topbar-left">
+                <a href="../index.html" class="insight-back-link">← 返回主页</a>
+                <span class="insight-mini-chip">AI × Science Weekly</span>
             </div>
-            <div class="stat-card ferro">
-                <div class="stat-value">{summary.get('ferro_count', 0)}</div>
-                <div class="stat-label">⚡ 磁性/铁电</div>
-            </div>
-            <div class="stat-card ai">
-                <div class="stat-value">{summary.get('ai_count', 0)}</div>
-                <div class="stat-label">🤖 AI/机器学习</div>
-            </div>
-            <div class="stat-card both">
-                <div class="stat-value">{summary.get('both_count', 0)}</div>
-                <div class="stat-label">🔀 交叉研究</div>
+            <div class="insight-topbar-right">
+                <span class="insight-mini-chip">{_safe_text(week_start)} → {_safe_text(week_end)}</span>
+                <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
             </div>
         </div>
-        
-        <div class="section">
-            <h2>📊 本周总览</h2>
-            <p class="overview-text">{_safe_multiline(summary.get('overview', ''))}</p>
-            
-            {self._generate_overview_article_list(summary)}
-        </div>
-        
-        {f'<div class="section both-section"><h2>🔀 交叉研究（AI + 磁性/铁电）</h2>{generate_article_list(both_articles)}</div>' if both_articles else ''}
-        
-        {f'<div class="section ferro-section"><h2>⚡ 磁性/铁电材料</h2>{generate_article_list(ferro_articles)}</div>' if ferro_articles else ''}
-        
-        {f'<div class="section ai-section"><h2>🤖 AI/机器学习</h2>{generate_article_list(ai_articles)}</div>' if ai_articles else ''}
-        
-        {f'<div class="section"><h2>📚 期刊分布</h2>{journal_stats_html}</div>' if journal_stats_html else ''}
-        
-        <div class="generated-by">
-            由 {_safe_text(summary.get('generated_by', 'AI'))} 生成 | {datetime.now().strftime('%Y-%m-%d %H:%M')}
+
+        <div class="insight-layout">
+            <main class="weekly-report-main">
+                <section class="insight-page-hero weekly-report-hero">
+                    <div class="insight-kicker">AI 科学周报</div>
+                    <h1 class="insight-title">AI × Science 周报 {_safe_text(week_start)} → {_safe_text(week_end)}</h1>
+                    <p class="insight-subtitle">参考 CloudFlare-AI-Insight-Daily 的资讯编排，将一周内 AI × 物理 / 化学 / 材料交叉文献整理为总览、交叉重点、专题速览与期刊分布。</p>
+                    <blockquote class="weekly-report-quote">{hero_quote}</blockquote>
+                    <div class="insight-tags">{tags_html}</div>
+                    <div class="insight-stat-grid">
+                        <div class="insight-stat">
+                            <div class="insight-stat-label">收录文献</div>
+                            <div class="insight-stat-value">{len(all_articles)}</div>
+                        </div>
+                        <div class="insight-stat">
+                            <div class="insight-stat-label">期刊 / 来源</div>
+                            <div class="insight-stat-value">{journal_count}</div>
+                        </div>
+                        <div class="insight-stat">
+                            <div class="insight-stat-label">arXiv / 预印本</div>
+                            <div class="insight-stat-value">{arxiv_count}</div>
+                        </div>
+                        <div class="insight-stat">
+                            <div class="insight-stat-label">专题版块</div>
+                            <div class="insight-stat-value">{section_count}</div>
+                        </div>
+                    </div>
+                    <div class="insight-action-row weekly-hero-actions">
+                        <a class="insight-btn insight-btn-primary" href="./index.html">周报归档</a>
+                        <a class="insight-btn insight-btn-secondary" href="../daily/">查看日报</a>
+                    </div>
+                </section>
+
+                {''.join(sections)}
+
+                <div class="weekly-report-footer">
+                    本页由文献追踪系统自动生成，保留中英标题、期刊、作者与摘要入口，便于按周追踪 AI × 物理 / 化学 / 材料交叉研究。<br>
+                    生成方式：{generated_by} ｜ 更新时间：{generated_at}
+                </div>
+            </main>
+
+            <aside class="insight-sidebar-card weekly-report-sidebar">
+                <h3 class="insight-sidebar-title">快速导航</h3>
+                <div class="weekly-toc-list">{''.join(toc_links)}</div>
+
+                <div class="weekly-sidebar-block">
+                    <div class="weekly-sidebar-heading">本页分区</div>
+                    <div class="weekly-sidebar-stats">{sidebar_stats_html}</div>
+                </div>
+
+                <div class="weekly-sidebar-block">
+                    <div class="weekly-sidebar-heading">阅读建议</div>
+                    <ul class="insight-note-list">
+                        <li class="insight-note-item">先读本周总览，再看交叉研究，最后按磁性/铁电与 AI 分区深挖。</li>
+                        <li class="insight-note-item">期刊分布适合快速判断本周成果主要来自顶刊还是预印本平台。</li>
+                        <li class="insight-note-item">若需要长期追踪某条研究线，可回到归档页连续浏览多周内容。</li>
+                    </ul>
+                </div>
+            </aside>
         </div>
     </div>
-    
+
     <script>
-        // 主题支持
-        const theme = localStorage.getItem('literature_theme') || 'light';
-        document.documentElement.setAttribute('data-theme', theme);
-        
-        // 展开/折叠摘要功能
-        function toggleAbstract(articleId) {{
+        const THEME_KEY = 'literature_theme';
+
+        function initTheme() {{
+            const theme = localStorage.getItem(THEME_KEY) || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+            updateThemeButton();
+        }}
+
+        function toggleTheme() {{
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, next);
+            document.documentElement.setAttribute('data-theme', next);
+            updateThemeButton();
+        }}
+
+        function updateThemeButton() {{
+            const btn = document.getElementById('themeToggle');
+            const theme = document.documentElement.getAttribute('data-theme') || 'light';
+            if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+        }}
+
+        function toggleAbstract(articleId, button) {{
             const abstractDiv = document.getElementById(articleId + '-abstract');
-            const btn = event.target;
-            
-            if (abstractDiv.style.display === 'none') {{
-                abstractDiv.style.display = 'block';
-                btn.textContent = '📖 收起摘要';
-                btn.style.background = 'var(--accent-secondary)';
-            }} else {{
-                abstractDiv.style.display = 'none';
-                btn.textContent = '📖 查看完整摘要';
-                btn.style.background = 'var(--accent-primary)';
+            if (!abstractDiv) return;
+            const trigger = button || window.event?.target;
+            const isHidden = abstractDiv.style.display === 'none' || !abstractDiv.style.display;
+            abstractDiv.style.display = isHidden ? 'grid' : 'none';
+            if (trigger) {{
+                trigger.textContent = isHidden ? '📖 收起摘要' : '📖 查看完整摘要';
             }}
         }}
+
+        initTheme();
     </script>
 </body>
 </html>'''
-        
+
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(html)
-        
+
         print(f"✅ 周报已保存: {filepath}")
-        
-        # 更新周报索引
-        self._update_weekly_index(week_start)
-        
+
+        self._update_weekly_index(output_dir)
+
         return filepath
 
-    def _update_weekly_index(self, week_start: str):
-        """更新周报索引（根据 docs/weekly 下已有 HTML 重写 index.json）"""
-        n = _write_weekly_index_file('docs/weekly')
+    def _update_weekly_index(self, weekly_dir: str = 'docs/weekly'):
+        """更新周报索引（根据 weekly_dir 下已有 HTML 重写 index.json）"""
+        n = _write_weekly_index_file(weekly_dir)
         print(f"✅ 周报索引已更新: {n} 个周报")
 
 

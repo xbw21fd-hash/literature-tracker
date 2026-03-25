@@ -4,91 +4,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>每日摘要 - 文献追踪系统</title>
+    <title>日报索引 - 文献追踪系统</title>
     <link rel="stylesheet" href="../style.css">
-    <style>
-        .daily-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .daily-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .daily-item {
-            background: var(--bg-card);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: var(--shadow-md);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            text-decoration: none;
-            color: var(--text-primary);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .daily-item:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .daily-date {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-
-        .daily-meta {
-            color: var(--text-muted);
-            font-size: 0.9em;
-        }
-
-        .back-link {
-            display: inline-block;
-            margin-bottom: 20px;
-            color: var(--accent-primary);
-            text-decoration: none;
-        }
-
-        .back-link:hover {
-            text-decoration: underline;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-muted);
-        }
-    </style>
 </head>
 
 <body>
-    <div class="daily-container">
-        <header>
-            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">
-                🌙
-            </button>
-            <h1>📰 每日文献摘要</h1>
-            <p class="subtitle">AI生成的每日文献速览</p>
-        </header>
-
-        <a href="../index.html" class="back-link">← 返回主页</a>
-
-        <div class="daily-list" id="dailyList">
-            <div class="empty-state">
-                <h3>暂无摘要</h3>
-                <p>每日摘要将在文献更新后自动生成</p>
+    <div class="insight-shell">
+        <div class="insight-topbar">
+            <div class="insight-topbar-left">
+                <a href="../index.html" class="insight-back-link">← 返回主页</a>
+                <span class="insight-mini-chip">AI × Science Daily</span>
             </div>
+            <div class="insight-topbar-right">
+                <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
+            </div>
+        </div>
+
+        <section class="insight-page-hero">
+            <div class="insight-kicker">日报归档</div>
+            <h1 class="insight-title">AI × Science 文献日报索引</h1>
+            <p class="insight-subtitle">统一采用资讯日报式阅读入口：优先展示最新一期，再按时间顺序浏览历史日报，适合快速进入 AI × 物理 / 化学 / 材料交叉文献的每日更新。</p>
+            <div class="insight-tags">
+                <span class="insight-tag">每日摘要</span>
+                <span class="insight-tag">交叉重点</span>
+                <span class="insight-tag">完整速览</span>
+                <span class="insight-tag">历史归档</span>
+            </div>
+            <div class="insight-stat-grid">
+                <div class="insight-stat">
+                    <div class="insight-stat-label">日报总期数</div>
+                    <div class="insight-stat-value" id="dailyIssueCount">-</div>
+                </div>
+                <div class="insight-stat">
+                    <div class="insight-stat-label">最新日期</div>
+                    <div class="insight-stat-value" id="latestDailyDate">-</div>
+                </div>
+                <div class="insight-stat">
+                    <div class="insight-stat-label">最新收录</div>
+                    <div class="insight-stat-value" id="latestDailyTotal">-</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="insight-layout">
+            <main>
+                <section class="insight-panel">
+                    <h2 class="insight-panel-title">最新一期</h2>
+                    <div id="latestDailyCard" class="insight-empty">正在加载最新日报...</div>
+                </section>
+
+                <section class="insight-panel">
+                    <h2 class="insight-panel-title">历史归档</h2>
+                    <p class="insight-panel-subtitle">按日期倒序浏览历史日报，适合追踪一段时间内的研究脉络变化。</p>
+                    <div id="dailyArchiveList" class="insight-archive-list">
+                        <div class="insight-empty">正在加载日报归档...</div>
+                    </div>
+                </section>
+            </main>
+
+            <aside class="insight-sidebar-card">
+                <h3 class="insight-sidebar-title">阅读建议</h3>
+                <p class="insight-sidebar-text">先看最新一期的“交叉重点”，再进入“完整速览”按期刊、作者和 AI 相关度做深读筛选。</p>
+                <ul class="insight-note-list">
+                    <li class="insight-note-item">优先查看最新一期，快速把握当天的重点方向。</li>
+                    <li class="insight-note-item">如果研究某一条线索，可回溯历史归档看连续变化。</li>
+                    <li class="insight-note-item">日报页面内已经包含中英标题、期刊、作者、摘要与原文入口。</li>
+                </ul>
+                <div class="insight-action-row">
+                    <a class="insight-btn insight-btn-primary" href="../index.html">返回总览</a>
+                    <a class="insight-btn insight-btn-secondary" href="../weekly/">查看周报</a>
+                </div>
+            </aside>
         </div>
     </div>
 
     <script>
-        // 主题管理
         const THEME_KEY = 'literature_theme';
 
         function initTheme() {
@@ -99,95 +89,86 @@
 
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme') || 'light';
-            const newTheme = current === 'light' ? 'dark' : 'light';
-            localStorage.setItem(THEME_KEY, newTheme);
-            document.documentElement.setAttribute('data-theme', newTheme);
+            const next = current === 'light' ? 'dark' : 'light';
+            localStorage.setItem(THEME_KEY, next);
+            document.documentElement.setAttribute('data-theme', next);
             updateThemeButton();
         }
 
         function updateThemeButton() {
             const btn = document.getElementById('themeToggle');
             const theme = document.documentElement.getAttribute('data-theme') || 'light';
-            if (btn) {
-                btn.innerHTML = theme === 'light' ? '🌙' : '☀️';
-            }
+            if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
         }
 
-        // 加载摘要列表
-        async function loadDailyList() {
-            const container = document.getElementById('dailyList');
+        function weekdayText(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            return date.toLocaleDateString('zh-CN', { weekday: 'long' });
+        }
 
+        function renderLatestDaily(item) {
+            return `
+                <a href="${item.file}" class="insight-feature-card">
+                    <div class="insight-feature-kicker">Latest Daily</div>
+                    <div class="insight-feature-title">${item.date} · ${weekdayText(item.date)}</div>
+                    <div class="insight-feature-meta">
+                        <span>收录 ${item.total ?? 0} 篇文献</span>
+                        <span>日报已生成</span>
+                    </div>
+                    <div class="insight-feature-desc">进入最新一期日报，查看今日摘要、交叉重点和完整速览。</div>
+                    <div class="insight-action-row">
+                        <span class="insight-btn insight-btn-primary">打开日报 ↗</span>
+                    </div>
+                </a>
+            `;
+        }
+
+        function renderArchiveItem(item) {
+            return `
+                <a href="${item.file}" class="insight-archive-item">
+                    <div class="insight-archive-date">${item.date}</div>
+                    <div class="insight-archive-meta">
+                        <span>${weekdayText(item.date)}</span>
+                        <span>${item.total ?? 0} 篇文献</span>
+                    </div>
+                    <div class="insight-archive-summary">浏览该日的摘要、重点文献与完整列表。</div>
+                </a>
+            `;
+        }
+
+        async function loadDailyArchive() {
+            const latestCard = document.getElementById('latestDailyCard');
+            const archiveList = document.getElementById('dailyArchiveList');
             try {
-                // 优先尝试从索引文件加载
                 const response = await fetch('summaries.json?t=' + Date.now());
-                if (response.ok) {
-                    const data = await response.json();
-                    const summaries = data.summaries || [];
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                const summaries = data.summaries || [];
 
-                    if (summaries.length > 0) {
-                        container.innerHTML = summaries.map(item => {
-                            const date = new Date(item.date + 'T00:00:00');
-                            const weekday = date.toLocaleDateString('zh-CN', { weekday: 'long' });
-                            return `
-                                <a href="${item.file}" class="daily-item">
-                                    <div>
-                                        <div class="daily-date">📅 ${item.date}</div>
-                                        <div class="daily-meta">${weekday}</div>
-                                    </div>
-                                    <span>→</span>
-                                </a>
-                            `;
-                        }).join('');
-                        return;
-                    }
+                document.getElementById('dailyIssueCount').textContent = summaries.length;
+
+                if (!summaries.length) {
+                    latestCard.innerHTML = '<div class="insight-empty">暂无日报数据</div>';
+                    archiveList.innerHTML = '<div class="insight-empty">每日摘要将在生成后自动出现在这里。</div>';
+                    document.getElementById('latestDailyDate').textContent = '-';
+                    document.getElementById('latestDailyTotal').textContent = '-';
+                    return;
                 }
-            } catch (e) {
-                console.log('索引文件不存在，尝试扫描文件');
-            }
 
-            // 降级：扫描最近30天的文件
-            const items = [];
-            const today = new Date();
-            const checkPromises = [];
-
-            for (let i = 0; i < 30; i++) {
-                const date = new Date(today);
-                date.setDate(date.getDate() - i);
-                const dateStr = date.toISOString().slice(0, 10);
-
-                checkPromises.push(
-                    fetch(`${dateStr}.html`, { method: 'GET', cache: 'no-cache' })
-                        .then(response => {
-                            if (response.ok) {
-                                return {
-                                    date: dateStr,
-                                    weekday: date.toLocaleDateString('zh-CN', { weekday: 'long' })
-                                };
-                            }
-                            return null;
-                        })
-                        .catch(() => null)
-                );
-            }
-
-            const results = await Promise.all(checkPromises);
-            const validItems = results.filter(item => item !== null);
-
-            if (validItems.length > 0) {
-                container.innerHTML = validItems.map(item => `
-                    <a href="${item.date}.html" class="daily-item">
-                        <div>
-                            <div class="daily-date">📅 ${item.date}</div>
-                            <div class="daily-meta">${item.weekday}</div>
-                        </div>
-                        <span>→</span>
-                    </a>
-                `).join('');
+                const latest = summaries[0];
+                document.getElementById('latestDailyDate').textContent = latest.date;
+                document.getElementById('latestDailyTotal').textContent = `${latest.total ?? 0} 篇`;
+                latestCard.innerHTML = renderLatestDaily(latest);
+                archiveList.innerHTML = summaries.slice(0, 30).map(renderArchiveItem).join('');
+            } catch (error) {
+                console.error('加载日报归档失败:', error);
+                latestCard.innerHTML = `<div class="insight-empty">加载失败：${error.message}</div>`;
+                archiveList.innerHTML = '<div class="insight-empty">请稍后刷新重试。</div>';
             }
         }
 
         initTheme();
-        loadDailyList();
+        loadDailyArchive();
     </script>
 </body>
 
