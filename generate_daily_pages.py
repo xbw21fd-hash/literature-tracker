@@ -250,6 +250,9 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     overview = safe_text(summary.get('overview', ''))
     trends = safe_text(summary.get('trends', ''))
     tags_html = "".join(f"<span class=\"daily-tag\">{safe_text(tag)}</span>" for tag in tag_list)
+    tagline = " | ".join(safe_text(tag) for tag in tag_list)
+    focus_section_html = f'<ol class="daily-news-list">{focus_html}</ol>' if focus_html else '<div class="daily-summary-card"><p>暂无重点论文。</p></div>'
+    paper_section_html = f'<ol class="daily-paper-list">{items_html}</ol>' if items_html else '<div class="daily-summary-card"><p>今日无文献。</p></div>'
 
     return f"""<!DOCTYPE html>
 <html lang=\"zh-CN\">
@@ -339,7 +342,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
           <div class=\"daily-kicker\">AI 文献日报</div>
           <h1 class=\"daily-title\">AI × Science 文献日报 {display_date}</h1>
           <p class=\"daily-subtitle\">参考 CloudFlare-AI-Insight-Daily 的资讯版式，重构为更适合 AI × 物理 / 化学 / 材料交叉文献阅读的日报页面。</p>
-          <blockquote class=\"daily-quote\">{' | '.join(safe_text(tag) for tag in tag_list)}</blockquote>
+          <blockquote class=\"daily-quote\">{tagline}</blockquote>
           <div class=\"daily-tags\">{tags_html}</div>
           <div class=\"daily-stats\">
             <div class=\"daily-stat\">
@@ -373,7 +376,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
             <span class=\"daily-section-index\">02</span>
             <h2 class=\"daily-section-title\">交叉重点</h2>
           </div>
-          {f'<ol class=\"daily-news-list\">{focus_html}</ol>' if focus_html else '<div class=\"daily-summary-card\"><p>暂无重点论文。</p></div>'}
+          {focus_section_html}
         </section>
 
         <section id=\"papers\" class=\"daily-section\">
@@ -381,7 +384,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
             <span class=\"daily-section-index\">03</span>
             <h2 class=\"daily-section-title\">完整速览</h2>
           </div>
-          {f'<ol class=\"daily-paper-list\">{items_html}</ol>' if items_html else '<div class=\"daily-summary-card\"><p>今日无文献。</p></div>'}
+          {paper_section_html}
         </section>
 
         <div class=\"daily-footer\">
