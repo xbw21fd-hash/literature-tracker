@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>2026-03-28 文献日报 - 文献追踪系统</title>
+<link href="../style.css" rel="stylesheet"/>
+<link href="2026-03-28.xml" rel="alternate" title="2026-03-28 日报 RSS" type="application/rss+xml"/>
+<style>
+    body { background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(248, 250, 252, 0.85) 220px), var(--bg-primary); overflow-x: hidden; }
+    body::before { content: none !important; }
+    .daily-shell { max-width: 1260px; margin: 0 auto; padding: 28px 20px 48px; }
+    .daily-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .daily-topbar-left, .daily-topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-primary); text-decoration: none; font-weight: 600; }
+    .back-link:hover { color: var(--accent-hover); }
+    .daily-mini-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.75); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.92rem; backdrop-filter: blur(8px); }
+    .daily-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; }
+    .daily-article { background: rgba(255,255,255,0.76); border: 1px solid rgba(148,163,184,0.28); border-radius: 28px; box-shadow: var(--shadow-lg); backdrop-filter: blur(14px); padding: 32px; }
+    .daily-hero { padding-bottom: 18px; border-bottom: 1px solid var(--border-color); }
+    .daily-kicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: var(--accent-primary); font-weight: 700; letter-spacing: 0.04em; }
+    .daily-title { margin: 18px 0 10px; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; letter-spacing: -0.03em; }
+    .daily-subtitle { font-size: 1.02rem; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.8; }
+    .daily-quote { margin: 0; padding: 16px 18px; border-left: 4px solid var(--accent-primary); border-radius: 16px; background: rgba(99,102,241,0.08); color: var(--text-secondary); font-size: 1rem; }
+    .daily-tags { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 22px; }
+    .daily-tag { display: inline-flex; align-items: center; padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.92rem; }
+    .daily-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .daily-stat { padding: 18px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92)); border: 1px solid var(--border-color); }
+    .daily-stat-label { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 6px; }
+    .daily-stat-value { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; }
+    .daily-filter-note { margin-top: 16px; color: var(--text-secondary); line-height: 1.8; }
+    .daily-section { margin-top: 28px; }
+    .daily-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .daily-section-index { font-size: 0.92rem; font-weight: 800; color: var(--accent-primary); padding: 5px 10px; border-radius: 999px; background: rgba(99,102,241,0.1); }
+    .daily-section-title { font-size: 1.45rem; letter-spacing: -0.02em; }
+    .daily-summary-card { padding: 18px 20px; border-radius: 20px; background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); line-height: 1.85; }
+    .daily-summary-card p + p { margin-top: 12px; }
+    .daily-topic-group + .daily-topic-group { margin-top: 22px; }
+    .daily-topic-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .daily-topic-title { font-size: 1.15rem; margin: 0 0 6px; }
+    .daily-topic-desc { color: var(--text-secondary); line-height: 1.75; }
+    .daily-topic-count { padding: 8px 12px; border-radius: 999px; background: rgba(99,102,241,0.1); color: var(--accent-primary); font-weight: 700; white-space: nowrap; }
+    .daily-news-list, .daily-paper-list { list-style: none; margin: 0; padding: 0; }
+    .daily-news-item, .daily-paper-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; padding: 20px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,250,251,0.92)); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); align-items: flex-start; }
+    .daily-news-item + .daily-news-item, .daily-paper-card + .daily-paper-card { margin-top: 16px; }
+    .daily-news-index, .daily-paper-number { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 800; color: white; background: var(--gradient-accent); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+    .daily-news-body, .daily-paper-body { min-width: 0; }
+    .daily-paper-body { display: flex; flex-direction: column; }
+    .daily-news-title-zh, .daily-paper-title-zh { font-size: 1.12rem; font-weight: 700; line-height: 1.5; margin-bottom: 6px; }
+    .daily-news-title-en, .daily-paper-title-en { color: var(--text-secondary); font-size: 0.96rem; line-height: 1.6; }
+    .daily-news-meta, .daily-paper-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .daily-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 0.88rem; color: var(--text-secondary); background: rgba(99,102,241,0.08); }
+    .daily-chip-authors { background: rgba(16,185,129,0.08); }
+    .daily-chip-score { background: rgba(245,158,11,0.12); }
+    .daily-chip-topic { background: rgba(139,92,246,0.12); color: var(--accent-primary); }
+    .daily-news-summary, .daily-paper-summary { color: var(--text-primary); line-height: 1.8; }
+    .daily-news-reason { margin-top: 10px; color: var(--text-secondary); }
+    .daily-paper-actions, .daily-news-link { margin-top: 14px; }
+    .daily-news-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-primary); text-decoration: none; font-weight: 600; }
+    .daily-news-link:hover { color: var(--accent-hover); }
+    .daily-paper-head { display: flex; gap: 16px; align-items: flex-start; }
+    .daily-paper-titles { min-width: 0; }
+    .daily-toc { position: sticky; top: 24px; }
+    .daily-toc-card { padding: 18px; border-radius: 20px; background: rgba(255,255,255,0.78); border: 1px solid var(--border-color); box-shadow: var(--shadow-md); backdrop-filter: blur(12px); }
+    .daily-toc-title, .daily-sidebar-title { font-size: 0.95rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .daily-toc a { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 14px; color: var(--text-secondary); text-decoration: none; }
+    .daily-toc a:hover { background: rgba(99,102,241,0.08); color: var(--accent-primary); }
+    .daily-sidebar-block + .daily-sidebar-block { margin-top: 18px; }
+    .daily-sidebar-stats { display: grid; gap: 10px; }
+    .daily-sidebar-fact { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); }
+    .daily-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.94rem; line-height: 1.8; }
+    @media (max-width: 980px) {
+      .daily-layout { grid-template-columns: 1fr; }
+      .daily-toc { position: static; order: -1; }
+    }
+    @media (max-width: 720px) {
+      .daily-shell { padding: 16px 12px 36px; }
+      .daily-article { padding: 22px 16px; border-radius: 22px; }
+      .daily-stats { grid-template-columns: 1fr; }
+      .daily-news-item, .daily-paper-card { grid-template-columns: 1fr; }
+      .daily-news-index, .daily-paper-number { width: 38px; height: 38px; }
+      .daily-paper-head, .daily-topic-head { flex-direction: column; gap: 12px; }
+    }
+  </style>
+<style id="daily-enhancement-style">
+#daily-enhancement-top-nav, #daily-enhancement-bottom-nav {
+    margin-top: 18px;
+}
+
+.daily-page-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.daily-page-nav-link,
+.daily-page-nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.92);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.92rem;
+    transition: all var(--transition-fast);
+}
+
+.daily-page-nav-link:hover,
+.daily-page-nav-pill:hover {
+    color: var(--accent-primary);
+    border-color: rgba(99,102,241,0.35);
+    background: rgba(99,102,241,0.08);
+}
+
+.daily-page-nav-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.daily-title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.daily-title-link:hover {
+    color: var(--accent-primary);
+}
+
+.daily-permalink-link {
+    margin-left: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.daily-permalink-link:hover {
+    color: var(--accent-primary);
+}
+
+.daily-inline-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.daily-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.daily-inline-link:hover {
+    color: var(--accent-hover);
+}
+
+.daily-toc-card {
+    max-height: min(74vh, calc(100vh - 40px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    padding-right: 12px;
+}
+
+.daily-toc-card::-webkit-scrollbar {
+    width: 10px;
+}
+
+.daily-toc-card::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.28);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.daily-toc-card::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.10);
+    border-radius: 999px;
+}
+
+.daily-outline-scroll {
+    max-height: min(40vh, calc(100vh - 320px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    padding-right: 6px;
+}
+
+.daily-outline-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.daily-outline-scroll::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.28);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.daily-outline-scroll::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.10);
+    border-radius: 999px;
+}
+
+.daily-outline-group + .daily-outline-group {
+    margin-top: 14px;
+}
+
+.daily-outline-group-title {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.daily-outline-group-title:hover {
+    color: var(--accent-primary);
+}
+
+.daily-outline-list {
+    display: grid;
+    gap: 6px;
+}
+
+.daily-outline-link {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(148,163,184,0.18);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.daily-outline-link:hover {
+    color: var(--accent-primary);
+    background: rgba(99,102,241,0.08);
+}
+
+.daily-outline-link-highlight {
+    border-color: rgba(99,102,241,0.24);
+}
+
+.daily-outline-meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.daily-topic-anchor {
+    margin-left: 8px;
+}
+
+@media (max-width: 980px) {
+    .daily-toc-card {
+        max-height: none;
+    }
+    .daily-outline-scroll {
+        max-height: none;
+    }
+}
+</style></head>
+<body>
+<div class="daily-shell">
+<div class="daily-topbar">
+<div class="daily-topbar-left">
+<a class="back-link" href="../index.html">← 返回主页</a>
+<span class="daily-mini-chip">AI × Science Daily</span>
+</div>
+<div class="daily-topbar-right">
+<a class="daily-mini-chip" href="2026-03-28.xml">📡 当日 RSS</a>
+<a class="daily-mini-chip" href="../feed.xml">📰 全站 RSS</a>
+<span class="daily-mini-chip">2026-03-28</span>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
+</div>
+</div>
+<div class="daily-layout">
+<article class="daily-article">
+<div class="daily-hero">
+<div class="daily-kicker">AI 文献日报</div>
+<h1 class="daily-title">AI × Science 文献日报 2026/03/28</h1>
+<p class="daily-subtitle">聚焦 AI × 物理 / 化学 / 材料交叉方向，自动过滤明显偏题的医学、教育与社会科学内容，并按主题重新排版，便于快速深读。</p>
+<blockquote class="daily-quote">AI | 物理 | 化学 | 材料 | 交叉学科</blockquote>
+<div class="daily-tags"><span class="daily-tag">AI</span><span class="daily-tag">物理</span><span class="daily-tag">化学</span><span class="daily-tag">材料</span><span class="daily-tag">交叉学科</span></div>
+<div class="daily-stats">
+<div class="daily-stat">
+<div class="daily-stat-label">日报精选</div>
+<div class="daily-stat-value">12</div>
+</div>
+<div class="daily-stat">
+<div class="daily-stat-label">主线候选</div>
+<div class="daily-stat-value">12</div>
+</div>
+<div class="daily-stat">
+<div class="daily-stat-label">期刊 / 来源</div>
+<div class="daily-stat-value">7</div>
+</div>
+<div class="daily-stat">
+<div class="daily-stat-label">arXiv 相关</div>
+<div class="daily-stat-value">0</div>
+</div>
+</div>
+<div class="daily-page-nav" id="daily-enhancement-top-nav"><a class="daily-page-nav-link" href="2026-03-27.html">前一天 · 2026-03-27</a><span class="daily-page-nav-link daily-page-nav-disabled">后一天 · 暂无</span><a class="daily-page-nav-link" href="2026-03-28.html">最新一期 · 2026-03-28</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-03-28.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div>
+<section class="daily-section" id="summary">
+<div class="daily-section-head">
+<span class="daily-section-index">01</span>
+<h2 class="daily-section-title">今日摘要</h2>
+</div>
+<div class="daily-summary-card">
+<p><strong>总览：</strong>ä»æ¥æç®è¦çè®¡ç®ææãå¨ä»¶ç©çãé«æ§è½è®¡ç®ãçµç£åè½ææä¸å·¥ç¨æ°å¼æ¨¡æç­å¤ä¸ªæ¹åï¼å¶ä¸­è®¡ç®ææä¸æ°æ®é©±å¨ä¼åä»æ¯ä¸»çº¿ãå¼å¾å³æ³¨çæ¯ï¼çµå­-å£°å­å¤æ¨çè¶ç®æ¡æ¶ãå¸¸åé«æ¸©è¶å¯¼æ°¢åç©é¢æµï¼ä»¥åé¢åææºåä¼çå¤ç®æ AIä¼åï¼ä½ç°åºç®æ³ãç®åä¸ææè®¾è®¡å éèåçè¶å¿ã</p>
+<p><strong>热点：</strong>æ¬æ¹æç®æ¾ç¤ºï¼ææè®¡ç®æ­£ä»åä¸æ§è´¨é¢æµè½¬åâé«éé+å¤ç®æ +å¯æ©å±è®¡ç®âçç»¼åä¼åèå¼ï¼å°¤å¶ä½ç°å¨ææºåä¼åè¶å¯¼ææè®¾è®¡ä¸­ãé«æ§è½è®¡ç®åºç¡è®¾æ½æç»­æ¼è¿ï¼MPI-GPU-OpenMPæ··åæ¡æ¶è¡¨æç¬¬ä¸æ§åçåå¤çæ­£å¨è¿åå¤å»¶çº§å¹¶è¡ãåè½æææ¹é¢ï¼ä½ç»´æ¿å­ç£ååºãçµç£æ³¢å¸æ¶æ ¸å£³çº³ç±³çº¿ãåæç£åºé©±å¨çåå­¦æ¶¡æç­ç ç©¶ï¼åæ åºåçµç£è¦åä¸çé¢å·¥ç¨ä¾ç¶æ´»è·ãä¸æ­¤åæ¶ï¼å¤ç¯é¢å°æ¬èç¦å¶é è¿ç¨çæµãç»æå¨åå­¦ååå¾®åæ¹ç¨é«æç¦»æ£ï¼è¯´ææ°æ®é©±å¨ä¸æ°å¼æ¹æ³ä¹å¨åå®éå·¥ç¨åºæ¯å éè½å°ã</p>
+</div>
+</section>
+<section class="daily-section" id="highlights">
+<div class="daily-section-head">
+<span class="daily-section-index">02</span>
+<h2 class="daily-section-title">交叉重点</h2>
+</div>
+<ol class="daily-news-list">
+<li class="daily-news-item" id="highlight-1">
+<div class="daily-news-index">01</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9208372/latest" rel="noopener noreferrer" target="_blank">å¤ç®æ äººå·¥æºè½é©±å¨ä¼åæå¯¼é«æ§è½ææºå ä¼çåç°</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9208372/latest" rel="noopener noreferrer" target="_blank">Multi-objective AI-driven optimization guides the discovery of high-performance organic photovoltaics</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Feiyue Lu, Kang An, Qin Wang, Zhipeng Yin, Xinhui Liu, Jialin Wu 等14位作者</span><span class="daily-chip daily-chip-score">🔥 AI 98</span></div>
+<p class="daily-news-summary">è¯¥å·¥ä½å©ç¨å¤ç®æ AIç­ç¥å¨é«ç»´å¼ºè¦ååæ°ç©ºé´ä¸­æç´¢æä¼å å·¥åºåï¼ä»¥å éé«æ§è½ææºå¤ªé³è½çµæ± çåç°ä¸å·¥èºä¼åã</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 98</p>
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9208372/latest" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9208372/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-1">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-2">
+<div class="daily-news-index">02</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.nature.com/articles/s41524-026-02042-9" rel="noopener noreferrer" target="_blank">å¤å»¶çº§çµå­-å£°å­ç©çï¼ä¸ç§å¯æ©å±çWannieræå¼æ··åMPI-GPU-OpenMPæ¡æ¶</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.nature.com/articles/s41524-026-02042-9" rel="noopener noreferrer" target="_blank">Electron-phonon physics at the exascale: a hybrid MPI-GPU-OpenMP framework for scalable Wannier interpolation</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 npj Computational Materials</span><span class="daily-chip daily-chip-authors">👤 Tae Yun Kim, Zhe Liu, Sabyasachi Tiwari, Elena R. Margine, Feliciano Giustino</span><span class="daily-chip daily-chip-score">🔥 AI 0</span></div>
+<p class="daily-news-summary">è¯¥ç ç©¶å¼åé¢åå¤å»¶çº§è®¡ç®çæ··åå¹¶è¡Wannieræå¼æ¡æ¶ï¼æ¾èæåçµå­-å£°å­è¦åç¸å³æ§è´¨è®¡ç®çå¯æ©å±æ§ä¸æçã</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 0</p>
+<a class="daily-news-link" href="https://www.nature.com/articles/s41524-026-02042-9" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.nature.com/articles/s41524-026-02042-9" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-2">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-3">
+<div class="daily-news-index">03</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.nature.com/articles/s41524-026-02040-x" rel="noopener noreferrer" target="_blank">çµå­è°æ§è¿æ¸¡éå±æ°¢åç©ä¸­å¸¸åé«æ¸©è¶ å¯¼çé¢æµ</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.nature.com/articles/s41524-026-02040-x" rel="noopener noreferrer" target="_blank">Prediction of ambient-pressure high-temperature superconductivity in electronically modified transition-metal hydrides</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 npj Computational Materials</span><span class="daily-chip daily-chip-authors">👤 Haowei Xu, Olivia Schneble, Rafael Jaramillo, Marek Polański, Ju Li</span><span class="daily-chip daily-chip-score">🔥 AI 0</span></div>
+<p class="daily-news-summary">ä½èé¢æµéè¿çµå­ç»æè°æ§çè¿æ¸¡éå±æ°¢åç©ææå¨å¸¸åä¸å®ç°é«æ¸©è¶å¯¼ï¼ä¸ºçªç ´é«åæ°¢åç©è¶å¯¼çåºç¨ç¶é¢æä¾æ°è·¯çº¿ã</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 0</p>
+<a class="daily-news-link" href="https://www.nature.com/articles/s41524-026-02040-x" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.nature.com/articles/s41524-026-02040-x" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-3">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-4">
+<div class="daily-news-index">04</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8482681/latest" rel="noopener noreferrer" target="_blank">ä¸ç»´å«æºè¦åBurgersæ¹ç¨çä¸ç§é«æä¸¤æ­¥æ¾å¼/Crank-Nicolsonæéå æ¹æ³</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8482681/latest" rel="noopener noreferrer" target="_blank">An efficient two-step explicit/Crank-Nicolson with finite element approach for three-dimensional coupled Burgers' equations with source terms</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 方法 / 工具</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Eric Ngondiep</span><span class="daily-chip daily-chip-score">🔥 AI 0</span></div>
+<p class="daily-news-summary">æ¬ææåºç»åä¸¤æ­¥æ¾å¼ä¸Crank-Nicolsonæ¶é´æ¨è¿åæéåç¦»æ£çé«æç®æ³ï¼ç¨äºæ±è§£ä¸ç»´å«æºè¦åBurgersæ¹ç¨ã</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 0</p>
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-8482681/latest" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-8482681/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-4">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-5">
+<div class="daily-news-index">05</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.jctc.6c00505" rel="noopener noreferrer" target="_blank">æ´æ­£ï¼âæ¿åæå¸æ¶ï¼åèæ¯å­å¼ºåº¦ãæ³¢å½æ°ä¸TDDFTåºåæµè¯â</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.jctc.6c00505" rel="noopener noreferrer" target="_blank">[ASAP] Correction to “Excited-State Absorption: Reference Oscillator Strengths, Wave Function, and TDDFT Benchmarks”</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 方法 / 工具</span><span class="daily-chip daily-chip-journal">📖 ACS</span><span class="daily-chip daily-chip-authors">👤 Jakub Širůček, Boris Le Guennic, Yann Damour, Pierre-François Loos, and Denis Jacquemin</span><span class="daily-chip daily-chip-score">🔥 AI 0</span></div>
+<p class="daily-news-summary">è¿æ¯ä¸ç¯éå¯¹ååæ¿åæå¸æ¶ãåèæ¯å­å¼ºåº¦åTDDFTåºåç ç©¶åå®¹çæ´æ­£æç®ã</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 0</p>
+<a class="daily-news-link" href="http://dx.doi.org/10.1021/acs.jctc.6c00505" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acs.jctc.6c00505" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-5">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-6">
+<div class="daily-news-index">06</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9234928/latest" rel="noopener noreferrer" target="_blank">å¤é¶æ®µæ¿ææå½¢ä¸­ç´æ¥ä¸é´æ¥åæµéç¨äºæºå¨å­¦ä¹ è¿ç¨ç¶æåç±»çä¿¡æ¯å«éåæ</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9234928/latest" rel="noopener noreferrer" target="_blank">Information Content Analysis of Direct and Indirect Force Measurements for Machine Learning-Based Process State Classification in Multi-Stage Sheet Metal Forming</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 方法 / 工具</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Markus Schumann, Jonas Moske, Felix Divo, Antonia Wüst, Kristian Kersting, Peter Groche</span><span class="daily-chip daily-chip-score">🔥 AI 85</span></div>
+<p class="daily-news-summary">ç ç©¶æ¯è¾å¤é¶æ®µæ¿ææå½¢ä¸­ä¸ååä¼ æä¿¡å·çä¿¡æ¯å«éï¼ä¸ºåºäºæºå¨å­¦ä¹ çè¿ç¨çæµä¸ç¶æåç±»éæ©æ´ææçä¼ æç¹å¾ã</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 85</p>
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9234928/latest" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9234928/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-6">页内定位</a></div></div>
+</li>
+</ol>
+</section>
+<section class="daily-section" id="papers">
+<div class="daily-section-head">
+<span class="daily-section-index">03</span>
+<h2 class="daily-section-title">完整速览</h2>
+</div>
+<section class="daily-topic-group" id="topic-ai-物理-凝聚态">
+<div class="daily-topic-head">
+<div>
+<h3 class="daily-topic-title">AI × 物理 / 凝聚态</h3><a class="daily-permalink-link daily-topic-anchor" href="#topic-ai-物理-凝聚态" title="复制专题定位">#</a>
+<p class="daily-topic-desc">量子、自旋、凝聚态、电子结构与相关物理方法。</p>
+</div>
+<div class="daily-topic-count">4 篇</div>
+</div>
+<ol class="daily-paper-list">
+<li class="daily-paper-card" id="paper-1">
+<span class="daily-paper-number">01</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75158?af=R" rel="noopener noreferrer" target="_blank">æ ¸å£³SiC@Cuçº³ç±³çº¿ä¸­çèç¹åºå¼è´¨ç»å·¥ç¨å®ç°è¶ å®½å¸¦çµç£æ³¢å¸æ¶ä¸å¿«éæ£ç­</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75158?af=R" rel="noopener noreferrer" target="_blank">Schottky Heterojunction Engineering in Core–Shell SiC@Cu Nanowires for Ultra‐Broadband Electromagnetic Wave Absorption and Rapid Heat Dissipation</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Wiley</span><span class="daily-chip daily-chip-authors">👤 Chenyang Jing, Zhijian Xu, Meng Zhu, Changxi Zhang, Chunhai Wang, Hailong Xu</span></div>
+<div class="daily-paper-summary">è¯¥å·¥ä½éè¿æå»ºSiC@Cuæ ¸å£³çº³ç±³çº¿èç¹åºå¼è´¨ç»ï¼å®ç°å¼å·è¶å®½å¸¦çµç£å¸æ¶ä¸é«æç­èæ£çååä¼åã</div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75158?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75158?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-1">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-2">
+<span class="daily-paper-number">02</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://phys.org/news/2026-03-physicists-laser-tornado-miniature-synthetic.html" rel="noopener noreferrer" target="_blank">ç©çå­¦å®¶å©ç¨åæç£åºå¨å¾®åç»æä¸­åé æ¿å é¾å·é£</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://phys.org/news/2026-03-physicists-laser-tornado-miniature-synthetic.html" rel="noopener noreferrer" target="_blank">Physicists create laser tornado in miniature structures using synthetic magnetic field</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Physics News</span></div>
+<div class="daily-paper-summary">æ¥éå±ç¤ºäºç ç©¶äººååå©åæç£åºå¨å¾®å°ºåº¦ç»æä¸­å®ç°ç±»ä¼¼é¾å·é£çåå­¦ææ¶¡æï¼ä¸ºçä¸ååºææ§æä¾äºæ°æè·¯ã</div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://phys.org/news/2026-03-physicists-laser-tornado-miniature-synthetic.html" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://phys.org/news/2026-03-physicists-laser-tornado-miniature-synthetic.html" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-2">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-3">
+<span class="daily-paper-number">03</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.nature.com/articles/s41467-026-71176-7" rel="noopener noreferrer" target="_blank">çµç£æåæ­ç¤ºæµ é¨å·¨åéå²æ­å±ç¼æ»ä¸è¶³ä»¥ç±æµä½è§£éï¼ä»¥èé©¬éç¼ºå£ä¸ºä¾</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.nature.com/articles/s41467-026-71176-7" rel="noopener noreferrer" target="_blank">Electromagnetic imaging reveals insufficient fluids to explain shallow megathrust creep at the Shumagin Gap</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Nature Communications</span><span class="daily-chip daily-chip-authors">👤 Yinchu Li, Samer Naif, Kerry Key, Steven Constable, Rob L. Evans, Donna J. Shillington 等8位作者</span></div>
+<div class="daily-paper-summary">éè¿å¯æ§æºçµç£æåï¼ä½èåç°èé©¬éç¼ºå£æµé¨ä¿¯å²çé¢æµä½ä½ç§¯æéãå­éåæ¨æ­åä½ï¼ä»èææä»ä»¥æµä½è§£éæµé¨ç¼æ»çè§ç¹ã</div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://www.nature.com/articles/s41467-026-71176-7" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.nature.com/articles/s41467-026-71176-7" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-3">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-4">
+<span class="daily-paper-number">04</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c07593" rel="noopener noreferrer" target="_blank">ç¼ºé·åå·±èºéµç¢åé èªç»è£ éå­é±ä¸­æ¿å­åæ¿å­å¤åä½çç£ååº</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c07593" rel="noopener noreferrer" target="_blank">[ASAP] Magnetic Response of Excitons and Excitonic Complexes in Defective Hexyl Ammonium Lead Iodide Self-Assembled Quantum Wells</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 ACS Nano: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Maria F. Munoz, Destiny Konadu, Adedayo M. Sanni, Casandra L. Ward, Atish Ghosh, Amos Afugu, Zhen-Fei Liu, Angela R. Hight Walker, and Aaron S. Rury</span></div>
+<div class="daily-paper-summary">è¯¥æå³æ³¨ç¼ºé·èªç»è£éå¤éå­é±ä¸­æ¿å­ä¸æ¿å­å¤åä½çç£å­¦ååºï¼æå©äºçè§£ä½ç»´ééç¿ä¸­ç¼ºé·ãæç¼æä¸èªæè°·ç©ççè¦åæºå¶ã</div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="http://dx.doi.org/10.1021/acsnano.5c07593" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acsnano.5c07593" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-4">页内定位</a></div></div>
+</div>
+</li>
+</ol>
+</section>
+<section class="daily-topic-group" id="topic-相关方法-计算工具">
+<div class="daily-topic-head">
+<div>
+<h3 class="daily-topic-title">相关方法 / 计算工具</h3><a class="daily-permalink-link daily-topic-anchor" href="#topic-相关方法-计算工具" title="复制专题定位">#</a>
+<p class="daily-topic-desc">AI 方法、模拟工具与具有直接科研支撑价值的工作。</p>
+</div>
+<div class="daily-topic-count">2 篇</div>
+</div>
+<ol class="daily-paper-list">
+<li class="daily-paper-card" id="paper-5">
+<span class="daily-paper-number">05</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9235048/latest" rel="noopener noreferrer" target="_blank">å¸¦åç¼å¹åçNACA 2412ç¿¼åè®¡ç®ç ç©¶</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9235048/latest" rel="noopener noreferrer" target="_blank">A Computational Study on NACA 2412 Airfoil with a Leading-Edge Dimple</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 其他</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 MD REDWAN IQBAL, Zuairia Binte Noor Raha</span></div>
+<div class="daily-paper-summary">è¯¥æéè¿æ°å¼æ¨¡æè¯ä¼°åç¼å¹åç»æå¯¹NACA 2412ç¿¼åæµå¨ç¹å¾ä¸æ°å¨æ§è½çå½±åï¼æ¢ç´¢ä»¿çè¡¨é¢æ¹æ§çå¢ææ½åã</div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9235048/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9235048/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-5">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-6">
+<span class="daily-paper-number">06</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9185995/latest" rel="noopener noreferrer" target="_blank">æ åå å­åæçå¨åå­¦å»ºæ¨¡</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9185995/latest" rel="noopener noreferrer" target="_blank">Dynamic modeling of a standard internal tool holder</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 其他</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Wallyson Thomas Alves da Silva, Rouben Rostamian, Fabio Kuranaka, Marcus Vinicius Begossi, Alex Sandro Payão dos Santos, Anselmo Eduardo Diniz 等8位作者</span></div>
+<div class="daily-paper-summary">ç ç©¶éå¯¹åå­è½¦ååæä¸å¤¹æç»æçé¢å¯¹ç³»ç»å¨æååº¦åæ¯å¨è¡ä¸ºçå½±åè¿è¡å»ºæ¨¡ï¼ä»¥æ¹åé«é¿å¾æ¯å å·¥ç¨³å®æ§ã</div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9185995/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9185995/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-6">页内定位</a></div></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+<div class="daily-page-nav" id="daily-enhancement-bottom-nav"><a class="daily-page-nav-link" href="2026-03-27.html">前一天 · 2026-03-27</a><span class="daily-page-nav-link daily-page-nav-disabled">后一天 · 暂无</span><a class="daily-page-nav-link" href="2026-03-28.html">最新一期 · 2026-03-28</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-03-28.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div><div class="daily-footer">
+          本页由文献追踪系统自动生成，仅保留 AI × 物理 / 化学 / 材料主线相关文献，并按专题重新整理，方便快速筛选与深度阅读。
+        </div>
+</article>
+<aside class="daily-toc">
+<div class="daily-toc-card">
+<div class="daily-toc-title">目录</div>
+<a href="#summary"><span>今日摘要</span><span>01</span></a>
+<a href="#highlights"><span>交叉重点</span><span>02</span></a>
+<a href="#papers"><span>完整速览</span><span>03</span></a>
+<div class="daily-sidebar-block">
+<div class="daily-sidebar-title">专题分布</div>
+<div class="daily-sidebar-stats"><div class="daily-sidebar-fact"><span>AI × 物理 / 凝聚态</span><strong>4</strong></div><div class="daily-sidebar-fact"><span>相关方法 / 计算工具</span><strong>2</strong></div></div>
+</div>
+<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"><div class="daily-outline-group"><a class="daily-outline-group-title" href="#highlights">交叉重点</a><div class="daily-outline-list"><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-1">å¤ç®æ äººå·¥æºè½é©±å¨ä¼åæå¯¼é«æ§è½ææºå ä¼çåç°<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-2">å¤å»¶çº§çµå­-å£°å­ç©çï¼ä¸ç§å¯æ©å±çWannieræå¼æ··åMPI-GPU-OpenMPæ¡æ¶<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-3">çµå­è°æ§è¿æ¸¡éå±æ°¢åç©ä¸­å¸¸åé«æ¸©è¶ å¯¼çé¢æµ<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-4">ä¸ç»´å«æºè¦åBurgersæ¹ç¨çä¸ç§é«æä¸¤æ­¥æ¾å¼/Crank-Nicolsonæéå æ¹æ³<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-5">æ´æ­£ï¼âæ¿åæå¸æ¶ï¼åèæ¯å­å¼ºåº¦ãæ³¢å½æ°ä¸TDDFTåºåæµè¯â<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-6">å¤é¶æ®µæ¿ææå½¢ä¸­ç´æ¥ä¸é´æ¥åæµéç¨äºæºå¨å­¦ä¹ è¿ç¨ç¶æåç±»çä¿¡æ¯å«éåæ<span class="daily-outline-meta">交叉重点</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-物理-凝聚态">AI × 物理 / 凝聚态</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-1">æ ¸å£³SiC@Cuçº³ç±³çº¿ä¸­çèç¹åºå¼è´¨ç»å·¥ç¨å®ç°è¶ å®½å¸¦çµç£æ³¢å¸æ¶ä¸å¿«éæ£ç­<span class="daily-outline-meta">01</span></a><a class="daily-outline-link" href="#paper-2">ç©çå­¦å®¶å©ç¨åæç£åºå¨å¾®åç»æä¸­åé æ¿å é¾å·é£<span class="daily-outline-meta">02</span></a><a class="daily-outline-link" href="#paper-3">çµç£æåæ­ç¤ºæµ é¨å·¨åéå²æ­å±ç¼æ»ä¸è¶³ä»¥ç±æµä½è§£éï¼ä»¥èé©¬éç¼ºå£ä¸ºä¾<span class="daily-outline-meta">03</span></a><a class="daily-outline-link" href="#paper-4">ç¼ºé·åå·±èºéµç¢åé èªç»è£ éå­é±ä¸­æ¿å­åæ¿å­å¤åä½çç£ååº<span class="daily-outline-meta">04</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-相关方法-计算工具">相关方法 / 计算工具</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-5">å¸¦åç¼å¹åçNACA 2412ç¿¼åè®¡ç®ç ç©¶<span class="daily-outline-meta">05</span></a><a class="daily-outline-link" href="#paper-6">æ åå å­åæçå¨åå­¦å»ºæ¨¡<span class="daily-outline-meta">06</span></a></div></div></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-03-27.html">前一天 · 2026-03-27</a><span class="daily-page-nav-link daily-page-nav-disabled">后一天 · 暂无</span><a class="daily-page-nav-link" href="2026-03-28.html">最新一期 · 2026-03-28</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-03-28.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
+<div class="daily-sidebar-title">阅读建议</div>
+<ul class="insight-note-list">
+<li class="insight-note-item">先看交叉重点，再按物理、化学、材料与方法分区深读。</li>
+<li class="insight-note-item">明显偏离主线的医学、教育等内容已自动剔除。</li>
+<li class="insight-note-item">若需回看历史日报，可从日报索引页按日期倒序进入。</li>
+</ul>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<script>
+    const THEME_KEY = 'literature_theme';
+
+    function initTheme() {
+      const theme = localStorage.getItem(THEME_KEY) || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeButton();
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'light' ? 'dark' : 'light';
+      localStorage.setItem(THEME_KEY, next);
+      document.documentElement.setAttribute('data-theme', next);
+      updateThemeButton();
+    }
+
+    function updateThemeButton() {
+      const btn = document.getElementById('themeToggle');
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+
+    initTheme();
+  </script>
+</body>
+</html>
