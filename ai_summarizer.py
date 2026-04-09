@@ -11,7 +11,7 @@ import time
 import re
 import requests
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Tuple
 from abc import ABC, abstractmethod
 from urllib.parse import urlsplit, urlunsplit
 
@@ -101,7 +101,6 @@ class GeminiProvider(AIProvider):
             sleep_s = min(wait_base_seconds * (2 ** max(0, attempt - 1)), wait_max_sleep_seconds)
             # Keep a bit of jitterless wait to reduce flakiness in CI.
             time.sleep(min(sleep_s, max(1.0, (wait_max_seconds - elapsed) if wait_max_seconds > 0 else sleep_s)))
-        return ""
 
 class OpenRouterProvider(AIProvider):
     """
@@ -237,7 +236,6 @@ class OpenRouterProvider(AIProvider):
                 remaining = max(0.0, wait_max_seconds - elapsed)
                 sleep_s = min(sleep_s, max(1.0, remaining))
             time.sleep(sleep_s)
-        return ""
 
 
 def normalize_chat_completions_url(raw_url: Optional[str]) -> str:
@@ -374,7 +372,7 @@ class AISummarizer:
 
                 return self.fallback_summary(articles, date)
 
-    def _build_overview_trends(self, articles: List[Dict], date: str) -> (str, str):
+    def _build_overview_trends(self, articles: List[Dict], date: str) -> Tuple[str, str]:
         titles = []
         for i, a in enumerate(articles[:200], 1):  # cap to keep prompt bounded
             t = a.get("title") or "Unknown Title"
@@ -463,6 +461,10 @@ class AISummarizer:
     def _build_missing_summaries_prompt(self, original_articles: List[Dict], missing_indices: List[int], date: str) -> str:
         articles_text = []
         for idx in missing_indices:
+            # 边界检查：防止索引越界
+            if idx < 1 or idx > len(original_articles):
+                print(f"⚠️ 跳过无效索引 {idx} (有效范围: 1-{len(original_articles)})")
+                continue
             article = original_articles[idx - 1]
             title = article.get('title', 'Unknown Title')
             journal = article.get("journal", "")
