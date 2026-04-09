@@ -18,8 +18,6 @@ from translator import translate_text
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from weekly_page_enhancer import enhance_weekly_archive
 import time
-from abstract_scraper import AbstractScraper
-from translator import translate_text
 
 try:
     from config import AI_CONFIG as DEFAULT_AI_CONFIG
@@ -298,7 +296,6 @@ class WeeklySummarizer:
             analysis = response.strip()
             # 移除JSON格式
             if analysis.startswith('{'):
-                import json
                 try:
                     data = json.loads(analysis)
                     # 尝试提取analysis字段
