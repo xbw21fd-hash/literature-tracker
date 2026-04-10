@@ -396,18 +396,11 @@ def filter_daily_focus_items(
         selected.append(item)
         selected_keys.add(key)
 
-    primary = [item for item in eligible if is_daily_focus(item)]
-    for item in primary:
+    # eligible 已经通过 is_daily_focus 筛选，直接添加到 selected
+    for item in eligible:
         add(item)
 
-    target_keep = min(max_keep, max(min_keep, len(selected)))
-    if len(selected) < target_keep:
-        for item in eligible:
-            add(item)
-            if len(selected) >= target_keep:
-                break
-
-    dropped = [item for item in eligible if item_key(item) not in selected_keys]
+    dropped = [item for item in items if item_key(item) not in selected_keys]
     return selected, dropped
 
 
