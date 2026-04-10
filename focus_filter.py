@@ -320,8 +320,7 @@ def is_daily_focus(item: Mapping[str, Any]) -> bool:
     日报精选过滤 - 第三层
     必须同时满足：
     1. 属于目标领域（通过第二层过滤）
-    2. 标题中包含核心科学关键词
-    3. 满足组合A或组合B
+    2. 标题中包含AI词 或 物理/化学/材料/模拟词（任一即可）
     """
     signals = analyze_focus(item)
     
@@ -332,36 +331,27 @@ def is_daily_focus(item: Mapping[str, Any]) -> bool:
     # 只检查标题
     title_text = _item_title_focus_text(item)
     
-    # 标题关键词检测
+    # 标题关键词检测 - 满足任一即可
     title_has_ai = _has_any(title_text, DAILY_TITLE_AI_TERMS)
     title_has_physics = _has_any(title_text, DAILY_TITLE_PHYSICS_TERMS)
     title_has_chemistry = _has_any(title_text, DAILY_TITLE_CHEMISTRY_TERMS)
     title_has_materials = _has_any(title_text, DAILY_TITLE_MATERIALS_TERMS)
     title_has_simulation = _has_any(title_text, DAILY_TITLE_SIMULATION_TERMS)
     
-    # 核心科学关键词（物理/化学/材料/模拟）
-    title_has_core_science = title_has_physics or title_has_chemistry or title_has_materials or title_has_simulation
-    
-    # 条件3: 满足组合A或组合B
-    # 组合A: 标题AI + 标题核心科学
-    combination_a = title_has_ai and title_has_core_science
-    # 组合B: 标题模拟 + 标题核心科学（物理/化学/材料）
-    combination_b = title_has_simulation and (title_has_physics or title_has_chemistry or title_has_materials)
-    
-    return combination_a or combination_b
+    # 条件2: 标题包含AI词 或 核心科学词（物理/化学/材料/模拟）
+    return title_has_ai or title_has_physics or title_has_chemistry or title_has_materials or title_has_simulation
 
 
 def daily_focus_priority(item: Mapping[str, Any]) -> tuple:
     """
     日报优先级排序
-    Band 0: 标题AI + 标题核心科学
-    Band 1: 标题模拟 + 标题核心科学  
-    Band 2: 内容AI + 强科学关键词
-    Band 3: 1区/2区期刊文章
+    Band 0: 标题同时包含AI词+核心科学词（最强匹配）
+    Band 1: 标题仅含AI词
+    Band 2: 标题仅含物理/化学/材料词
+    Band 3: 标题仅含模拟词
     Band 4: 其他符合条件的文章
     """
     signals = analyze_focus(item)
-    journal = _normalize_text(item.get('journal') or '')
     title_text = _item_title_focus_text(item)
     
     # 标题关键词检测
@@ -373,21 +363,17 @@ def daily_focus_priority(item: Mapping[str, Any]) -> tuple:
     
     title_core_science = title_has_physics or title_has_chemistry or title_has_materials or title_has_simulation
     
-    # 期刊等级
-    is_tier1 = _has_any(journal, TIER1_JOURNAL_HINTS)
-    is_tier2 = _has_any(journal, TIER2_JOURNAL_HINTS)
-    
-    # Band 0: 标题AI + 标题核心科学
+    # Band 0: 标题AI + 核心科学（最强匹配）
     if title_has_ai and title_core_science:
         band = 0
-    # Band 1: 标题模拟 + 标题核心科学
-    elif title_has_simulation and title_core_science:
+    # Band 1: 仅AI词
+    elif title_has_ai:
         band = 1
-    # Band 2: 内容AI + 强科学关键词（标题不满足但全文满足）
-    elif signals['ai_science'] and (signals['strong_physics'] or signals['strong_chemistry'] or signals['strong_materials']):
+    # Band 2: 仅物理/化学/材料词
+    elif title_has_physics or title_has_chemistry or title_has_materials:
         band = 2
-    # Band 3: 期刊文章（1区/2区）
-    elif is_tier1 or is_tier2:
+    # Band 3: 仅模拟词
+    elif title_has_simulation:
         band = 3
     # Band 4: 其他
     else:
