@@ -307,7 +307,7 @@ def is_daily_focus(item: Mapping[str, Any]) -> bool:
     日报精选过滤 - 第三层
     必须同时满足：
     1. 属于目标领域（通过第二层过滤）
-    2. 标题中包含AI词 或 物理/化学/材料/模拟词（任一即可）
+    2. 标题或摘要中包含关键词（learning, neural, network, quantum, spin, magnetic, superconduct, moire, altermagnet, ferro, magent）
     """
     signals = analyze_focus(item)
     
@@ -315,18 +315,19 @@ def is_daily_focus(item: Mapping[str, Any]) -> bool:
     if not signals['target_domain']:
         return False
     
-    # 只检查标题
+    # 检查标题和摘要
     title_text = _item_title_focus_text(item)
+    abstract_text = (item.get('abstract') or item.get('summary') or '').lower()
+    combined_text = title_text + ' ' + abstract_text
     
-    # 标题关键词检测 - 满足任一即可
-    title_has_ai = _has_any(title_text, DAILY_TITLE_AI_TERMS)
-    title_has_physics = _has_any(title_text, DAILY_TITLE_PHYSICS_TERMS)
-    title_has_chemistry = _has_any(title_text, DAILY_TITLE_CHEMISTRY_TERMS)
-    title_has_materials = _has_any(title_text, DAILY_TITLE_MATERIALS_TERMS)
-    title_has_simulation = _has_any(title_text, DAILY_TITLE_SIMULATION_TERMS)
+    # 所有关键词（标题或摘要包含任一即可）
+    all_keywords = (
+        'learning', 'neural', 'network',
+        'quantum', 'spin', 'magnetic', 'superconduct', 
+        'moire', 'moiré', 'altermagnet', 'ferro', 'magent'
+    )
     
-    # 条件2: 标题包含AI词 或 核心科学词（物理/化学/材料/模拟）
-    return title_has_ai or title_has_physics or title_has_chemistry or title_has_materials or title_has_simulation
+    return _has_any(combined_text, all_keywords)
 
 
 def daily_focus_priority(item: Mapping[str, Any]) -> tuple:
