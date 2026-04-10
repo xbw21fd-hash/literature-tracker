@@ -67,7 +67,7 @@ def generate_daily_with_ai(date_str: str):
     return True
 
 if __name__ == '__main__':
-    dates = ['2026-04-03', '2026-04-08']
+    dates = ['2026-04-01', '2026-04-02', '2026-04-03', '2026-04-06', '2026-04-08', '2026-04-09']
     
     print("=" * 50)
     print("AI生成日报")
