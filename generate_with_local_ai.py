@@ -1,160 +1,158 @@
 #!/usr/bin/env python3
 """
-完整的日报生成流程 - 使用本地AI生成的摘要
+使用OpenClaw AI助手直接生成日报摘要
+通过文件接口实现人机协作
 """
-
 import os
 import sys
 import json
-import shutil
+import time
 
-# 获取项目根目录（使用相对路径）
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from generate_daily_pages import (
-    load_index_articles, load_relevant, load_summary_index, save_summary_index,
-    collect_daily_articles, ensure_dirs, render_daily_html,
-    sync_daily_rss_feeds, enhance_daily_archive, preserve_existing_entry
-)
-from focus_filter import filter_focus_items, filter_daily_focus_items, focus_priority
+from generate_daily_pages import render_daily_html, ensure_dirs
 
-# 路径配置
-AI_RESPONSES_DIR = os.path.join(BASE_DIR, "ai_responses")
-DATA_DIR = os.path.join(BASE_DIR, "data")
-DOCS_DAILY_DIR = os.path.join(BASE_DIR, "docs", "daily")
+def prepare_daily_for_ai(date_str: str):
+    """
+    准备日报数据并输出到文件，等待AI助手处理
+    这是第一阶段：系统准备请求
+    """
+    print(f"\n{'='*50}")
+    print(f"📅 准备 {date_str} 的AI日报")
+    print(f"{'='*50}")
+    
+    # 加载数据
+    data_file = f'ai_prompts/{date_str}_data.json'
+    if not os.path.exists(data_file):
+        print(f"❌ 数据文件不存在: {data_file}")
+        return False
+    
+    with open(data_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    articles = data.get('articles', [])
+    if not articles:
+        print(f"⚠️ {date_str} 无文章")
+        return False
+    
+    print(f"📊 文章数: {len(articles)}")
+    
+    # 创建输出目录
+    output_dir = f"/tmp/literature_ai_output"
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # 生成处理请求文件
+    request_file = f"{output_dir}/{date_str}_request.json"
+    
+    request_data = {
+        "date": date_str,
+        "articles_count": len(articles),
+        "articles": articles,
+        "instruction": f"请为{date_str}的文献生成中文摘要",
+        "output_file": f"{output_dir}/{date_str}_response.json"
+    }
+    
+    with open(request_file, 'w', encoding='utf-8') as f:
+        json.dump(request_data, f, ensure_ascii=False, indent=2)
+    
+    print(f"\n📝 请求文件已生成: {request_file}")
+    print(f"⏳ 请AI助手读取该文件并生成摘要...")
+    print(f"💡 生成后请保存到: {request_data['output_file']}")
+    
+    return request_file
 
-def generate_daily_with_local_ai(date_str: str, force: bool = False):
-    """使用本地AI响应生成日报"""
+def check_ai_response(date_str: str, max_wait: int = 60):
+    """
+    检查AI响应是否已生成
+    这是第二阶段：等待AI完成
+    """
+    output_file = f"/tmp/literature_ai_output/{date_str}_response.json"
     
-    print(f"📅 生成 {date_str} 的日报...")
+    print(f"\n⏳ 等待AI响应...")
+    for i in range(max_wait):
+        if os.path.exists(output_file):
+            print(f"✅ AI响应已生成!")
+            return output_file
+        time.sleep(1)
+        if (i + 1) % 10 == 0:
+            print(f"  已等待{i+1}秒...")
     
-    # 检查AI响应是否存在
-    response_file = os.path.join(AI_RESPONSES_DIR, f"{date_str}_response.json")
-    if not os.path.exists(response_file):
-        print(f"❌ 未找到AI响应文件: {response_file}")
-        print(f"💡 请先运行: python3 prepare_ai_prompt.py {date_str}")
-        print(f"   然后让我生成摘要并保存到上述路径")
+    print(f"⚠️ 等待超时，使用本地数据生成")
+    return None
+
+def generate_daily_with_local_ai(date_str: str):
+    """
+    使用本地数据生成日报（无需外部API）
+    """
+    print(f"\n{'='*50}")
+    print(f"📅 生成 {date_str} 的日报（本地模式）")
+    print(f"{'='*50}")
+    
+    # 加载数据
+    data_file = f'ai_prompts/{date_str}_data.json'
+    if not os.path.exists(data_file):
+        print(f"❌ 数据文件不存在")
         return False
     
-    # 加载AI摘要 - 添加异常处理
-    try:
-        with open(response_file, "r", encoding="utf-8") as f:
-            ai_summary = json.load(f)
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON解析错误: {e}")
-        return False
-    except FileNotFoundError:
-        print(f"❌ 文件不存在: {response_file}")
-        return False
-    except Exception as e:
-        print(f"❌ 加载AI响应文件失败: {e}")
+    with open(data_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    articles = data.get('articles', [])
+    if not articles:
+        print(f"⚠️ 无文章")
         return False
     
-    # 验证必要字段
-    if not isinstance(ai_summary, dict):
-        print(f"❌ AI响应格式错误: 应为字典，实际为 {type(ai_summary)}")
-        return False
+    print(f"📊 文章数: {len(articles)}")
     
-    # 添加统计信息
-    try:
-        index_articles = load_index_articles(os.path.join(DATA_DIR, "index.json"))
-        relevant_articles = load_relevant(os.path.join(DATA_DIR, "ai_relevant.json"))
-        collected = collect_daily_articles(index_articles, relevant_articles, date_str)
-    except Exception as e:
-        print(f"⚠️ 加载文章数据失败: {e}，使用默认值")
-        collected = {
-            "dropped_articles": [],
-            "raw_day_articles": [],
-            "focused_articles": ai_summary.get("full_list", []) or ai_summary.get("summaries", [])
+    # 检查是否有AI生成的响应
+    ai_response_file = f"ai_responses/{date_str}_response.json"
+    if os.path.exists(ai_response_file):
+        with open(ai_response_file, 'r', encoding='utf-8') as f:
+            summary = json.load(f)
+        print(f"✅ 使用已有AI响应")
+    else:
+        # 构建本地summary（使用原文）
+        full_list = []
+        for art in articles:
+            item = {
+                'title_en': art.get('title'),
+                'title_zh': art.get('title_zh') or art.get('title') or '待翻译',
+                'abstract_zh': art.get('abstract_zh') or art.get('abstract', '')[:300],
+                'summary': art.get('one_sentence_summary') or '点击查看原文了解详情',
+                'link': art.get('link'),
+                'journal': art.get('journal', ''),
+                'authors': art.get('authors', []),
+                'pub_date': art.get('pub_date', ''),
+            }
+            full_list.append(item)
+        
+        summary = {
+            'date': date_str,
+            'total': len(full_list),
+            'overview': f"今日共收录{len(full_list)}篇文献。",
+            'trends': '',
+            'full_list': full_list,
+            'generated_by': 'local'
         }
-    
-    ai_summary["date"] = date_str
-    ai_summary["excluded_count"] = len(collected.get("dropped_articles", []))
-    ai_summary["raw_total"] = len(collected.get("raw_day_articles", []))
-    ai_summary["focused_total"] = len(collected.get("focused_articles", []))
-    
-    # 确保summaries字段存在（兼容）
-    if "summaries" not in ai_summary:
-        ai_summary["summaries"] = ai_summary.get("full_list", [])
+        print(f"⚠️ 使用本地数据（无AI翻译）")
     
     # 生成HTML
-    try:
-        ensure_dirs()
-        out_path = os.path.join(DOCS_DAILY_DIR, f"{date_str}.html")
-        
-        page_html = render_daily_html(date_str, ai_summary)
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(page_html)
-        
-        print(f"✅ 日报已生成: {out_path}")
-    except Exception as e:
-        print(f"❌ 生成HTML失败: {e}")
-        return False
-    
-    # 更新索引
-    try:
-        existing_index = load_summary_index()
-        existing_items = existing_index.get("summaries", []) or []
-        
-        total = len(ai_summary.get("full_list", []))
-        # 使用更安全的方式计算digest
-        try:
-            full_list = ai_summary.get("full_list", [])
-            digest = hash(json.dumps(full_list, sort_keys=True, default=str)) % (2**32)
-        except Exception:
-            digest = hash(str(full_list)) % (2**32)
-        
-        new_entry = {"date": date_str, "file": f"{date_str}.html", "total": total, "digest": str(digest)}
-        
-        # 合并索引
-        updated_dates = {new_entry.get("date")}
-        merged = [e for e in existing_items if e.get("date") not in updated_dates]
-        merged.append(new_entry)
-        merged = [e for e in merged if isinstance(e, dict) and e.get("date")]
-        merged.sort(key=lambda x: x.get("date") or "", reverse=True)
-        save_summary_index(merged[:120])
-    except Exception as e:
-        print(f"⚠️ 更新索引失败: {e}")
-        # 非致命错误，继续执行
-    
-    # 同步RSS
-    try:
-        rss_changed = sync_daily_rss_feeds(index_articles, relevant_articles, merged[:120])
-        print(f"📡 同步了 {rss_changed} 个RSS feed")
-    except Exception as e:
-        print(f"⚠️ 同步RSS失败: {e}")
-    
-    # 增强导航
-    try:
-        summaries_path = os.path.join(DOCS_DAILY_DIR, "summaries.json")
-        enhanced = enhance_daily_archive(summaries_path)
-        print(f"🧭 增强了 {enhanced} 个页面的导航")
-    except Exception as e:
-        print(f"⚠️ 增强导航失败: {e}")
+    ensure_dirs()
+    html = render_daily_html(date_str, summary)
+    with open(f'docs/daily/{date_str}.html', 'w', encoding='utf-8') as f:
+        f.write(html)
+    print(f"✅ HTML已生成: docs/daily/{date_str}.html")
     
     return True
 
-def main():
-    """主函数"""
-    if len(sys.argv) > 1:
-        date_str = sys.argv[1]
-    else:
-        from datetime import datetime, timedelta
-        yesterday = datetime.now() - timedelta(days=1)
-        date_str = yesterday.strftime("%Y-%m-%d")
+if __name__ == '__main__':
+    import sys
     
-    force = "--force" in sys.argv
-    
-    success = generate_daily_with_local_ai(date_str, force)
-    
-    if success:
-        print(f"\n🎉 {date_str} 日报生成完成!")
-        print(f"📄 文件: docs/daily/{date_str}.html")
-        print(f"🌐 预览: https://hongyu-yu.github.io/literature-tracker/daily/{date_str}.html")
-    else:
-        print(f"\n❌ 生成失败")
+    if len(sys.argv) < 2:
+        print("用法: python3 generate_with_local_ai.py YYYY-MM-DD")
+        print("示例: python3 generate_with_local_ai.py 2026-04-13")
         sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+    
+    date = sys.argv[1]
+    success = generate_daily_with_local_ai(date)
+    sys.exit(0 if success else 1)
