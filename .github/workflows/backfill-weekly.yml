@@ -75,7 +75,19 @@ jobs:
           git add docs/weekly
           if git diff --cached --quiet; then
             echo 'nothing to commit'
-          else
-            git commit -m "🔬 Backfill weekly summaries ${{ inputs.from_week }}..${{ inputs.to_week }}"
-            git push origin main
+            exit 0
           fi
+          git commit -m "🔬 Backfill weekly summaries ${{ inputs.from_week }}..${{ inputs.to_week }}"
+          # Race-safe push: rebase onto latest main and retry a few times.
+          for i in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase origin/main || { echo "rebase failed on attempt $i"; git rebase --abort; exit 1; }
+            if git push origin main; then
+              echo "push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "push rejected on attempt $i, retrying..."
+            sleep 5
+          done
+          echo "❌ push still failing after 5 attempts"
+          exit 1
