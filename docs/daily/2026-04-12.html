@@ -70,6 +70,21 @@
     .daily-sidebar-stats { display: grid; gap: 10px; }
     .daily-sidebar-fact { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); }
     .daily-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.94rem; line-height: 1.8; }
+    .daily-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 14px 18px; margin: 18px 0; border-radius: 18px; background: rgba(255,255,255,0.88); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+    .daily-nav-top { margin: 0 0 22px; }
+    .daily-nav-bottom { margin: 28px 0 12px; }
+    .daily-nav-link { color: var(--accent-primary); text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 12px; transition: background 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .daily-nav-link:hover { background: rgba(99,102,241,0.08); }
+    .daily-nav-prev { justify-self: start; }
+    .daily-nav-next { justify-self: end; text-align: right; }
+    .daily-nav-home { color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(99,102,241,0.08); font-weight: 600; font-size: 0.95rem; }
+    .daily-nav-home:hover { background: rgba(99,102,241,0.16); color: var(--accent-primary); }
+    .daily-nav-disabled { color: var(--text-muted); opacity: 0.55; padding: 8px 12px; }
+    @media (max-width: 720px) {
+      .daily-nav { grid-template-columns: 1fr 1fr; padding: 10px 12px; }
+      .daily-nav-home { grid-column: span 2; justify-self: center; order: 3; }
+      .daily-nav-link { font-size: 0.92rem; }
+    }
     @media (max-width: 980px) {
       .daily-layout { grid-template-columns: 1fr; }
       .daily-toc { position: static; order: -1; }
@@ -81,7 +96,24 @@
       .daily-news-item, .daily-paper-card { grid-template-columns: 1fr; }
       .daily-news-index, .daily-paper-number { width: 38px; height: 38px; }
       .daily-paper-head, .daily-topic-head { flex-direction: column; gap: 12px; }
+      .daily-core-card { grid-template-columns: 1fr; }
+      .daily-core-number { width: 38px; height: 38px; }
     }
+    .daily-core-section { border-radius: 22px; padding: 22px; margin-top: 26px; background: linear-gradient(135deg, rgba(253,244,215,0.55), rgba(255,248,230,0.88)); border: 1.5px solid rgba(245,158,11,0.45); box-shadow: 0 4px 18px rgba(245,158,11,0.08); }
+    .daily-core-section .daily-section-title { color: #b45309; }
+    .daily-core-section .daily-section-index { background: rgba(245,158,11,0.18); color: #b45309; }
+    .daily-core-count { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: rgba(245,158,11,0.15); color: #b45309; font-weight: 700; font-size: 0.9rem; }
+    .daily-core-note { margin: 12px 0 18px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.7); border-left: 3px solid #f59e0b; color: var(--text-primary); line-height: 1.8; }
+    .daily-core-list { list-style: none; margin: 0; padding: 0; }
+    .daily-core-card { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px; padding: 18px; border-radius: 18px; background: rgba(255,255,255,0.95); border: 1px solid rgba(245,158,11,0.25); border-left: 3px solid #f59e0b; box-shadow: var(--shadow-sm); }
+    .daily-core-card + .daily-core-card { margin-top: 14px; }
+    .daily-core-number { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 800; color: white; background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+    .daily-core-title-zh { font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin-bottom: 4px; }
+    .daily-core-title-en { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+    .daily-core-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .daily-chip-core { background: rgba(245,158,11,0.18); color: #b45309; font-weight: 600; }
+    .daily-core-deep { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(245,158,11,0.06); border: 1px dashed rgba(245,158,11,0.35); line-height: 1.75; }
+    .daily-core-deep p + p { margin-top: 6px; }
   </style>
 <style id="daily-enhancement-style">
 #daily-enhancement-top-nav, #daily-enhancement-bottom-nav {
@@ -290,6 +322,7 @@
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
 </div>
 </div>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-top"><a class="daily-nav-link daily-nav-prev" href="2026-04-11.html">← 前一天 · 2026-04-11</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-04-13.html">后一天 · 2026-04-13 →</a></nav>
 <div class="daily-layout">
 <article class="daily-article">
 <div class="daily-hero">
@@ -323,8 +356,8 @@
 <h2 class="daily-section-title">今日摘要</h2>
 </div>
 <div class="daily-summary-card">
-<p><strong>总览：</strong>今日共收录7篇文献。</p>
-<p><strong>热点：</strong></p>
+<p><strong>总览：</strong>今日7篇文献覆盖高熵合金润湿性与磁性、TiO2相稳定性机器学习预测、酸性OER催化剂主动学习筛选、自旋极化手性光催化CO2还原、铁电聚合物压电性增强及堆叠诱导高自旋陈数量子自旋霍尔绝缘体等方向，计算材料学与实验合成并重。</p>
+<p><strong>热点：</strong>机器学习与第一性原理深度耦合成为主流：三篇工作分别将分子动力学/DFT+U与神经网络结合用于高熵合金和TiO2体系。主动学习/空间自适应采样在催化剂高通量筛选中加速实验闭环。拓扑量子材料向非常规磁性堆叠体系拓展，追求高自旋陈数与Type-II能带对齐。能源催化与铁电功能材料持续涌现新结构-性能设计策略。</p>
 </div>
 </section>
 <section class="daily-section" id="highlights">
@@ -336,10 +369,10 @@
 <li class="daily-news-item" id="highlight-1">
 <div class="daily-news-index">01</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002247?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Molecular dynamics simulation and machine learning of wettability in the Ag-Cu/ FeCoNiCrMn high-entropy alloy system</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002247?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Ag-Cu/FeCoNiCrMn高熵合金体系润湿性的分子动力学模拟与机器学习</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002247?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Molecular dynamics simulation and machine learning of wettability in the Ag-Cu/ FeCoNiCrMn high-entropy alloy system</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 ScienceDirect</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>采用分子动力学结合机器学习方法研究Ag-Cu与FeCoNiCrMn高熵合金的润湿行为，建立结构-润湿关联模型，实现接触角等关键参数的快速预测。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>机器学习加速预测高熵合金体系的润湿接触角。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>ScienceDirect</p>
 <a class="daily-news-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002247?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002247?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-1">页内定位</a></div></div>
@@ -347,10 +380,10 @@
 <li class="daily-news-item" id="highlight-2">
 <div class="daily-news-index">02</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012678?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Spatial-adaptive active learning identifies ultra-durable and highly active catalysts for acidic oxygen evolution reaction</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012678?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">空间自适应主动学习筛选酸性析氧反应超耐久高活性催化剂</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012678?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Spatial-adaptive active learning identifies ultra-durable and highly active catalysts for acidic oxygen evolution reaction</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 ScienceDirect Publication: Science Bulletin</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出空间自适应主动学习策略，在组成-结构空间中高效定位酸性OER催化剂，实验验证获得兼具超高活性与超长耐久性的最优配方。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>空间自适应主动学习实验锁定酸性OER最优催化剂。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>ScienceDirect Publication: Science Bulletin</p>
 <a class="daily-news-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012678?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012678?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-2">页内定位</a></div></div>
@@ -358,10 +391,10 @@
 <li class="daily-news-item" id="highlight-3">
 <div class="daily-news-index">03</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626001941?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Theoretical study of TiO 2 phase stability through DFT + U and machine learning</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626001941?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">基于DFT+U与机器学习的TiO2相稳定性理论研究</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626001941?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Theoretical study of TiO 2 phase stability through DFT + U and machine learning</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 方法 / 工具</span><span class="daily-chip daily-chip-journal">📖 ScienceDirect</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>系统比较DFT+U计算的不同TiO2相能量，训练机器学习模型预测相稳定性，明确金红石-锐钛矿-板钛矿的相对稳定区间及U值影响。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>机器学习结合DFT+U定量预测TiO2多相稳定性。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>ScienceDirect</p>
 <a class="daily-news-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626001941?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626001941?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-3">页内定位</a></div></div>
@@ -369,10 +402,10 @@
 <li class="daily-news-item" id="highlight-4">
 <div class="daily-news-index">04</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://onlinelibrary.wiley.com/doi/10.1002/anie.3091087?af=R" rel="noopener noreferrer" target="_blank">Spin‐Polarized Chiral ZnIn2S4 for Targeted Solar‐Driven CO2 Reduction to Acetic Acid</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://onlinelibrary.wiley.com/doi/10.1002/anie.3091087?af=R" rel="noopener noreferrer" target="_blank">自旋极化手性ZnIn2S4靶向光驱动CO2还原制乙酸</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://onlinelibrary.wiley.com/doi/10.1002/anie.3091087?af=R" rel="noopener noreferrer" target="_blank">Spin‐Polarized Chiral ZnIn2S4 for Targeted Solar‐Driven CO2 Reduction to Acetic Acid</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Wiley</span><span class="daily-chip daily-chip-authors">👤 Yongping Cui, Yuanbo Li, Zhi‐qiang Wang, Xueliang Zhang, Lu Han, Xueli Wang, Jinquan Chen, Aokun Liu, Lu Yu, Changlin Tian, Xue‐qing Gong, Wanning Zhang, Yuxi Fang</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>设计自旋极化手性ZnIn2S4光催化剂，利用手性诱导自旋选择性实现太阳能驱动CO2高选择性还原为乙酸，产物选择性显著提升。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>手性诱导自旋选择性实现CO2高选择性光还原制乙酸。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 6</p>
 <a class="daily-news-link" href="https://onlinelibrary.wiley.com/doi/10.1002/anie.3091087?af=R" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://onlinelibrary.wiley.com/doi/10.1002/anie.3091087?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-4">页内定位</a></div></div>
@@ -380,10 +413,10 @@
 <li class="daily-news-item" id="highlight-5">
 <div class="daily-news-index">05</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002028?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Ab initio investigation of structural stability, magnetic ground state, and mechanical anisotropy of the CoCrFeNi high-entropy alloy</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002028?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">CoCrFeNi高熵合金结构稳定性、磁性基态与力学各向异性的从头算研究</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002028?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Ab initio investigation of structural stability, magnetic ground state, and mechanical anisotropy of the CoCrFeNi high-entropy alloy</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 ScienceDirect</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>第一性原理计算揭示CoCrFeNi高熵合金的晶体结构稳定性、磁性基态有序类型及弹性常数各向异性，为力学性能调控提供原子尺度依据。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>从头算阐明CoCrFeNi的磁性基态与力学各向异性。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>ScienceDirect</p>
 <a class="daily-news-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002028?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626002028?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-5">页内定位</a></div></div>
@@ -391,10 +424,10 @@
 <li class="daily-news-item" id="highlight-6">
 <div class="daily-news-index">06</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012307?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Scalable synthesis of graft ferroelectric polymers with enhanced piezoelectricity</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012307?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">可规模化合成接枝铁电聚合物及其压电性增强</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012307?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Scalable synthesis of graft ferroelectric polymers with enhanced piezoelectricity</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 ScienceDirect Publication: Science Bulletin</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>发展可规模化接枝改性策略制备铁电聚合物，接枝结构有效提升结晶度与极化效率，压电系数较传统体系显著增强。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>规模化接枝改性策略大幅提升铁电聚合物压电性能。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>ScienceDirect Publication: Science Bulletin</p>
 <a class="daily-news-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012307?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.sciencedirect.com/science/article/pii/S2095927325012307?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-6">页内定位</a></div></div>
@@ -420,12 +453,12 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927326003804?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Stacking-induced type-II quantum spin Hall insulators with high spin Chern number in unconventional magnetism</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927326003804?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">非常规磁性堆叠诱导的高自旋陈数第二类量子自旋霍尔绝缘体</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
 <div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S2095927326003804?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Stacking-induced type-II quantum spin Hall insulators with high spin Chern number in unconventional magnetism</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
 </div>
 </div>
 <div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 ScienceDirect Publication: Science Bulletin</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出层间堆叠工程在非常规磁性体系中诱导第二类能带对齐，实现高自旋陈数的量子自旋霍尔绝缘态，兼具体隙可调和边缘态鲁棒性。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>堆叠工程在非常规磁性体系中实现高自旋陈数量子自旋霍尔绝缘体。</p></div>
 <div class="daily-paper-actions">
 <a class="daily-news-link" href="https://www.sciencedirect.com/science/article/pii/S2095927326003804?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.sciencedirect.com/science/article/pii/S2095927326003804?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-1">页内定位</a></div></div>
@@ -434,6 +467,7 @@
 </ol>
 </section>
 </section>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-bottom"><a class="daily-nav-link daily-nav-prev" href="2026-04-11.html">← 前一天 · 2026-04-11</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-04-13.html">后一天 · 2026-04-13 →</a></nav>
 <div class="daily-page-nav" id="daily-enhancement-bottom-nav"><a class="daily-page-nav-link" href="2026-04-11.html">前一天 · 2026-04-11</a><a class="daily-page-nav-link" href="2026-04-13.html">后一天 · 2026-04-13</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-04-12.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div><div class="daily-footer">
           本页由文献追踪系统自动生成，仅保留 AI × 物理 / 化学 / 材料主线相关文献，并按专题重新整理，方便快速筛选与深度阅读。
         </div>
@@ -448,7 +482,7 @@
 <div class="daily-sidebar-title">专题分布</div>
 <div class="daily-sidebar-stats"><div class="daily-sidebar-fact"><span>AI × 物理 / 凝聚态</span><strong>1</strong></div></div>
 </div>
-<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"><div class="daily-outline-group"><a class="daily-outline-group-title" href="#highlights">交叉重点</a><div class="daily-outline-list"><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-1">Molecular dynamics simulation and machine learning of wettability in the Ag-Cu/ FeCoNiCrMn high-entropy alloy system<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-2">Spatial-adaptive active learning identifies ultra-durable and highly active catalysts for acidic oxygen evolution reaction<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-3">Theoretical study of TiO 2 phase stability through DFT + U and machine learning<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-4">Spin‐Polarized Chiral ZnIn2S4 for Targeted Solar‐Driven CO2 Reduction to Acetic Acid<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-5">Ab initio investigation of structural stability, magnetic ground state, and mechanical anisotropy of the CoCrFeNi high-entropy alloy<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-6">Scalable synthesis of graft ferroelectric polymers with enhanced piezoelectricity<span class="daily-outline-meta">交叉重点</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-物理-凝聚态">AI × 物理 / 凝聚态</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-1">Stacking-induced type-II quantum spin Hall insulators with high spin Chern number in unconventional magnetism<span class="daily-outline-meta">01</span></a></div></div></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-04-11.html">前一天 · 2026-04-11</a><a class="daily-page-nav-link" href="2026-04-13.html">后一天 · 2026-04-13</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-04-12.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
+<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"><div class="daily-outline-group"><a class="daily-outline-group-title" href="#highlights">交叉重点</a><div class="daily-outline-list"><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-1">Ag-Cu/FeCoNiCrMn高熵合金体系润湿性的分子动力学模拟与机器学习<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-2">空间自适应主动学习筛选酸性析氧反应超耐久高活性催化剂<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-3">基于DFT+U与机器学习的TiO2相稳定性理论研究<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-4">自旋极化手性ZnIn2S4靶向光驱动CO2还原制乙酸<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-5">CoCrFeNi高熵合金结构稳定性、磁性基态与力学各向异性的从头算研究<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-6">可规模化合成接枝铁电聚合物及其压电性增强<span class="daily-outline-meta">交叉重点</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-物理-凝聚态">AI × 物理 / 凝聚态</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-1">非常规磁性堆叠诱导的高自旋陈数第二类量子自旋霍尔绝缘体<span class="daily-outline-meta">01</span></a></div></div></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-04-11.html">前一天 · 2026-04-11</a><a class="daily-page-nav-link" href="2026-04-13.html">后一天 · 2026-04-13</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-04-12.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
 <div class="daily-sidebar-title">阅读建议</div>
 <ul class="insight-note-list">
 <li class="insight-note-item">先看交叉重点，再按物理、化学、材料与方法分区深读。</li>

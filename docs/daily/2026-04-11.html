@@ -70,6 +70,21 @@
     .daily-sidebar-stats { display: grid; gap: 10px; }
     .daily-sidebar-fact { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); }
     .daily-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.94rem; line-height: 1.8; }
+    .daily-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 14px 18px; margin: 18px 0; border-radius: 18px; background: rgba(255,255,255,0.88); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+    .daily-nav-top { margin: 0 0 22px; }
+    .daily-nav-bottom { margin: 28px 0 12px; }
+    .daily-nav-link { color: var(--accent-primary); text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 12px; transition: background 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .daily-nav-link:hover { background: rgba(99,102,241,0.08); }
+    .daily-nav-prev { justify-self: start; }
+    .daily-nav-next { justify-self: end; text-align: right; }
+    .daily-nav-home { color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(99,102,241,0.08); font-weight: 600; font-size: 0.95rem; }
+    .daily-nav-home:hover { background: rgba(99,102,241,0.16); color: var(--accent-primary); }
+    .daily-nav-disabled { color: var(--text-muted); opacity: 0.55; padding: 8px 12px; }
+    @media (max-width: 720px) {
+      .daily-nav { grid-template-columns: 1fr 1fr; padding: 10px 12px; }
+      .daily-nav-home { grid-column: span 2; justify-self: center; order: 3; }
+      .daily-nav-link { font-size: 0.92rem; }
+    }
     @media (max-width: 980px) {
       .daily-layout { grid-template-columns: 1fr; }
       .daily-toc { position: static; order: -1; }
@@ -81,7 +96,24 @@
       .daily-news-item, .daily-paper-card { grid-template-columns: 1fr; }
       .daily-news-index, .daily-paper-number { width: 38px; height: 38px; }
       .daily-paper-head, .daily-topic-head { flex-direction: column; gap: 12px; }
+      .daily-core-card { grid-template-columns: 1fr; }
+      .daily-core-number { width: 38px; height: 38px; }
     }
+    .daily-core-section { border-radius: 22px; padding: 22px; margin-top: 26px; background: linear-gradient(135deg, rgba(253,244,215,0.55), rgba(255,248,230,0.88)); border: 1.5px solid rgba(245,158,11,0.45); box-shadow: 0 4px 18px rgba(245,158,11,0.08); }
+    .daily-core-section .daily-section-title { color: #b45309; }
+    .daily-core-section .daily-section-index { background: rgba(245,158,11,0.18); color: #b45309; }
+    .daily-core-count { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: rgba(245,158,11,0.15); color: #b45309; font-weight: 700; font-size: 0.9rem; }
+    .daily-core-note { margin: 12px 0 18px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.7); border-left: 3px solid #f59e0b; color: var(--text-primary); line-height: 1.8; }
+    .daily-core-list { list-style: none; margin: 0; padding: 0; }
+    .daily-core-card { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px; padding: 18px; border-radius: 18px; background: rgba(255,255,255,0.95); border: 1px solid rgba(245,158,11,0.25); border-left: 3px solid #f59e0b; box-shadow: var(--shadow-sm); }
+    .daily-core-card + .daily-core-card { margin-top: 14px; }
+    .daily-core-number { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 800; color: white; background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+    .daily-core-title-zh { font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin-bottom: 4px; }
+    .daily-core-title-en { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+    .daily-core-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .daily-chip-core { background: rgba(245,158,11,0.18); color: #b45309; font-weight: 600; }
+    .daily-core-deep { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(245,158,11,0.06); border: 1px dashed rgba(245,158,11,0.35); line-height: 1.75; }
+    .daily-core-deep p + p { margin-top: 6px; }
   </style>
 <style id="daily-enhancement-style">
 #daily-enhancement-top-nav, #daily-enhancement-bottom-nav {
@@ -290,6 +322,7 @@
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
 </div>
 </div>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-top"><a class="daily-nav-link daily-nav-prev" href="2026-04-10.html">← 前一天 · 2026-04-10</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-04-12.html">后一天 · 2026-04-12 →</a></nav>
 <div class="daily-layout">
 <article class="daily-article">
 <div class="daily-hero">
@@ -324,8 +357,8 @@
 <h2 class="daily-section-title">今日摘要</h2>
 </div>
 <div class="daily-summary-card">
-<p><strong>总览：</strong>今日共收录14篇文献。</p>
-<p><strong>热点：</strong></p>
+<p><strong>总览：</strong>今日14篇文献覆盖机器学习驱动的高熵合金电催化剂设计、Majorana准粒子的量子自旋探测、磁关节软机器人组装、手性有机共晶中的自旋-手性晶格-光子耦合、LiCoO2热致可逆相变、湍流中粒子聚并动力学、恐惧学习脑动力学与TMS调控、石墨烯基5G毫米波电磁屏蔽、光腔诱导量子气体密度波成像、SiBCN-Mo2C陶瓷超结构宽频吸波、聚乙烯辐照氧化新机制、PANI-金属氧化物湿度传感、铜纳米线透明温度传感等方向。</p>
+<p><strong>热点：</strong>材料设计与能源应用持续融合机器学习加速筛选策略；低维/异质结构中拓扑量子态的探测与调控仍是凝聚态核心前沿；柔性电子与电磁功能材料向宽频带、透明化、可穿戴集成方向发展。生物交叉研究（软机器人、神经调控）呈现物理工具驱动的新范式。</p>
 </div>
 </section>
 <section class="daily-section" id="highlights">
@@ -337,21 +370,21 @@
 <li class="daily-news-item" id="highlight-1">
 <div class="daily-news-index">01</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.74843?af=R" rel="noopener noreferrer" target="_blank">Machine Learning Accelerates the Discovery of Efficient Oxygen Reduction Electrocatalysts High‐Entropy Intermetallic Compounds Pt(FeCoNiCuZn)3</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.74843?af=R" rel="noopener noreferrer" target="_blank">机器学习加速高效氧还原高熵金属间化合物 Pt(FeCoNiCuZn)3 电催化剂发现</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.74843?af=R" rel="noopener noreferrer" target="_blank">Machine Learning Accelerates the Discovery of Efficient Oxygen Reduction Electrocatalysts High‐Entropy Intermetallic Compounds Pt(FeCoNiCuZn)3</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 Wiley</span><span class="daily-chip daily-chip-authors">👤 Sina Huang, Li‐Ming Yang, Guoliang Li</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
-<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 6</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>将机器学习用于筛选高熵金属间化合物氧还原电催化剂，获得 Pt(FeCoNiCuZn)3 体系，实现催化活性与稳定性的协同优化。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>机器学习筛选出高效氧还原高熵金属间化合物 Pt(FeCoNiCuZn)3。</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>机器学习加速高熵合金电催化剂设计</p>
 <a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.74843?af=R" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.74843?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-1">页内定位</a></div></div>
 </li>
 <li class="daily-news-item" id="highlight-2">
 <div class="daily-news-index">02</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://phys.org/news/2026-04-poor-majoranas-quantum-probes.html" rel="noopener noreferrer" target="_blank">'Poor man's Majoranas' can be used as quantum spin probes</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://phys.org/news/2026-04-poor-majoranas-quantum-probes.html" rel="noopener noreferrer" target="_blank">'穷人的马约拉纳费米子'可用作量子自旋探针</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://phys.org/news/2026-04-poor-majoranas-quantum-probes.html" rel="noopener noreferrer" target="_blank">'Poor man's Majoranas' can be used as quantum spin probes</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Physics News</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>固体材料中由集体激发形成的类 Majorana 准粒子虽非真实基本粒子，但可作为量子自旋探针用于探测局域自旋态。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>类 Majorana 准粒子可被用作量子自旋探针。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 6</p>
 <a class="daily-news-link" href="https://phys.org/news/2026-04-poor-majoranas-quantum-probes.html" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://phys.org/news/2026-04-poor-majoranas-quantum-probes.html" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-2">页内定位</a></div></div>
@@ -359,43 +392,43 @@
 <li class="daily-news-item" id="highlight-3">
 <div class="daily-news-index">03</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">[ASAP] Magnetic Joint-Mediated Assembly of Optically Actuated Soft Robots with Adaptable Modal Switching</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
-<div class="daily-news-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">[ASAP] Magnetic Joint-Mediated Assembly of Optically Actuated Soft Robots with Adaptable Modal Switching</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
-<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 ACS Nano: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Bin Wang, Yingyi Gan, Yueyi Wang, Yuli Zhao, Liangwei Hu, Jiajun Liu, Shengxin Tong, and Yuan Lu</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">LiCoO2 正极热致可逆尖晶石-层状相变</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">[ASAP] Thermal-Induced Reversible Spinel-to-Layered Phase Transition in LiCoO2 Cathodes</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Nano Letters: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Guangren Wang, Jiawei Huang, Jiapeng Song, Mengdan Jiang, Yucheng Zhang, Da Guo, Rong Ma, Yiran Ying, and Linfeng Fei</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>发现 LiCoO2 正极材料在升温过程中发生可逆的尖晶石-层状结构相变，揭示热效应对钴酸锂晶体结构稳定性的影响机制。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>发现 LiCoO2 热致可逆尖晶石-层状相变。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 6</p>
-<a class="daily-news-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-3">页内定位</a></div></div>
+<a class="daily-news-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-3">页内定位</a></div></div>
 </li>
 <li class="daily-news-item" id="highlight-4">
 <div class="daily-news-index">04</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">[ASAP] Spin–Chiral Lattice–Photon Coupling in Organic Chiral Cocrystals with Temperature-Induced Chirality Inversion</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
-<div class="daily-news-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">[ASAP] Spin–Chiral Lattice–Photon Coupling in Organic Chiral Cocrystals with Temperature-Induced Chirality Inversion</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
-<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Nano Letters: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Zhiyan Chen, Tianhao Liu, Zhixin Sun, Wei Qin, and Yongcheng Zhang</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">不同磁铁-超导体杂化体系之间的自旋极化边缘模</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">Spin-polarized edge modes between different magnet-superconductor-hybrids</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Nature Communications</span><span class="daily-chip daily-chip-authors">👤 Felix Zahner, Felix Nickel, Roberto Lo Conte, Tim Drevelow, Roland Wiesendanger, Stefan Heinze 等7位作者</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>在单层与双层 Fe 薄膜分别与超导体构成的异质结构边界处，观测到自旋极化的边缘模，为拓扑超导性实现提供实验证据。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>观测到不同磁铁-超导体杂化界面的自旋极化边缘模。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 6</p>
-<a class="daily-news-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-4">页内定位</a></div></div>
+<a class="daily-news-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-4">页内定位</a></div></div>
 </li>
 <li class="daily-news-item" id="highlight-5">
 <div class="daily-news-index">05</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">[ASAP] Thermal-Induced Reversible Spinel-to-Layered Phase Transition in LiCoO2 Cathodes</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
-<div class="daily-news-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">[ASAP] Thermal-Induced Reversible Spinel-to-Layered Phase Transition in LiCoO2 Cathodes</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
-<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Nano Letters: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Guangren Wang, Jiawei Huang, Jiapeng Song, Mengdan Jiang, Yucheng Zhang, Da Guo, Rong Ma, Yiran Ying, and Linfeng Fei</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">喷射打印石墨烯薄膜在 5G 毫米波段的高近场电磁波衰减</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">High near-field electromagnetic wave attenuation at 5G millimeter-wave bands in graphene films printed by jet dispensing</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Masato Watanabe</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>采用喷射打印（JD）在柔性聚酰亚胺上制备非磁性石墨烯薄膜，针对 5G 毫米波频段实现高近场电磁波衰减，替代传统磁噪声抑制片。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>喷射打印石墨烯薄膜实现 5G 毫米波高近场衰减。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 6</p>
-<a class="daily-news-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00877" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-5">页内定位</a></div></div>
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-5">页内定位</a></div></div>
 </li>
 <li class="daily-news-item" id="highlight-6">
 <div class="daily-news-index">06</div>
 <div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9053890/latest" rel="noopener noreferrer" target="_blank">Fear Learning–Induced Brain Dynamics Predict Individual Extinction Memory Expression following Transcranial Magnetic Stimulation</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9053890/latest" rel="noopener noreferrer" target="_blank">恐惧学习诱导的脑动力学预测经颅磁刺激后个体消退记忆表达</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
 <div class="daily-news-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9053890/latest" rel="noopener noreferrer" target="_blank">Fear Learning–Induced Brain Dynamics Predict Individual Extinction Memory Expression following Transcranial Magnetic Stimulation</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
 <div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Mohammed Milad, Kai Zhang, Lihan Cui, Isabel Moallem, Zakiya Atiyah, Muhammad Bardanee 等9位作者</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<p class="daily-paper-abstract">暂无摘要</p>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>恐惧学习后大脑活动的动态重组可被经颅磁刺激（TMS）调控，且学习后的神经重组织能预测个体消退记忆的形成。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>恐惧学习后脑动力学预测 TMS 调控的消退记忆。</p>
 <p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 6</p>
 <a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9053890/latest" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9053890/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-6">页内定位</a></div></div>
@@ -421,15 +454,15 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">High near-field electromagnetic wave attenuation at 5G millimeter-wave bands in graphene films printed by jet dispensing</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
-<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">High near-field electromagnetic wave attenuation at 5G millimeter-wave bands in graphene films printed by jet dispensing</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">插层 SiBCN-Mo2C/PyC-Al2O3 陶瓷分级点阵超结构：超宽带-热电磁吸收新范式</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">Intercalated SiBCN‐Mo2C/PyC‐Al2O3 Ceramic Hierarchical Lattice Metastructure: A New Paradigm for Ultrabroad Bandwidth‐to‐Thermal Electromagnetic Absorption</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
 </div>
 </div>
-<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Masato Watanabe</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Wiley</span><span class="daily-chip daily-chip-authors">👤 Xingmin Liu, Qian Zhou, Xuehan Ma, Heqiang Liu, Hongjing Wu, Zhijian Xu, Hailong Xu, Bojie You, Wenyan Duan, Yi Zhang, Xiaomeng Fan, Yiqi Wang, Hang Gao, Lifei Du, Lechun Deng, Paolo Colombo</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>构建插层 SiBCN-Mo2C/PyC-Al2O3 陶瓷分级点阵超结构，实现超宽频带与高温环境下的高效电磁吸收一体化。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>陶瓷分级点阵超结构实现超宽带-热电磁吸收一体化。</p></div>
 <div class="daily-paper-actions">
-<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9361758/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-1">页内定位</a></div></div>
+<a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-1">页内定位</a></div></div>
 </div>
 </li>
 <li class="daily-paper-card" id="paper-2">
@@ -437,15 +470,15 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">High-resolution imaging captures cavity-induced density waves in a quantum gas</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
-<div class="daily-paper-title-en"><a class="daily-title-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">High-resolution imaging captures cavity-induced density waves in a quantum gas</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">有机手性共晶中自旋-手性晶格-光子耦合及热致手性翻转</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">[ASAP] Spin–Chiral Lattice–Photon Coupling in Organic Chiral Cocrystals with Temperature-Induced Chirality Inversion</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
 </div>
 </div>
-<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Physics News</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Nano Letters: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Zhiyan Chen, Tianhao Liu, Zhixin Sun, Wei Qin, and Yongcheng Zhang</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在手性有机共晶中观测到自旋-手性晶格-光子耦合，温度升高导致手性翻转，为光-物质相互作用调控提供新体系。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>有机手性共晶中实现热致手性翻转与自旋-光子耦合。</p></div>
 <div class="daily-paper-actions">
-<a class="daily-news-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-2">页内定位</a></div></div>
+<a class="daily-news-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00568" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-2">页内定位</a></div></div>
 </div>
 </li>
 <li class="daily-paper-card" id="paper-3">
@@ -453,15 +486,15 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">Intercalated SiBCN‐Mo2C/PyC‐Al2O3 Ceramic Hierarchical Lattice Metastructure: A New Paradigm for Ultrabroad Bandwidth‐to‐Thermal Electromagnetic Absorption</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
-<div class="daily-paper-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">Intercalated SiBCN‐Mo2C/PyC‐Al2O3 Ceramic Hierarchical Lattice Metastructure: A New Paradigm for Ultrabroad Bandwidth‐to‐Thermal Electromagnetic Absorption</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">磁关节介导的光驱动软机器人组装及自适应模态切换</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">[ASAP] Magnetic Joint-Mediated Assembly of Optically Actuated Soft Robots with Adaptable Modal Switching</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
 </div>
 </div>
-<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Wiley</span><span class="daily-chip daily-chip-authors">👤 Xingmin Liu, Qian Zhou, Xuehan Ma, Heqiang Liu, Hongjing Wu, Zhijian Xu, Hailong Xu, Bojie You, Wenyan Duan, Yi Zhang, Xiaomeng Fan, Yiqi Wang, Hang Gao, Lifei Du, Lechun Deng, Paolo Colombo</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 ACS Nano: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Bin Wang, Yingyi Gan, Yueyi Wang, Yuli Zhao, Liangwei Hu, Jiajun Liu, Shengxin Tong, and Yuan Lu</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用磁关节实现光驱动软机器人的模块化组装，支持多种运动模态的可逆切换，提升机器人在复杂环境中的适应能力。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>磁关节实现光驱动软机器人自适应模态切换。</p></div>
 <div class="daily-paper-actions">
-<a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adfm.75349?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-3">页内定位</a></div></div>
+<a class="daily-news-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acsnano.5c17835" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-3">页内定位</a></div></div>
 </div>
 </li>
 <li class="daily-paper-card" id="paper-4">
@@ -469,15 +502,15 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">Spin-polarized edge modes between different magnet-superconductor-hybrids</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
-<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">Spin-polarized edge modes between different magnet-superconductor-hybrids</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">高分辨成像捕捉光腔诱导量子气体中的密度波</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">High-resolution imaging captures cavity-induced density waves in a quantum gas</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
 </div>
 </div>
-<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Nature Communications</span><span class="daily-chip daily-chip-authors">👤 Felix Zahner, Felix Nickel, Roberto Lo Conte, Tim Drevelow, Roland Wiesendanger, Stefan Heinze 等7位作者</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Physics News</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用高分辨成像直接观测激光诱导下超冷量子气体在光学腔内形成的密度波，突破此前仅能探测全局信号的局限。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>高分辨成像首次直接观测光腔诱导量子气体密度波。</p></div>
 <div class="daily-paper-actions">
-<a class="daily-news-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.nature.com/articles/s41467-026-71687-3" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-4">页内定位</a></div></div>
+<a class="daily-news-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://phys.org/news/2026-04-high-resolution-imaging-captures-cavity.html" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-4">页内定位</a></div></div>
 </div>
 </li>
 </ol>
@@ -496,15 +529,15 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">Synthesis, Electrical and Humidity-Sensing Properties of PANI-Metal Oxide Nanocomposites</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
-<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">Synthesis, Electrical and Humidity-Sensing Properties of PANI-Metal Oxide Nanocomposites</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">液相自组装 Sb2O3 涂层增强指纹图案铜纳米线电极稳定性用于透明温度传感</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">Stability-Enhanced Fingerprint-Patterned Copper Nanowire Electrodes via Liquid-Phase Self-Assembled Sb2O3 Coating for Transparent Temperature Sensing</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
 </div>
 </div>
-<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Tinghao Xie, Anis Farhana Abdul Rahman, Aznizam Abu Bakar, Agus Arsad</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Zhaohui Chen, Han Zhang, You Feng, Zhilong Shi, Le Zhao</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>通过液相自组装 Sb2O3 包覆指纹图案铜纳米线网络，显著提升抗氧化性与热稳定性，实现高可靠性透明柔性温度传感。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>Sb2O3 包覆指纹图案铜纳米线实现稳定透明温度传感。</p></div>
 <div class="daily-paper-actions">
-<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-5">页内定位</a></div></div>
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-5">页内定位</a></div></div>
 </div>
 </li>
 <li class="daily-paper-card" id="paper-6">
@@ -512,15 +545,15 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">Stability-Enhanced Fingerprint-Patterned Copper Nanowire Electrodes via Liquid-Phase Self-Assembled Sb2O3 Coating for Transparent Temperature Sensing</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
-<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">Stability-Enhanced Fingerprint-Patterned Copper Nanowire Electrodes via Liquid-Phase Self-Assembled Sb2O3 Coating for Transparent Temperature Sensing</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">聚苯胺-金属氧化物纳米复合材料的合成、电学与湿度传感性能</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">Synthesis, Electrical and Humidity-Sensing Properties of PANI-Metal Oxide Nanocomposites</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
 </div>
 </div>
-<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Zhaohui Chen, Han Zhang, You Feng, Zhilong Shi, Le Zhao</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Tinghao Xie, Anis Farhana Abdul Rahman, Aznizam Abu Bakar, Agus Arsad</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>原位氧化聚合制备 PANI-SiO2/TiO2/ZnO 纳米复合材料，超声分散 40 分钟后测试湿度传感性能，评估电学响应特性。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>制备 PANI-金属氧化物纳米复合材料并评估湿度传感性能。</p></div>
 <div class="daily-paper-actions">
-<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-8815931/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-6">页内定位</a></div></div>
+<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-8839317/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-6">页内定位</a></div></div>
 </div>
 </li>
 </ol>
@@ -539,12 +572,12 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9114813/latest" rel="noopener noreferrer" target="_blank">A simple experiment for observing clustering and dynamics of coalescing particles in air turbulence</a><a class="daily-permalink-link" href="#paper-7" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9114813/latest" rel="noopener noreferrer" target="_blank">空气中湍流惯性粒子聚并与动力学简易实验观测</a><a class="daily-permalink-link" href="#paper-7" title="复制本页定位">#</a></div>
 <div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9114813/latest" rel="noopener noreferrer" target="_blank">A simple experiment for observing clustering and dynamics of coalescing particles in air turbulence</a><a class="daily-permalink-link" href="#paper-7" title="复制本页定位">#</a></div>
 </div>
 </div>
 <div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 其他</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Linli Fu, Jun Feng, Yating Chen, Fanxi Gong, Xiaohui Meng, Ewe-Wei Saw</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>搭建简易实验平台研究空气中湍流场里微液滴的惯性聚并行为，重点观测粒子碰撞、成团及动力学演化过程。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>简易实验平台实现湍流中粒子聚并动力学观测。</p></div>
 <div class="daily-paper-actions">
 <a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9114813/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9114813/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-7">页内定位</a></div></div>
@@ -555,12 +588,12 @@
 <div class="daily-paper-body">
 <div class="daily-paper-head">
 <div class="daily-paper-titles">
-<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9206304/latest" rel="noopener noreferrer" target="_blank">New understanding on rapid irradiation oxidation of polyethylene</a><a class="daily-permalink-link" href="#paper-8" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9206304/latest" rel="noopener noreferrer" target="_blank">聚乙烯快速辐照氧化的新认识</a><a class="daily-permalink-link" href="#paper-8" title="复制本页定位">#</a></div>
 <div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9206304/latest" rel="noopener noreferrer" target="_blank">New understanding on rapid irradiation oxidation of polyethylene</a><a class="daily-permalink-link" href="#paper-8" title="复制本页定位">#</a></div>
 </div>
 </div>
 <div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 其他</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 Simei Liu, Manli Lu, Wenli Zhang, Weihua Liu, Mouhua Wang</span><span class="daily-chip daily-chip-score">🔥 AI 6</span></div>
-<div class="daily-paper-summary"><p class="daily-paper-abstract">暂无摘要</p></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>系统比较 LDPE、UHMWPE、HDPE 在 Ar/空气气氛中 γ 射线辐照后的氧化行为，追踪羰基与自由基演化，揭示辐照诱导氧化机制差异。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>揭示三种聚乙烯 γ 辐照氧化的机制差异。</p></div>
 <div class="daily-paper-actions">
 <a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9206304/latest" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
 <div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9206304/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-8">页内定位</a></div></div>
@@ -569,6 +602,7 @@
 </ol>
 </section>
 </section>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-bottom"><a class="daily-nav-link daily-nav-prev" href="2026-04-10.html">← 前一天 · 2026-04-10</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-04-12.html">后一天 · 2026-04-12 →</a></nav>
 <div class="daily-page-nav" id="daily-enhancement-bottom-nav"><a class="daily-page-nav-link" href="2026-04-10.html">前一天 · 2026-04-10</a><a class="daily-page-nav-link" href="2026-04-12.html">后一天 · 2026-04-12</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-04-11.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div><div class="daily-footer">
           本页由文献追踪系统自动生成，仅保留 AI × 物理 / 化学 / 材料主线相关文献，并按专题重新整理，方便快速筛选与深度阅读。
         </div>
@@ -583,7 +617,7 @@
 <div class="daily-sidebar-title">专题分布</div>
 <div class="daily-sidebar-stats"><div class="daily-sidebar-fact"><span>AI × 物理 / 凝聚态</span><strong>4</strong></div><div class="daily-sidebar-fact"><span>AI × 材料 / 器件</span><strong>2</strong></div><div class="daily-sidebar-fact"><span>相关方法 / 计算工具</span><strong>2</strong></div></div>
 </div>
-<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"><div class="daily-outline-group"><a class="daily-outline-group-title" href="#highlights">交叉重点</a><div class="daily-outline-list"><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-1">Machine Learning Accelerates the Discovery of Efficient Oxygen Reduction Electrocatalysts High‐Entropy Intermetallic Compounds Pt(FeCoNiCuZn)3<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-2">'Poor man's Majoranas' can be used as quantum spin probes<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-3">[ASAP] Magnetic Joint-Mediated Assembly of Optically Actuated Soft Robots with Adaptable Modal Switching<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-4">[ASAP] Spin–Chiral Lattice–Photon Coupling in Organic Chiral Cocrystals with Temperature-Induced Chirality Inversion<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-5">[ASAP] Thermal-Induced Reversible Spinel-to-Layered Phase Transition in LiCoO2 Cathodes<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-6">Fear Learning–Induced Brain Dynamics Predict Individual Extinction Memory Expression following Transcranial Magnetic Stimulation<span class="daily-outline-meta">交叉重点</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-物理-凝聚态">AI × 物理 / 凝聚态</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-1">High near-field electromagnetic wave attenuation at 5G millimeter-wave bands in graphene films printed by jet dispensing<span class="daily-outline-meta">01</span></a><a class="daily-outline-link" href="#paper-2">High-resolution imaging captures cavity-induced density waves in a quantum gas<span class="daily-outline-meta">02</span></a><a class="daily-outline-link" href="#paper-3">Intercalated SiBCN‐Mo2C/PyC‐Al2O3 Ceramic Hierarchical Lattice Metastructure: A New Paradigm for Ultrabroad Bandwidth‐to‐Thermal Electromagnetic Absorption<span class="daily-outline-meta">03</span></a><a class="daily-outline-link" href="#paper-4">Spin-polarized edge modes between different magnet-superconductor-hybrids<span class="daily-outline-meta">04</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-材料-器件">AI × 材料 / 器件</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-5">Synthesis, Electrical and Humidity-Sensing Properties of PANI-Metal Oxide Nanocomposites<span class="daily-outline-meta">05</span></a><a class="daily-outline-link" href="#paper-6">Stability-Enhanced Fingerprint-Patterned Copper Nanowire Electrodes via Liquid-Phase Self-Assembled Sb2O3 Coating for Transparent Temperature Sensing<span class="daily-outline-meta">06</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-相关方法-计算工具">相关方法 / 计算工具</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-7">A simple experiment for observing clustering and dynamics of coalescing particles in air turbulence<span class="daily-outline-meta">07</span></a><a class="daily-outline-link" href="#paper-8">New understanding on rapid irradiation oxidation of polyethylene<span class="daily-outline-meta">08</span></a></div></div></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-04-10.html">前一天 · 2026-04-10</a><a class="daily-page-nav-link" href="2026-04-12.html">后一天 · 2026-04-12</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-04-11.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
+<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"><div class="daily-outline-group"><a class="daily-outline-group-title" href="#highlights">交叉重点</a><div class="daily-outline-list"><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-1">机器学习加速高效氧还原高熵金属间化合物 Pt(FeCoNiCuZn)3 电催化剂发现<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-2">'穷人的马约拉纳费米子'可用作量子自旋探针<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-3">LiCoO2 正极热致可逆尖晶石-层状相变<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-4">不同磁铁-超导体杂化体系之间的自旋极化边缘模<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-5">喷射打印石墨烯薄膜在 5G 毫米波段的高近场电磁波衰减<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-6">恐惧学习诱导的脑动力学预测经颅磁刺激后个体消退记忆表达<span class="daily-outline-meta">交叉重点</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-物理-凝聚态">AI × 物理 / 凝聚态</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-1">插层 SiBCN-Mo2C/PyC-Al2O3 陶瓷分级点阵超结构：超宽带-热电磁吸收新范式<span class="daily-outline-meta">01</span></a><a class="daily-outline-link" href="#paper-2">有机手性共晶中自旋-手性晶格-光子耦合及热致手性翻转<span class="daily-outline-meta">02</span></a><a class="daily-outline-link" href="#paper-3">磁关节介导的光驱动软机器人组装及自适应模态切换<span class="daily-outline-meta">03</span></a><a class="daily-outline-link" href="#paper-4">高分辨成像捕捉光腔诱导量子气体中的密度波<span class="daily-outline-meta">04</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-材料-器件">AI × 材料 / 器件</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-5">液相自组装 Sb2O3 涂层增强指纹图案铜纳米线电极稳定性用于透明温度传感<span class="daily-outline-meta">05</span></a><a class="daily-outline-link" href="#paper-6">聚苯胺-金属氧化物纳米复合材料的合成、电学与湿度传感性能<span class="daily-outline-meta">06</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-相关方法-计算工具">相关方法 / 计算工具</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-7">空气中湍流惯性粒子聚并与动力学简易实验观测<span class="daily-outline-meta">07</span></a><a class="daily-outline-link" href="#paper-8">聚乙烯快速辐照氧化的新认识<span class="daily-outline-meta">08</span></a></div></div></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-04-10.html">前一天 · 2026-04-10</a><a class="daily-page-nav-link" href="2026-04-12.html">后一天 · 2026-04-12</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-04-11.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
 <div class="daily-sidebar-title">阅读建议</div>
 <ul class="insight-note-list">
 <li class="insight-note-item">先看交叉重点，再按物理、化学、材料与方法分区深读。</li>

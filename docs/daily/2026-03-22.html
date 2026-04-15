@@ -6,6 +6,7 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>2026-03-22 文献日报 - 文献追踪系统</title>
 <link href="../style.css" rel="stylesheet"/>
+<link href="2026-03-22.xml" rel="alternate" title="2026-03-22 日报 RSS" type="application/rss+xml"/>
 <style>
     body { background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(248, 250, 252, 0.85) 220px), var(--bg-primary); overflow-x: hidden; }
     body::before { content: none !important; }
@@ -69,6 +70,21 @@
     .daily-sidebar-stats { display: grid; gap: 10px; }
     .daily-sidebar-fact { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); }
     .daily-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.94rem; line-height: 1.8; }
+    .daily-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 14px 18px; margin: 18px 0; border-radius: 18px; background: rgba(255,255,255,0.88); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+    .daily-nav-top { margin: 0 0 22px; }
+    .daily-nav-bottom { margin: 28px 0 12px; }
+    .daily-nav-link { color: var(--accent-primary); text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 12px; transition: background 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .daily-nav-link:hover { background: rgba(99,102,241,0.08); }
+    .daily-nav-prev { justify-self: start; }
+    .daily-nav-next { justify-self: end; text-align: right; }
+    .daily-nav-home { color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(99,102,241,0.08); font-weight: 600; font-size: 0.95rem; }
+    .daily-nav-home:hover { background: rgba(99,102,241,0.16); color: var(--accent-primary); }
+    .daily-nav-disabled { color: var(--text-muted); opacity: 0.55; padding: 8px 12px; }
+    @media (max-width: 720px) {
+      .daily-nav { grid-template-columns: 1fr 1fr; padding: 10px 12px; }
+      .daily-nav-home { grid-column: span 2; justify-self: center; order: 3; }
+      .daily-nav-link { font-size: 0.92rem; }
+    }
     @media (max-width: 980px) {
       .daily-layout { grid-template-columns: 1fr; }
       .daily-toc { position: static; order: -1; }
@@ -80,9 +96,26 @@
       .daily-news-item, .daily-paper-card { grid-template-columns: 1fr; }
       .daily-news-index, .daily-paper-number { width: 38px; height: 38px; }
       .daily-paper-head, .daily-topic-head { flex-direction: column; gap: 12px; }
+      .daily-core-card { grid-template-columns: 1fr; }
+      .daily-core-number { width: 38px; height: 38px; }
     }
+    .daily-core-section { border-radius: 22px; padding: 22px; margin-top: 26px; background: linear-gradient(135deg, rgba(253,244,215,0.55), rgba(255,248,230,0.88)); border: 1.5px solid rgba(245,158,11,0.45); box-shadow: 0 4px 18px rgba(245,158,11,0.08); }
+    .daily-core-section .daily-section-title { color: #b45309; }
+    .daily-core-section .daily-section-index { background: rgba(245,158,11,0.18); color: #b45309; }
+    .daily-core-count { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: rgba(245,158,11,0.15); color: #b45309; font-weight: 700; font-size: 0.9rem; }
+    .daily-core-note { margin: 12px 0 18px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.7); border-left: 3px solid #f59e0b; color: var(--text-primary); line-height: 1.8; }
+    .daily-core-list { list-style: none; margin: 0; padding: 0; }
+    .daily-core-card { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px; padding: 18px; border-radius: 18px; background: rgba(255,255,255,0.95); border: 1px solid rgba(245,158,11,0.25); border-left: 3px solid #f59e0b; box-shadow: var(--shadow-sm); }
+    .daily-core-card + .daily-core-card { margin-top: 14px; }
+    .daily-core-number { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 800; color: white; background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+    .daily-core-title-zh { font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin-bottom: 4px; }
+    .daily-core-title-en { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+    .daily-core-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .daily-chip-core { background: rgba(245,158,11,0.18); color: #b45309; font-weight: 600; }
+    .daily-core-deep { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(245,158,11,0.06); border: 1px dashed rgba(245,158,11,0.35); line-height: 1.75; }
+    .daily-core-deep p + p { margin-top: 6px; }
   </style>
-<link href="2026-03-22.xml" rel="alternate" title="2026-03-22 日报 RSS" type="application/rss+xml"/><style id="daily-enhancement-style">
+<style id="daily-enhancement-style">
 #daily-enhancement-top-nav, #daily-enhancement-bottom-nav {
     margin-top: 18px;
 }
@@ -283,10 +316,13 @@
 <span class="daily-mini-chip">AI × Science Daily</span>
 </div>
 <div class="daily-topbar-right">
+<a class="daily-mini-chip" href="2026-03-22.xml">📡 当日 RSS</a>
+<a class="daily-mini-chip" href="../feed.xml">📰 全站 RSS</a>
 <span class="daily-mini-chip">2026-03-22</span>
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
 </div>
 </div>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-top"><a class="daily-nav-link daily-nav-prev" href="2026-03-21.html">← 前一天 · 2026-03-21</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-03-23.html">后一天 · 2026-03-23 →</a></nav>
 <div class="daily-layout">
 <article class="daily-article">
 <div class="daily-hero">
@@ -298,15 +334,15 @@
 <div class="daily-stats">
 <div class="daily-stat">
 <div class="daily-stat-label">日报精选</div>
-<div class="daily-stat-value">4</div>
+<div class="daily-stat-value">0</div>
 </div>
 <div class="daily-stat">
 <div class="daily-stat-label">主线候选</div>
-<div class="daily-stat-value">4</div>
+<div class="daily-stat-value">0</div>
 </div>
 <div class="daily-stat">
 <div class="daily-stat-label">期刊 / 来源</div>
-<div class="daily-stat-value">3</div>
+<div class="daily-stat-value">0</div>
 </div>
 <div class="daily-stat">
 <div class="daily-stat-label">arXiv 相关</div>
@@ -320,8 +356,8 @@
 <h2 class="daily-section-title">今日摘要</h2>
 </div>
 <div class="daily-summary-card">
-<p><strong>总览：</strong>今日文献涵盖高频电子器件、磁性材料、量子算法及二维光响应材料等领域，体现了多学科交叉的前沿探索，尤其聚焦于新型物理现象的发现与颠覆性技术概念的提出。</p>
-<p><strong>热点：</strong>研究热点集中于：1）利用新效应（如霍尔效应）实现超宽频带信号检测，推动高频通信器件小型化；2）探索超导与反铁磁体的耦合，旨在实现无能耗自旋信息传输；3）将量子近似优化算法拓展至量子哈密顿量模拟，增强复杂材料体系的计算能力；4）通过光场精确调控二维钙钛矿的纳米结构，为功能材料设计提供新路径。</p>
+<p><strong>总览：</strong>今日无符合 AI × 物理 / 化学 / 材料主线的文献。</p>
+<p><strong>热点：</strong></p>
 </div>
 </section>
 <section class="daily-section" id="highlights">
@@ -329,52 +365,7 @@
 <span class="daily-section-index">02</span>
 <h2 class="daily-section-title">交叉重点</h2>
 </div>
-<ol class="daily-news-list">
-<li class="daily-news-item" id="highlight-1">
-<div class="daily-news-index">01</div>
-<div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://phys.org/news/2026-03-superconducting-altermagnets-energy-loss.html" rel="noopener noreferrer" target="_blank">Superconducting altermagnets could carry spin without energy loss</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
-<div class="daily-news-title-en"><a class="daily-title-link" href="https://phys.org/news/2026-03-superconducting-altermagnets-energy-loss.html" rel="noopener noreferrer" target="_blank">Superconducting altermagnets could carry spin without energy loss</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
-<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Physics News</span><span class="daily-chip daily-chip-score">🔥 AI 5</span></div>
-<p class="daily-news-summary">理论计算表明，一类新型反铁磁材料在超导态下可能承载零电阻的自旋电流，为低能耗自旋电子学提供新思路。</p>
-<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 5</p>
-<a class="daily-news-link" href="https://phys.org/news/2026-03-superconducting-altermagnets-energy-loss.html" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://phys.org/news/2026-03-superconducting-altermagnets-energy-loss.html" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-1">页内定位</a></div></div>
-</li>
-<li class="daily-news-item" id="highlight-2">
-<div class="daily-news-index">02</div>
-<div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9171925/latest" rel="noopener noreferrer" target="_blank">Snapshot-QAOA: Extending QAOA to Quantum Hamiltonian Simulation</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
-<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.researchsquare.com/article/rs-9171925/latest" rel="noopener noreferrer" target="_blank">Snapshot-QAOA: Extending QAOA to Quantum Hamiltonian Simulation</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
-<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Preprints</span><span class="daily-chip daily-chip-authors">👤 R, e, u, b, e, n 等96位作者</span><span class="daily-chip daily-chip-score">🔥 AI 1</span></div>
-<p class="daily-news-summary">提出量子近似优化算法的变体‘Snapshot-QAOA’，旨在高效求解大规模量子哈密顿量的近似基态，拓展了该算法在量子模拟中的应用。</p>
-<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 1</p>
-<a class="daily-news-link" href="https://www.researchsquare.com/article/rs-9171925/latest" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.researchsquare.com/article/rs-9171925/latest" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-2">页内定位</a></div></div>
-</li>
-<li class="daily-news-item" id="highlight-3">
-<div class="daily-news-index">03</div>
-<div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00133" rel="noopener noreferrer" target="_blank">[ASAP] Light-Induced Ordered Pattern Formation in 2D Copper Halide Perovskites</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
-<div class="daily-news-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00133" rel="noopener noreferrer" target="_blank">[ASAP] Light-Induced Ordered Pattern Formation in 2D Copper Halide Perovskites</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
-<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Nano Letters: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Atreyie Ghosh, Joseph L. Spellberg, Matthew Du, Yixuan Dou, Arashdeep S. Thind, Shengdong Qi, Janek Rieger, Calvin Raab, Suriyanarayanan Vaikuntanathan, Robert F. Klie, Lina Quan, and Sarah B. King</span><span class="daily-chip daily-chip-score">🔥 AI 5</span></div>
-<p class="daily-news-summary">实验研究发现，特定波长的光照可诱导二维铜卤化物钙钛矿晶体表面形成周期性纳米级有序图案，揭示了光-物质相互作用的新机制。</p>
-<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 5</p>
-<a class="daily-news-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00133" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acs.nanolett.6c00133" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-3">页内定位</a></div></div>
-</li>
-<li class="daily-news-item" id="highlight-4">
-<div class="daily-news-index">04</div>
-<div class="daily-news-body">
-<div class="daily-news-title-zh"><a class="daily-title-link" href="https://phys.org/news/2026-03-hall-rectenna-ghz-frequency-range.html" rel="noopener noreferrer" target="_blank">A Hall 'rectenna' can detect signals over a 100 GHz frequency range</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
-<div class="daily-news-title-en"><a class="daily-title-link" href="https://phys.org/news/2026-03-hall-rectenna-ghz-frequency-range.html" rel="noopener noreferrer" target="_blank">A Hall 'rectenna' can detect signals over a 100 GHz frequency range</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
-<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Physics News</span><span class="daily-chip daily-chip-score">🔥 AI 5</span></div>
-<p class="daily-news-summary">提出一种利用霍尔效应将电磁波转换为电信号的‘整流天线’器件概念，声称可覆盖超过100 GHz的频率范围。</p>
-<p class="daily-news-reason"><strong>关注理由：</strong>AI相关度 5</p>
-<a class="daily-news-link" href="https://phys.org/news/2026-03-hall-rectenna-ghz-frequency-range.html" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
-<div class="daily-inline-links"><a class="daily-inline-link" href="https://phys.org/news/2026-03-hall-rectenna-ghz-frequency-range.html" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-4">页内定位</a></div></div>
-</li>
-</ol>
+<div class="daily-summary-card"><p>今日暂无可优先推荐的交叉重点。</p></div>
 </section>
 <section class="daily-section" id="papers">
 <div class="daily-section-head">
@@ -383,6 +374,7 @@
 </div>
 <div class="daily-summary-card"><p>今日无目标方向文献。</p></div>
 </section>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-bottom"><a class="daily-nav-link daily-nav-prev" href="2026-03-21.html">← 前一天 · 2026-03-21</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-03-23.html">后一天 · 2026-03-23 →</a></nav>
 <div class="daily-page-nav" id="daily-enhancement-bottom-nav"><a class="daily-page-nav-link" href="2026-03-21.html">前一天 · 2026-03-21</a><a class="daily-page-nav-link" href="2026-03-23.html">后一天 · 2026-03-23</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-03-22.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div><div class="daily-footer">
           本页由文献追踪系统自动生成，仅保留 AI × 物理 / 化学 / 材料主线相关文献，并按专题重新整理，方便快速筛选与深度阅读。
         </div>
@@ -397,7 +389,7 @@
 <div class="daily-sidebar-title">专题分布</div>
 <div class="daily-sidebar-stats"><div class="daily-sidebar-fact"><span>相关文献</span><strong>0</strong></div></div>
 </div>
-<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"><div class="daily-outline-group"><a class="daily-outline-group-title" href="#highlights">交叉重点</a><div class="daily-outline-list"><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-1">Superconducting altermagnets could carry spin without energy loss<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-2">Snapshot-QAOA: Extending QAOA to Quantum Hamiltonian Simulation<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-3">[ASAP] Light-Induced Ordered Pattern Formation in 2D Copper Halide Perovskites<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-4">A Hall 'rectenna' can detect signals over a 100 GHz frequency range<span class="daily-outline-meta">交叉重点</span></a></div></div></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-03-21.html">前一天 · 2026-03-21</a><a class="daily-page-nav-link" href="2026-03-23.html">后一天 · 2026-03-23</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-03-22.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
+<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-03-21.html">前一天 · 2026-03-21</a><a class="daily-page-nav-link" href="2026-03-23.html">后一天 · 2026-03-23</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-03-22.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
 <div class="daily-sidebar-title">阅读建议</div>
 <ul class="insight-note-list">
 <li class="insight-note-item">先看交叉重点，再按物理、化学、材料与方法分区深读。</li>

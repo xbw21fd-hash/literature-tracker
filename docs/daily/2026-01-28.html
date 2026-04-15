@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>2026-01-28 文献日报 - 文献追踪系统</title>
+<link href="../style.css" rel="stylesheet"/>
+<link href="2026-01-28.xml" rel="alternate" title="2026-01-28 日报 RSS" type="application/rss+xml"/>
+<style>
+    body { background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(248, 250, 252, 0.85) 220px), var(--bg-primary); overflow-x: hidden; }
+    body::before { content: none !important; }
+    .daily-shell { max-width: 1260px; margin: 0 auto; padding: 28px 20px 48px; }
+    .daily-topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+    .daily-topbar-left, .daily-topbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-primary); text-decoration: none; font-weight: 600; }
+    .back-link:hover { color: var(--accent-hover); }
+    .daily-mini-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255,255,255,0.75); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.92rem; backdrop-filter: blur(8px); }
+    .daily-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 24px; align-items: start; }
+    .daily-article { background: rgba(255,255,255,0.76); border: 1px solid rgba(148,163,184,0.28); border-radius: 28px; box-shadow: var(--shadow-lg); backdrop-filter: blur(14px); padding: 32px; }
+    .daily-hero { padding-bottom: 18px; border-bottom: 1px solid var(--border-color); }
+    .daily-kicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; background: rgba(99,102,241,0.12); color: var(--accent-primary); font-weight: 700; letter-spacing: 0.04em; }
+    .daily-title { margin: 18px 0 10px; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.15; letter-spacing: -0.03em; }
+    .daily-subtitle { font-size: 1.02rem; color: var(--text-secondary); margin-bottom: 18px; line-height: 1.8; }
+    .daily-quote { margin: 0; padding: 16px 18px; border-left: 4px solid var(--accent-primary); border-radius: 16px; background: rgba(99,102,241,0.08); color: var(--text-secondary); font-size: 1rem; }
+    .daily-tags { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0 22px; }
+    .daily-tag { display: inline-flex; align-items: center; padding: 7px 13px; border-radius: 999px; background: rgba(255,255,255,0.92); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.92rem; }
+    .daily-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+    .daily-stat { padding: 18px; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.92)); border: 1px solid var(--border-color); }
+    .daily-stat-label { color: var(--text-muted); font-size: 0.92rem; margin-bottom: 6px; }
+    .daily-stat-value { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; }
+    .daily-filter-note { margin-top: 16px; color: var(--text-secondary); line-height: 1.8; }
+    .daily-section { margin-top: 28px; }
+    .daily-section-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .daily-section-index { font-size: 0.92rem; font-weight: 800; color: var(--accent-primary); padding: 5px 10px; border-radius: 999px; background: rgba(99,102,241,0.1); }
+    .daily-section-title { font-size: 1.45rem; letter-spacing: -0.02em; }
+    .daily-summary-card { padding: 18px 20px; border-radius: 20px; background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); line-height: 1.85; }
+    .daily-summary-card p + p { margin-top: 12px; }
+    .daily-topic-group + .daily-topic-group { margin-top: 22px; }
+    .daily-topic-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 14px; }
+    .daily-topic-title { font-size: 1.15rem; margin: 0 0 6px; }
+    .daily-topic-desc { color: var(--text-secondary); line-height: 1.75; }
+    .daily-topic-count { padding: 8px 12px; border-radius: 999px; background: rgba(99,102,241,0.1); color: var(--accent-primary); font-weight: 700; white-space: nowrap; }
+    .daily-news-list, .daily-paper-list { list-style: none; margin: 0; padding: 0; }
+    .daily-news-item, .daily-paper-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; padding: 20px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(249,250,251,0.92)); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); align-items: flex-start; }
+    .daily-news-item + .daily-news-item, .daily-paper-card + .daily-paper-card { margin-top: 16px; }
+    .daily-news-index, .daily-paper-number { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 800; color: white; background: var(--gradient-accent); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+    .daily-news-body, .daily-paper-body { min-width: 0; }
+    .daily-paper-body { display: flex; flex-direction: column; }
+    .daily-news-title-zh, .daily-paper-title-zh { font-size: 1.12rem; font-weight: 700; line-height: 1.5; margin-bottom: 6px; }
+    .daily-news-title-en, .daily-paper-title-en { color: var(--text-secondary); font-size: 0.96rem; line-height: 1.6; }
+    .daily-news-meta, .daily-paper-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .daily-chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; font-size: 0.88rem; color: var(--text-secondary); background: rgba(99,102,241,0.08); }
+    .daily-chip-authors { background: rgba(16,185,129,0.08); }
+    .daily-chip-score { background: rgba(245,158,11,0.12); }
+    .daily-chip-topic { background: rgba(139,92,246,0.12); color: var(--accent-primary); }
+    .daily-news-summary, .daily-paper-summary { color: var(--text-primary); line-height: 1.8; }
+    .daily-news-reason { margin-top: 10px; color: var(--text-secondary); }
+    .daily-paper-actions, .daily-news-link { margin-top: 14px; }
+    .daily-news-link { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-primary); text-decoration: none; font-weight: 600; }
+    .daily-news-link:hover { color: var(--accent-hover); }
+    .daily-paper-head { display: flex; gap: 16px; align-items: flex-start; }
+    .daily-paper-titles { min-width: 0; }
+    .daily-toc { position: sticky; top: 24px; }
+    .daily-toc-card { padding: 18px; border-radius: 20px; background: rgba(255,255,255,0.78); border: 1px solid var(--border-color); box-shadow: var(--shadow-md); backdrop-filter: blur(12px); }
+    .daily-toc-title, .daily-sidebar-title { font-size: 0.95rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .daily-toc a { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 14px; color: var(--text-secondary); text-decoration: none; }
+    .daily-toc a:hover { background: rgba(99,102,241,0.08); color: var(--accent-primary); }
+    .daily-sidebar-block + .daily-sidebar-block { margin-top: 18px; }
+    .daily-sidebar-stats { display: grid; gap: 10px; }
+    .daily-sidebar-fact { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); }
+    .daily-footer { margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.94rem; line-height: 1.8; }
+    .daily-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 14px 18px; margin: 18px 0; border-radius: 18px; background: rgba(255,255,255,0.88); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+    .daily-nav-top { margin: 0 0 22px; }
+    .daily-nav-bottom { margin: 28px 0 12px; }
+    .daily-nav-link { color: var(--accent-primary); text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 12px; transition: background 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .daily-nav-link:hover { background: rgba(99,102,241,0.08); }
+    .daily-nav-prev { justify-self: start; }
+    .daily-nav-next { justify-self: end; text-align: right; }
+    .daily-nav-home { color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(99,102,241,0.08); font-weight: 600; font-size: 0.95rem; }
+    .daily-nav-home:hover { background: rgba(99,102,241,0.16); color: var(--accent-primary); }
+    .daily-nav-disabled { color: var(--text-muted); opacity: 0.55; padding: 8px 12px; }
+    @media (max-width: 720px) {
+      .daily-nav { grid-template-columns: 1fr 1fr; padding: 10px 12px; }
+      .daily-nav-home { grid-column: span 2; justify-self: center; order: 3; }
+      .daily-nav-link { font-size: 0.92rem; }
+    }
+    @media (max-width: 980px) {
+      .daily-layout { grid-template-columns: 1fr; }
+      .daily-toc { position: static; order: -1; }
+    }
+    @media (max-width: 720px) {
+      .daily-shell { padding: 16px 12px 36px; }
+      .daily-article { padding: 22px 16px; border-radius: 22px; }
+      .daily-stats { grid-template-columns: 1fr; }
+      .daily-news-item, .daily-paper-card { grid-template-columns: 1fr; }
+      .daily-news-index, .daily-paper-number { width: 38px; height: 38px; }
+      .daily-paper-head, .daily-topic-head { flex-direction: column; gap: 12px; }
+      .daily-core-card { grid-template-columns: 1fr; }
+      .daily-core-number { width: 38px; height: 38px; }
+    }
+    .daily-core-section { border-radius: 22px; padding: 22px; margin-top: 26px; background: linear-gradient(135deg, rgba(253,244,215,0.55), rgba(255,248,230,0.88)); border: 1.5px solid rgba(245,158,11,0.45); box-shadow: 0 4px 18px rgba(245,158,11,0.08); }
+    .daily-core-section .daily-section-title { color: #b45309; }
+    .daily-core-section .daily-section-index { background: rgba(245,158,11,0.18); color: #b45309; }
+    .daily-core-count { margin-left: auto; padding: 6px 12px; border-radius: 999px; background: rgba(245,158,11,0.15); color: #b45309; font-weight: 700; font-size: 0.9rem; }
+    .daily-core-note { margin: 12px 0 18px; padding: 14px 16px; border-radius: 14px; background: rgba(255,255,255,0.7); border-left: 3px solid #f59e0b; color: var(--text-primary); line-height: 1.8; }
+    .daily-core-list { list-style: none; margin: 0; padding: 0; }
+    .daily-core-card { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 14px; padding: 18px; border-radius: 18px; background: rgba(255,255,255,0.95); border: 1px solid rgba(245,158,11,0.25); border-left: 3px solid #f59e0b; box-shadow: var(--shadow-sm); }
+    .daily-core-card + .daily-core-card { margin-top: 14px; }
+    .daily-core-number { width: 42px; height: 42px; display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; font-weight: 800; color: white; background: linear-gradient(135deg, #f59e0b, #fbbf24); box-shadow: var(--shadow-sm); flex-shrink: 0; }
+    .daily-core-title-zh { font-size: 1.1rem; font-weight: 700; line-height: 1.5; margin-bottom: 4px; }
+    .daily-core-title-en { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; }
+    .daily-core-meta { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .daily-chip-core { background: rgba(245,158,11,0.18); color: #b45309; font-weight: 600; }
+    .daily-core-deep { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(245,158,11,0.06); border: 1px dashed rgba(245,158,11,0.35); line-height: 1.75; }
+    .daily-core-deep p + p { margin-top: 6px; }
+  </style>
+<style id="daily-enhancement-style">
+#daily-enhancement-top-nav, #daily-enhancement-bottom-nav {
+    margin-top: 18px;
+}
+
+.daily-page-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.daily-page-nav-link,
+.daily-page-nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.92);
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.92rem;
+    transition: all var(--transition-fast);
+}
+
+.daily-page-nav-link:hover,
+.daily-page-nav-pill:hover {
+    color: var(--accent-primary);
+    border-color: rgba(99,102,241,0.35);
+    background: rgba(99,102,241,0.08);
+}
+
+.daily-page-nav-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.daily-title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.daily-title-link:hover {
+    color: var(--accent-primary);
+}
+
+.daily-permalink-link {
+    margin-left: 8px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.daily-permalink-link:hover {
+    color: var(--accent-primary);
+}
+
+.daily-inline-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.daily-inline-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.daily-inline-link:hover {
+    color: var(--accent-hover);
+}
+
+.daily-toc-card {
+    max-height: min(74vh, calc(100vh - 40px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    padding-right: 12px;
+}
+
+.daily-toc-card::-webkit-scrollbar {
+    width: 10px;
+}
+
+.daily-toc-card::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.28);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.daily-toc-card::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.10);
+    border-radius: 999px;
+}
+
+.daily-outline-scroll {
+    max-height: min(40vh, calc(100vh - 320px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable both-edges;
+    padding-right: 6px;
+}
+
+.daily-outline-scroll::-webkit-scrollbar {
+    width: 10px;
+}
+
+.daily-outline-scroll::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.28);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+.daily-outline-scroll::-webkit-scrollbar-track {
+    background: rgba(148, 163, 184, 0.10);
+    border-radius: 999px;
+}
+
+.daily-outline-group + .daily-outline-group {
+    margin-top: 14px;
+}
+
+.daily-outline-group-title {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.daily-outline-group-title:hover {
+    color: var(--accent-primary);
+}
+
+.daily-outline-list {
+    display: grid;
+    gap: 6px;
+}
+
+.daily-outline-link {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    background: rgba(255,255,255,0.6);
+    border: 1px solid rgba(148,163,184,0.18);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.daily-outline-link:hover {
+    color: var(--accent-primary);
+    background: rgba(99,102,241,0.08);
+}
+
+.daily-outline-link-highlight {
+    border-color: rgba(99,102,241,0.24);
+}
+
+.daily-outline-meta {
+    display: block;
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.daily-topic-anchor {
+    margin-left: 8px;
+}
+
+@media (max-width: 980px) {
+    .daily-toc-card {
+        max-height: none;
+    }
+    .daily-outline-scroll {
+        max-height: none;
+    }
+}
+</style></head>
+<body>
+<div class="daily-shell">
+<div class="daily-topbar">
+<div class="daily-topbar-left">
+<a class="back-link" href="../index.html">← 返回主页</a>
+<span class="daily-mini-chip">AI × Science Daily</span>
+</div>
+<div class="daily-topbar-right">
+<a class="daily-mini-chip" href="2026-01-28.xml">📡 当日 RSS</a>
+<a class="daily-mini-chip" href="../feed.xml">📰 全站 RSS</a>
+<span class="daily-mini-chip">2026-01-28</span>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
+</div>
+</div>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-top"><a class="daily-nav-link daily-nav-prev" href="2026-01-26.html">← 前一天 · 2026-01-26</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-01-29.html">后一天 · 2026-01-29 →</a></nav>
+<div class="daily-layout">
+<article class="daily-article">
+<div class="daily-hero">
+<div class="daily-kicker">AI 文献日报</div>
+<h1 class="daily-title">AI × Science 文献日报 2026/01/28</h1>
+<p class="daily-subtitle">聚焦 AI × 物理 / 化学 / 材料交叉方向，自动过滤明显偏题的医学、教育与社会科学内容，并按主题重新排版，便于快速深读。</p>
+<blockquote class="daily-quote">AI | 物理 | 化学 | 材料 | 交叉学科 | arXiv | 预印本追踪</blockquote>
+<div class="daily-tags"><span class="daily-tag">AI</span><span class="daily-tag">物理</span><span class="daily-tag">化学</span><span class="daily-tag">材料</span><span class="daily-tag">交叉学科</span><span class="daily-tag">arXiv</span><span class="daily-tag">预印本追踪</span></div>
+<div class="daily-stats">
+<div class="daily-stat">
+<div class="daily-stat-label">日报精选</div>
+<div class="daily-stat-value">60</div>
+</div>
+<div class="daily-stat">
+<div class="daily-stat-label">主线候选</div>
+<div class="daily-stat-value">153</div>
+</div>
+<div class="daily-stat">
+<div class="daily-stat-label">期刊 / 来源</div>
+<div class="daily-stat-value">8</div>
+</div>
+<div class="daily-stat">
+<div class="daily-stat-label">arXiv 相关</div>
+<div class="daily-stat-value">51</div>
+</div>
+</div>
+<p class="daily-filter-note">原始候选 153 篇中，已剔除 0 篇明显偏离主线的内容，并从剩余 153 篇主线相关文献中精选 60 篇进入日报页，优先保留 AI × 物理 / 化学 / 材料交叉与关键计算方法工作。</p>
+<div class="daily-page-nav" id="daily-enhancement-top-nav"><a class="daily-page-nav-link" href="2026-01-27.html">前一天 · 2026-01-27</a><a class="daily-page-nav-link" href="2026-01-29.html">后一天 · 2026-01-29</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-01-28.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div>
+<section class="daily-section daily-core-section" id="core-focus">
+<div class="daily-section-head">
+<span class="daily-section-index">🎯</span>
+<h2 class="daily-section-title">核心关注（ML × ferro / 凝聚态）</h2>
+<span class="daily-core-count">2 篇</span>
+</div>
+<p class="daily-core-note">本日进展聚焦两条主线：一是晶体图神经网络（CGNN）驱动的高通量筛选成功从钙钛矿候选库中锁定超四方铁电相，实现巨大自发极化的快速预测；二是PT对称反铁磁双层中，常规超导邻近效应被重新利用以诱导层间库珀配对，为无磁场拓扑超导开辟新路径。ML方法直接介入材料发现闭环，而非常规约瑟夫森效应则拓展了磁性-超导异质结的拓扑物态设计空间。</p>
+<ol class="daily-core-list">
+<li class="daily-core-card">
+<div class="daily-core-number">01</div>
+<div class="daily-core-body">
+<div class="daily-core-title-zh">PT 对称反铁磁双层中的非常规约瑟夫森效应</div>
+<div class="daily-core-title-en">Unconventional Josephson effects in it PT-symmetric antiferromagnetic bilayers</div>
+<div class="daily-core-meta"><span class="daily-chip daily-chip-core">🎯 核心关注</span><span class="daily-chip daily-chip-journal">📖 arXiv</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>在 PT 对称反铁磁双层中，常规超导邻近效应诱导出主导的层间库珀配对，导致非常规约瑟夫森效应。该体系为无磁场下实现拓扑超导提供新平台。</p>
+<p class="daily-paper-highlight"><strong>💡 亮点：</strong>PT 对称反铁磁双层中由层间配对驱动非常规约瑟夫森效应。</p>
+<div class="daily-core-deep"><p><strong>📐 方法要点：</strong>晶体图神经网络（CGNN）结合高通量第一性原理筛选，构建超四方钙钛矿极化-结构预测流水线。</p><p><strong>🔗 相关工作关联：</strong>与M3GNet/MatErials Graph Network、AFLOW/ Materials Project高通量库、以及传统DFT+U铁电相变计算方向呼应。</p><p><strong>💡 对你方向的启示：</strong>CGNN可替代大量DFT枚举计算，直接嵌入铁电钙钛矿的组分-结构-极化逆向设计工作流。</p></div>
+<div class="daily-paper-actions"><a class="daily-news-link" href="https://arxiv.org/abs/2509.08262" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a></div>
+</div>
+</li>
+<li class="daily-core-card">
+<div class="daily-core-number">02</div>
+<div class="daily-core-body">
+<div class="daily-core-title-zh">机器学习加速发现巨极化超四方钙钛矿</div>
+<div class="daily-core-title-en">Accelerated discovery of supertetragonal perovskites with giant polarization via machine learning</div>
+<div class="daily-core-meta"><span class="daily-chip daily-chip-core">🎯 核心关注</span><span class="daily-chip daily-chip-journal">📖 npj Computational Materials</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>结合晶体图神经网络与高通量筛选，从数千候选中快速定位具有巨大自发极化的超四方铁电钙钛矿，显著缩短新材料发现周期。</p>
+<p class="daily-paper-highlight"><strong>💡 亮点：</strong>图神经网络高通量筛选巨极化超四方钙钛矿。</p>
+<div class="daily-core-deep"><p><strong>📐 方法要点：</strong>基于PT对称反铁磁双层的紧束缚/ Bogoliubov-de Gennes理论建模，解析超导邻近效应诱导的层间配对机制。</p><p><strong>🔗 相关工作关联：</strong>与反铁磁拓扑绝缘体MnBi2Te4、CrI3/CrSBr范德华磁性隧道结、以及无磁场拓扑超导平台方向呼应。</p><p><strong>💡 对你方向的启示：</strong>为利用常规s波超导构造零磁场拓扑超导提供可解析调控的磁性双层原型体系。</p></div>
+<div class="daily-paper-actions"><a class="daily-news-link" href="https://www.nature.com/articles/s41524-026-01970-w" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a></div>
+</div>
+</li>
+</ol>
+</section>
+<section class="daily-section" id="summary">
+<div class="daily-section-head">
+<span class="daily-section-index">01</span>
+<h2 class="daily-section-title">今日摘要</h2>
+</div>
+<div class="daily-summary-card">
+<p><strong>总览：</strong>今日文献中，交替磁性（altermagnetism）与非常规超导的交叉占据显著位置，涵盖CrSb中自旋分裂费米面的量子振荡、MnF₂的多极序弹性热探测，以及Eu掺杂无限层镍酸盐中顺磁驱动的超导重入；机器学习势与神经网络方法持续渗透材料发现与光谱解析，包括通过机器学习加速发现巨极化超四方钙钛矿、MAD-SURF势描述贵金属表面分子吸附，以及融合多模态光谱揭示局域结构。</p>
+<p><strong>热点：</strong>1. 交替磁性 → 非常规自旋-轨道耦合与输运现象 → CrSb量子振荡证实自旋分裂费米面、MnF₂应变下弹性热效应探测多极序、二维Janus铁电交替磁体实现全电控自旋纹理切换。2. 无限层镍酸盐超导 → 电子关联、顺磁环境与绝缘-超导转变的调控 → Eu掺杂SmNiO₂中顺磁驱动超导重入、无限层钐镍酸盐中超导-绝缘转变的玻色相。3. 机器学习嵌入实验光谱与原子模拟 → 势函数构建、结构反演与动力学加速 → 超四方钙钛矿巨极化的机器学习加速发现、STM设定点依赖谱的分子哈密顿学习、GaN辐照损伤的机器学习分子动力学。</p>
+</div>
+</section>
+<section class="daily-section" id="highlights">
+<div class="daily-section-head">
+<span class="daily-section-index">02</span>
+<h2 class="daily-section-title">交叉重点</h2>
+</div>
+<ol class="daily-news-list">
+<li class="daily-news-item" id="highlight-1">
+<div class="daily-news-index">01</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://www.nature.com/articles/s41524-026-01970-w" rel="noopener noreferrer" target="_blank">机器学习加速发现巨极化超四方钙钛矿</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://www.nature.com/articles/s41524-026-01970-w" rel="noopener noreferrer" target="_blank">Accelerated discovery of supertetragonal perovskites with giant polarization via machine learning</a><a class="daily-permalink-link" href="#highlight-1" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 npj Computational Materials</span><span class="daily-chip daily-chip-authors">👤 Wenguang Hu, Zebin Wu, Menglu Li, Shan Feng, Hangbo Qi, Xingjian Lu 等9位作者</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>结合晶体图神经网络与高通量筛选，从数千候选中快速定位具有巨大自发极化的超四方铁电钙钛矿，显著缩短新材料发现周期。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>图神经网络高通量筛选巨极化超四方钙钛矿。</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>npj Computational Materials</p>
+<a class="daily-news-link" href="https://www.nature.com/articles/s41524-026-01970-w" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.nature.com/articles/s41524-026-01970-w" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-1">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-2">
+<div class="daily-news-index">02</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19371" rel="noopener noreferrer" target="_blank">从设定点依赖扫描隧道谱学习分子哈密顿量</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19371" rel="noopener noreferrer" target="_blank">Molecular Hamiltonian learning from setpoint-dependent scanning tunneling spectroscopy</a><a class="daily-permalink-link" href="#highlight-2" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Greta Lupi, Adolfo O. Fumega, Mohammad Amini, Robert Drost, Peter Liljeroth, Jose L. Lado</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出利用设定点依赖的 STM-IETS 数据，通过机器学习反演吸附表面分子量子磁体的完整自旋-轨道哈密顿量，突破定量提取瓶颈。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>机器学习从设定点依赖隧道谱反演分子哈密顿量。</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>机器学习从隧道谱反演分子哈密顿量。</p>
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19371" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19371" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-2">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-3">
+<div class="daily-news-index">03</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19721" rel="noopener noreferrer" target="_blank">增强光子神经网络的量子光探测</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19721" rel="noopener noreferrer" target="_blank">Quantum Light Detection with Enhanced Photonic Neural Network</a><a class="daily-permalink-link" href="#highlight-3" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Stanisław Świerczewski, Dogyun Ko, Amir Rahmani, Juan Camilo López Carreño, Wouter Verstraelen, Piotr Deuar, Barbara Piketka, Timothy C. H. Liew, Michał Matuszewski, Andrzej Opala</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>将光子储层计算与量子态层析结合，在统一硬件平台上实现高精度、可扩展的光学量子态传感，提升量子光探测性能。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>光子储层计算实现高精度可扩展量子光探测。</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>arXiv / cond-mat</p>
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19721" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19721" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-3">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-4">
+<div class="daily-news-index">04</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18852" rel="noopener noreferrer" target="_blank">MAD-SURF：贵金属表面分子吸附的机器学习原子势</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18852" rel="noopener noreferrer" target="_blank">MAD-SURF: a machine learning interatomic potential for molecular adsorption on coinage metal surfaces</a><a class="daily-permalink-link" href="#highlight-4" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Manuel González Lastre, Joakim S. Jestilä, Rubén Pérez, Adam S. Foster</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>开发面向 Cu、Ag、Au 表面的通用机器学习原子势，可精确描述有机分子吸附构型与相互作用，助力扫描探针显微图像解析。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>构建贵金属表面分子吸附的通用机器学习势。</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>arXiv / cond-mat</p>
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18852" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18852" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-4">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-5">
+<div class="daily-news-index">05</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19560" rel="noopener noreferrer" target="_blank">应变可调二维 Janus 铁电交替磁体中的全电学自旋纹理翻转</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19560" rel="noopener noreferrer" target="_blank">All-electrical switching of spin texture in a strain-tunable 2D Janus ferroelectric altermagnet</a><a class="daily-permalink-link" href="#highlight-5" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Tao Yao, Quan Shen, Wenhu Liao, Jianing Tan, Jiansheng Dong</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>在二维 Janus 铁电交替磁体中，通过铁电极化反转实现自旋纹理的全电学翻转，且翻转特性可通过应变进行大范围调控。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>二维 Janus 铁电交替磁体实现应变可调全电学自旋翻转。</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>二维 Janus 铁电交替磁体实现全电学自旋翻转。</p>
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19560" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19560" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-5">页内定位</a></div></div>
+</li>
+<li class="daily-news-item" id="highlight-6">
+<div class="daily-news-index">06</div>
+<div class="daily-news-body">
+<div class="daily-news-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19882" rel="noopener noreferrer" target="_blank">自旋轨道耦合双层三角晶格反铁磁体 Rb₂Co₂(SeO₃)₃ 中的磁化平台</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
+<div class="daily-news-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19882" rel="noopener noreferrer" target="_blank">Magnetization Plateaus in the Spin-Orbit Coupled Bilayer Triangular Lattice Antiferromagnet Rb2Co2(SeO3)3</a><a class="daily-permalink-link" href="#highlight-6" title="复制本页定位">#</a></div>
+<div class="daily-news-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Shengzhi Zhang, Gabriel Silva Freitas, Vivien S. Zapf, Minseong Lee, Wonjune Choi, Shi-Zeng Lin, Tong Chen, Collin Broholm, Xianghan Xu, Robert J. Cava, Eun Sang Choi</span></div>
+<p class="daily-paper-abstract"><strong>📄 摘要：</strong>在 Rb₂Co₂(SeO₃)₃ 中观测到由强关联自旋二聚体阵列与自旋轨道耦合诱导的磁化平台，揭示几何阻挫驱动体系超越经典极限的新奇量子磁相。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>在 Rb₂Co₂(SeO₃)₃ 中发现自旋轨道耦合与阻挫诱导的磁化平台。</p>
+<p class="daily-news-reason"><strong>关注理由：</strong>Rb₂Co₂(SeO₃)₃中自旋轨道耦合诱导磁化平台</p>
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19882" rel="noopener noreferrer" target="_blank">查看原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19882" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#highlight-6">页内定位</a></div></div>
+</li>
+</ol>
+</section>
+<section class="daily-section" id="papers">
+<div class="daily-section-head">
+<span class="daily-section-index">03</span>
+<h2 class="daily-section-title">完整速览</h2>
+</div>
+<section class="daily-topic-group" id="topic-ai-物理-凝聚态">
+<div class="daily-topic-head">
+<div>
+<h3 class="daily-topic-title">AI × 物理 / 凝聚态</h3><a class="daily-permalink-link daily-topic-anchor" href="#topic-ai-物理-凝聚态" title="复制专题定位">#</a>
+<p class="daily-topic-desc">量子、自旋、凝聚态、电子结构与相关物理方法。</p>
+</div>
+<div class="daily-topic-count">42 篇</div>
+</div>
+<ol class="daily-paper-list">
+<li class="daily-paper-card" id="paper-1">
+<span class="daily-paper-number">01</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19473" rel="noopener noreferrer" target="_blank">Eu掺杂无限层镍酸盐中顺磁驱动的超导再入</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19473" rel="noopener noreferrer" target="_blank">Paramagnetically driven superconducting re-entrance in Eu-doped infinite layer nickelates</a><a class="daily-permalink-link" href="#paper-1" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Lucia Varbaro, Lukas Korosec, Chih-Ying Hsu, Duncan T. L. Alexander, Pau Torruella, Clémentine Thibault, Benjamin A. Piot, David Le Boeuf, Javier Herrero Martin, Weibin Li, Evgenios Stylianidis, Marta Gibert, Marc Gabay, Jean-Marc Triscone</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在Eu掺杂无限层镍酸盐中发现顺磁效应驱动超导再入现象，揭示磁性自由度与镍基超导的关联。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>发现Eu掺杂无限层镍酸盐的顺磁驱动超导再入。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19473" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19473" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-1">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-2">
+<span class="daily-paper-number">02</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2509.00382" rel="noopener noreferrer" target="_blank">Fe₂₋ₓScₓO₃中晶格结构与反铁磁序破缺对铁磁、电磁及磁电性能的增强作用</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2509.00382" rel="noopener noreferrer" target="_blank">Role of lattice structure and breaking of antiferromagnetic spin order in enhancement of ferromagnetic, electronic, and magneto-electric properties in Fe₂₋ₓScₓO₃ system</a><a class="daily-permalink-link" href="#paper-2" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 R. N. Bhowmik, Bipin Kumar Parida, Amit Kumar, P. D. Babu, S. M. Yusuf</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在Fe₂₋ₓScₓO₃中通过非磁性Sc³⁺掺杂破缺反铁磁基态，增强铁磁性、电输运及磁电耦合性能。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>Sc掺杂破缺Fe₂O₃反铁磁序并增强铁磁与磁电性能。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2509.00382" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2509.00382" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-2">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-3">
+<span class="daily-paper-number">03</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2511.11540" rel="noopener noreferrer" target="_blank">Lee-Huang-Yang偶极超流体中的稳定量子涡旋</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2511.11540" rel="noopener noreferrer" target="_blank">Stable Quantum Vortices in Lee-Huang-Yang Dipolar Superfluids</a><a class="daily-permalink-link" href="#paper-3" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 S. Sabari, R. Radha, Lauro Tomio, B. A. Malomed</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在准二维旋转偶极Bose-Einstein凝聚中考虑Lee-Huang-Yang修正，研究量子涡旋的成核与动力学稳定性。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>发现LHY修正下偶极超流体中存在稳定量子涡旋。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2511.11540" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2511.11540" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-3">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-4">
+<span class="daily-paper-number">04</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2509.08262" rel="noopener noreferrer" target="_blank">PT 对称反铁磁双层中的非常规约瑟夫森效应</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2509.08262" rel="noopener noreferrer" target="_blank">Unconventional Josephson effects in it PT-symmetric antiferromagnetic bilayers</a><a class="daily-permalink-link" href="#paper-4" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Jin-Xin Hu, Mengli Hu, Ying-Ming Xie, K. T. Law</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在 PT 对称反铁磁双层中，常规超导邻近效应诱导出主导的层间库珀配对，导致非常规约瑟夫森效应。该体系为无磁场下实现拓扑超导提供新平台。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>PT 对称反铁磁双层中由层间配对驱动非常规约瑟夫森效应。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2509.08262" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2509.08262" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-4">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-5">
+<span class="daily-paper-number">05</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19829" rel="noopener noreferrer" target="_blank">p波磁体中的非相对论Ising超导</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19829" rel="noopener noreferrer" target="_blank">Nonrelativistic-Ising superconductivity in p-wave magnets</a><a class="daily-permalink-link" href="#paper-5" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Maxim Khodas, Libor Šmejkal, I. I. Mazin</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>探讨在p波磁体（净磁化为零但具有非相对论自旋劈裂）中实现超导的可能性，拓展非常规超导体系。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>提出p波磁体可作为非相对论Ising超导的新平台。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19829" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19829" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-5">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-6">
+<span class="daily-paper-number">06</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19505" rel="noopener noreferrer" target="_blank">Rimu.jl：多体量子系统的随机积分器</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19505" rel="noopener noreferrer" target="_blank">Rimu.jl: Random integrators for many-body quantum systems</a><a class="daily-permalink-link" href="#paper-6" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Matija Čufar, C. J. Bradly, Ray Yang, Elke Pahl, Joachim Brand</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>发布Julia包Rimu.jl，采用无矩阵Hamiltonian与紧致Fock态表示，实现多体量子问题的高效随机积分求解。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>发布Julia多体量子随机积分器包Rimu.jl。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19505" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19505" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-6">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-7">
+<span class="daily-paper-number">07</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2504.10392" rel="noopener noreferrer" target="_blank">一类关联非中心对称材料中的自旋-轨道纠缠拓扑超导</a><a class="daily-permalink-link" href="#paper-7" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2504.10392" rel="noopener noreferrer" target="_blank">Spin-Orbital Intertwined Topological Superconductivity in a Class of Correlated Noncentrosymmetric Materials</a><a class="daily-permalink-link" href="#paper-7" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Lichuan Wang, Ran Wang, Xinliang Huang, Xianxin Wu, Ning Hao</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出在具有相同自旋纹理的双自旋劈裂费米面的关联非中心对称材料中实现拓扑超导的新路径。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>提出关联非中心对称材料中自旋-轨道纠缠拓扑超导新机制。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2504.10392" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2504.10392" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-7">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-8">
+<span class="daily-paper-number">08</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19192" rel="noopener noreferrer" target="_blank">三维自旋玻璃中德阿尔梅达-图勒斯转变的证据</a><a class="daily-permalink-link" href="#paper-8" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19192" rel="noopener noreferrer" target="_blank">Evidence of the de Almeida-Thouless transition in three-dimensional spin glasses</a><a class="daily-permalink-link" href="#paper-8" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 L. H. Miranda-Filho, Yuliang Jin</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出新数值判据，在三维伊辛自旋玻璃的有场条件下获得德阿尔梅达-图勒斯（dAT）转变存在的证据，解决该领域长期争议。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>以新数值判据证实三维自旋玻璃中存在有场 dAT 转变。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19192" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19192" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-8">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-9">
+<span class="daily-paper-number">09</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19181" rel="noopener noreferrer" target="_blank">原位洛伦兹透射电镜测绘 (Fe₀.₅Co₀.₅)₅GeTe₂ 中的亚稳磁结构</a><a class="daily-permalink-link" href="#paper-9" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19181" rel="noopener noreferrer" target="_blank">Mapping Metastable Magnetic Textures in (Fe0.5Co0.5)5GeTe2 with in-situ Lorentz Transmission Electron Microscopy</a><a class="daily-permalink-link" href="#paper-9" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Reed Yalisove, Hongrui Zhang, Xiang Chen, Fanhao Meng, Jie Yao, Robert Birgeneau, Ramamoorthy Ramesh, Mary C. Scott</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用原位洛伦兹透射电镜在室温和低磁场下直接观测 (Fe₀.₅Co₀.₅)₅GeTe₂ 中的亚稳拓扑磁结构，绘制其成核、迁移与湮灭的动态空间分布。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>室温下原位洛伦兹电镜直接成像 FeCo-GeTe 亚稳拓扑磁结构。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19181" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19181" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-9">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-10">
+<span class="daily-paper-number">10</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19604" rel="noopener noreferrer" target="_blank">原子自旋二极管的微观理论</a><a class="daily-permalink-link" href="#paper-10" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19604" rel="noopener noreferrer" target="_blank">Microscopic theory of an atomic spin diode</a><a class="daily-permalink-link" href="#paper-10" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 William J. Huddie, Rembert A. Duine</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>构建基于二维电子气表面两个磁性吸附原子的原子自旋二极管微观理论，利用局域 s-d 耦合与 Rashba 自旋轨道耦合实现非互易自旋输运。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>提出基于磁性吸附原子与 Rashba 耦合的原子自旋二极管理论。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19604" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19604" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-10">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-11">
+<span class="daily-paper-number">11</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18955" rel="noopener noreferrer" target="_blank">双层Ising模型中的莫尔磁性</a><a class="daily-permalink-link" href="#paper-11" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18955" rel="noopener noreferrer" target="_blank">Moiré magnetism in a bilayer Ising model</a><a class="daily-permalink-link" href="#paper-11" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Ryan Flynn, Anders W. Sandvik</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>研究经典双层Ising模型，层间耦合受莫尔图案空间调制，产生非均匀磁织构，为莫尔磁性提供最小模型。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>建立莫尔调制层间耦合的双层Ising最小模型。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18955" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18955" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-11">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-12">
+<span class="daily-paper-number">12</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19073" rel="noopener noreferrer" target="_blank">受控磁岛分叉对电子扩散的影响</a><a class="daily-permalink-link" href="#paper-12" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19073" rel="noopener noreferrer" target="_blank">Effect of Controlled Magnetic Island Bifurcation on Electron Diffusion</a><a class="daily-permalink-link" href="#paper-12" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Jessica Eskew, D. M. Orlov, B. Andrew, E. Bursch, M. Koepke, F. Skiff, M. E. Austin, T. Cote, C. Marini, E. G. Kostadinova</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在磁化等离子体中，磁岛拓扑分叉改变 O 点、X 点及 separatrix 边界的位置与数量，显著改变电子跨场扩散路径与输运系数。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>磁岛拓扑分叉通过改变 X/O 点分布调控电子跨场扩散。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19073" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19073" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-12">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-13">
+<span class="daily-paper-number">13</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2303.01655" rel="noopener noreferrer" target="_blank">合成维度中的原子超导量子干涉器件</a><a class="daily-permalink-link" href="#paper-13" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2303.01655" rel="noopener noreferrer" target="_blank">Atomtronic superconducting quantum interference device in synthetic dimensions</a><a class="daily-permalink-link" href="#paper-13" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Wenxi Lai, Yu-Quan Ma, Yi-Wen Wei</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在合成维度中构建原子超导量子干涉器件，利用原子电路的高相干性与可扩展性，为量子计算提供新型超导量子比特方案。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>合成维度原子电路构建高相干可扩展超导量子干涉器件。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2303.01655" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2303.01655" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-13">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-14">
+<span class="daily-paper-number">14</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19581" rel="noopener noreferrer" target="_blank">基于 Al/AlOₓ/4Hb-TaS₂ 约瑟夫森结的磁通可调 transmon</a><a class="daily-permalink-link" href="#paper-14" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19581" rel="noopener noreferrer" target="_blank">Flux-tunable transmon incorporating a van der Waals superconductor via an Al/AlOₓ/4Hb-TaS₂ Josephson junction</a><a class="daily-permalink-link" href="#paper-14" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Eliya Blumenthal, Ilay Mangel, Amit Kanigel, Shay Hacohen-Gourgy</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>将范德华超导体 4Hb-TaS₂ 集成到约瑟夫森结中，构建磁通可调 transmon 量子比特，扩展电路量子电动力学平台以探测非传统凝聚态与亚隙激发。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>首次用 4Hb-TaS₂ 范德华超导结实现磁通可调 transmon 比特。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19581" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19581" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-14">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-15">
+<span class="daily-paper-number">15</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2508.02578" rel="noopener noreferrer" target="_blank">基于随机采样Krylov量子对角化的可证明收敛量子化学</a><a class="daily-permalink-link" href="#paper-15" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2508.02578" rel="noopener noreferrer" target="_blank">Quantum chemistry with provable convergence via randomized sample-based Krylov quantum diagonalization</a><a class="daily-permalink-link" href="#paper-15" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Samuele Piccinelli, Alberto Baiardi, Stefano Barison, Max Rossmannek, Almudena Carrera Vazquez, Francesco Tacchino, Stefano Mensa, Edoardo Altamura, Ali Alavi, Mario Motta, Javier Robledo-Moreno, William Kirby, Kunal Sharma, Antonio Mezzacapo, Ivano Tavernelli</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出随机采样Krylov量子对角化算法，对基态波函数近似给出可证明的收敛保证，适用于预容错及早期容错量子设备。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>实现可证明收敛的随机采样Krylov量子对角化算法。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2508.02578" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2508.02578" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-15">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-16">
+<span class="daily-paper-number">16</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18922" rel="noopener noreferrer" target="_blank">堆叠量子Ising系统与量子Ashkin-Teller模型</a><a class="daily-permalink-link" href="#paper-16" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18922" rel="noopener noreferrer" target="_blank">Stacked quantum Ising systems and quantum Ashkin-Teller model</a><a class="daily-permalink-link" href="#paper-16" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Davide Rossini, Ettore Vicari</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>分析两个堆叠量子Ising子系统通过保持各Z₂对称性的局域项耦合所形成的量子态及相行为。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>建立堆叠量子Ising系统与量子Ashkin-Teller模型的联系。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18922" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18922" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-16">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-17">
+<span class="daily-paper-number">17</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2503.17311" rel="noopener noreferrer" target="_blank">小行星 (16) 灵神星及其他天体的早期太阳风与发电机磁场拓扑预测</a><a class="daily-permalink-link" href="#paper-17" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2503.17311" rel="noopener noreferrer" target="_blank">Early solar wind and dynamo magnetic field topology predictions for (16) Psyche and other asteroids</a><a class="daily-permalink-link" href="#paper-17" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Atma Anand, Jonathan Carroll-Nellenback, Eric G. Blackman, John A. Tarduno</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用磁流体动力学模拟预测金属质小行星 (16) Psyche 在不同距离下的发电机磁场拓扑，评估古剩磁记录保存的可能性。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>磁流体模拟预测灵神星古发电机磁场拓扑及剩磁保存条件。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2503.17311" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2503.17311" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-17">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-18">
+<span class="daily-paper-number">18</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19497" rel="noopener noreferrer" target="_blank">无限层钐镍氧化物中超导体-绝缘体转变的玻色子相</a><a class="daily-permalink-link" href="#paper-18" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19497" rel="noopener noreferrer" target="_blank">Bosonic phases across the superconductor-insulator transition in infinite-layer samarium nickelate</a><a class="daily-permalink-link" href="#paper-18" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Menghan Liao, Heng Wang, Mingwei Yang, Chuanwu Cao, Jiayin Tang, Wenjing Xu, Xianfeng Wu, Guangdi Zhou, Haoliang Huang, Kaiwei Chen, Yuying Zhu, Peng Deng, Jianhao Chen, Zhuoyu Chen, Danfeng Li, Kai Chang, Qi-Kun Xue</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在无限层 SmNiO₂ 薄膜中，通过调控库珀对全局相位相干性，系统穿越超导-绝缘体量子相变，揭示多种玻色子相，为理解非常规超导机制提供实验平台。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>在无限层镍氧化物中实现并调控超导-绝缘体转变的多重玻色子相。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19497" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19497" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-18">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-19">
+<span class="daily-paper-number">19</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2506.00090" rel="noopener noreferrer" target="_blank">晶格孤子分数拓扑泵浦的量子理论</a><a class="daily-permalink-link" href="#paper-19" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2506.00090" rel="noopener noreferrer" target="_blank">Quantum theory of fractional topological pumping of lattice solitons</a><a class="daily-permalink-link" href="#paper-19" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Julius Bohm, Hugo Gerlitz, Christina Jörg, Michael Fleischhauer</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>建立拓扑晶格孤子分数输运的量子理论，揭示孤子数泵浦的量子化与拓扑保护机制，为量子信息处理中的鲁棒输运提供理论基础。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>建立晶格孤子分数拓扑泵浦的量子理论框架。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2506.00090" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2506.00090" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-19">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-20">
+<span class="daily-paper-number">20</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19246" rel="noopener noreferrer" target="_blank">有效横向弛豫（T2*）的磁共振模拟</a><a class="daily-permalink-link" href="#paper-20" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19246" rel="noopener noreferrer" target="_blank">Magnetic Resonance Simulation of Effective Transverse Relaxation (T2*)</a><a class="daily-permalink-link" href="#paper-20" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Hidenori Takeshima</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>开发磁共振模拟中有效横向弛豫 T₂* 的数值方法，将可逆（T₂'）与不可逆（T₂）分量分离，解决仅已知磁化分布时 T₂' 难以模拟的问题。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>提出仅由磁化分布模拟有效横向弛豫 T₂* 的数值方法。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19246" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19246" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-20">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-21">
+<span class="daily-paper-number">21</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19152" rel="noopener noreferrer" target="_blank">淬火后一维周期体系量子几何张量的演化</a><a class="daily-permalink-link" href="#paper-21" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19152" rel="noopener noreferrer" target="_blank">Evolution of quantum geometric tensor of 1D periodic systems after a quench</a><a class="daily-permalink-link" href="#paper-21" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Jia-Chen Tang, Xu-Yang Hou, Yu-Huan Huang, Hao Guo. Chih-Chun Chien</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>研究一维周期体系在哈密顿量突然改变后，量子几何张量（QGT）的含时演化，动量对角分量给出与布洛赫态涨落关联的度规动力学。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>解析一维周期体系淬火后量子几何张量的含时演化行为。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19152" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19152" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-21">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-22">
+<span class="daily-paper-number">22</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19556" rel="noopener noreferrer" target="_blank">滑移铁电反铁磁中层锁定反常谷霍尔效应的双开关调控</a><a class="daily-permalink-link" href="#paper-22" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19556" rel="noopener noreferrer" target="_blank">Dual-Switch Control of a Layer-Locked Anomalous Valley Hall Effect in a Sliding Ferroelectric Antiferromagnet</a><a class="daily-permalink-link" href="#paper-22" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Quan Shen, Wenhu Liao, Degao Xu, Jiansheng Dong, Jianing Tan</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在二维滑移铁电反铁磁中，利用铁电极化与反铁磁序的双自由度，实现层锁定反常谷霍尔效应的非易失、可逆双开关调控。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>实现二维滑移铁电反铁磁中谷霍尔效应的双自由度非易失开关。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19556" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19556" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-22">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-23">
+<span class="daily-paper-number">23</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18810" rel="noopener noreferrer" target="_blank">相互作用条件语义与量子悖论的消解</a><a class="daily-permalink-link" href="#paper-23" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18810" rel="noopener noreferrer" target="_blank">Interaction-Conditional Semantics and the Dissolution of Quantum Paradoxes</a><a class="daily-permalink-link" href="#paper-23" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Jonathon Sendall</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>从语义分析角度论证自旋测量、双缝、纠缠关联及维格纳朋友等量子经典悖论源于相互作用条件的误用，提出替代诠释框架。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>以相互作用条件语义重构对经典量子悖论的理解。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18810" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18810" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-23">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-24">
+<span class="daily-paper-number">24</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2407.18188" rel="noopener noreferrer" target="_blank">磁通量绳爆发过程中重联磁通的演化</a><a class="daily-permalink-link" href="#paper-24" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2407.18188" rel="noopener noreferrer" target="_blank">Evolution of reconnection flux during eruption of magnetic flux ropes</a><a class="daily-permalink-link" href="#paper-24" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Samriddhi Sankar Maity, Piyali Chatterjee, Ranadeep Sarkar, Ijas S. Mytheen</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用磁流体模拟追踪日冕物质抛射前兆磁通量绳爆发期间磁重联磁通的演化，揭示重联速率与磁绳加速之间的定量关联。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>定量关联磁通量绳爆发中磁重联磁通演化与抛射加速过程。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2407.18188" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2407.18188" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-24">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-25">
+<span class="daily-paper-number">25</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18995" rel="noopener noreferrer" target="_blank">等离激元与亚铁磁磁振子的拓扑杂化</a><a class="daily-permalink-link" href="#paper-25" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18995" rel="noopener noreferrer" target="_blank">Topological hybridisation of plasmons with ferrimagnetic magnons</a><a class="daily-permalink-link" href="#paper-25" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Cooper Finnigan, Mehdi Kagarian, Dmitry K. Efimkin</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在单层Rashba自旋-轨道耦合半导体（如Janus TMD）与绝缘亚铁磁体异质结构中研究等离激元-磁振子拓扑杂化模式。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>预言Janus TMD/亚铁磁异质结构中的拓扑等离激元-磁振子杂化。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18995" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18995" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-25">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-26">
+<span class="daily-paper-number">26</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19291" rel="noopener noreferrer" target="_blank">紧凑环向体的磁压缩实验与模拟</a><a class="daily-permalink-link" href="#paper-26" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19291" rel="noopener noreferrer" target="_blank">Magnetic Compression of Compact Tori Experiment and Simulation</a><a class="daily-permalink-link" href="#paper-26" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Carl Dunlea</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在 General Fusion 磁压缩装置上开展紧凑环向体（CT）的重复性非破坏性实验，结合模拟研究磁靶聚变压缩相关的等离子体物理。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>紧凑环向体磁压缩实验结合模拟研究聚变等离子体物理。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19291" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19291" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-26">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-27">
+<span class="daily-paper-number">27</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2507.07092" rel="noopener noreferrer" target="_blank">耗散量子Rabi模型中的非高斯相变与不稳定级联</a><a class="daily-permalink-link" href="#paper-27" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2507.07092" rel="noopener noreferrer" target="_blank">Non-Gaussian Phase Transition and Cascade of Instabilities in the Dissipative Quantum Rabi Model</a><a class="daily-permalink-link" href="#paper-27" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Mingyu Kang, Yikang Zhang, Kenneth R. Brown, Thomas Barthel</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在软玻色模式且有阻尼的开放量子Rabi模型中，发现稳态存在非高斯相变，并伴随不稳定级联。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>揭示开放量子Rabi模型的非高斯相变及不稳定级联。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2507.07092" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2507.07092" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-27">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-28">
+<span class="daily-paper-number">28</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19603" rel="noopener noreferrer" target="_blank">莫尔激子绝缘体中激子晶体的观测</a><a class="daily-permalink-link" href="#paper-28" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19603" rel="noopener noreferrer" target="_blank">Observation of an exciton crystal in a moiré excitonic insulator</a><a class="daily-permalink-link" href="#paper-28" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Ruishi Qi, Qize Li, Haleem Kim, Jiahui Nie, Zuocheng Zhang, Ruichen Xia, Zhiyuan Cui, Jianghan Xiao, Takashi Taniguchi, Kenji Watanabe, Michael F. Crommie, Feng Wang</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在莫尔激子绝缘体中直接观测到激子晶体，实现玻色子对应Wigner晶格的实验突破。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>首次在莫尔激子绝缘体中观测到激子晶体。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19603" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19603" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-28">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-29">
+<span class="daily-paper-number">29</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/1203.0127" rel="noopener noreferrer" target="_blank">超导涨落输运图解入门笔记 II：弱场微扰下的霍尔与能斯特效应</a><a class="daily-permalink-link" href="#paper-29" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/1203.0127" rel="noopener noreferrer" target="_blank">A Diagrammer's Note on Superconducting Fluctuation Transport for Beginners: II. Hall and Nernst Effects with Perturbational Treatment of Magnetic Field</a><a class="daily-permalink-link" href="#paper-29" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Osamu Narikiyo</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>基于热格林函数的图解方法，系统回顾超导涨落对霍尔效应与能斯特效应的贡献，详细处理弱磁场的线性微扰展开。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>图解回顾超导涨落霍尔与能斯特效应的弱场微扰理论。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/1203.0127" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/1203.0127" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-29">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-30">
+<span class="daily-paper-number">30</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2507.02765" rel="noopener noreferrer" target="_blank">辐照下共线铁磁螺旋结构中的自旋热电子学</a><a class="daily-permalink-link" href="#paper-30" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2507.02765" rel="noopener noreferrer" target="_blank">Spin caloritronics in collinear ferromagnetic helical structures under irradiation</a><a class="daily-permalink-link" href="#paper-30" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Sudin Ganguly, Moumita Dey, Santanu K. Maiti</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>基于紧束缚与Floquet-Bloch方法，研究任意偏振光辐照下铁磁螺旋体系的自旋依赖热电输运响应。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>揭示光辐照铁磁螺旋结构的自旋热电输运特性。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2507.02765" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2507.02765" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-30">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-31">
+<span class="daily-paper-number">31</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18989" rel="noopener noreferrer" target="_blank">迈向可调磁狄拉克半金属：Cd₃As₂的Mn掺杂</a><a class="daily-permalink-link" href="#paper-31" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18989" rel="noopener noreferrer" target="_blank">Toward Tunable Magnetic Dirac Semimetals: Mn Doping of Cd₃As₂</a><a class="daily-permalink-link" href="#paper-31" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Anthony D. Rice, Ian Leahy, Herve Ness, Andrew G. Norman, Karen N. Heinselman, Chun-Sheng Jiang, David Graf, Alexey Suslov, Stephan Lany, Mark Van Schilfgaarde, Kirstin Alberi</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>通过稀Mn磁性掺杂调控Cd₃As₂，探索实现可调磁狄拉克半金属的实验路径与电子结构演化。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>通过Mn掺杂Cd₃As₂探索可调磁狄拉克半金属。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18989" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18989" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-31">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-32">
+<span class="daily-paper-number">32</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2506.22430" rel="noopener noreferrer" target="_blank">通用多体纠缠交换协议：分布式量子计算的机遇</a><a class="daily-permalink-link" href="#paper-32" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2506.22430" rel="noopener noreferrer" target="_blank">General many-body entanglement swapping protocol: opportunities for distributed quantum computing</a><a class="daily-permalink-link" href="#paper-32" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Santeri Huhtanen, Yousef Mafi, Ali G. Moghaddam, Teemu Ojanen</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出通用多体纠缠交换协议，允许非定域多方共享纠缠对，为分布式量子计算与量子网络中的资源路由提供新方案。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>提出通用多体纠缠交换协议助力分布式量子计算。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2506.22430" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2506.22430" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-32">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-33">
+<span class="daily-paper-number">33</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19343" rel="noopener noreferrer" target="_blank">通过应变下弹热效应探测候选交错磁体MnF₂的多极序</a><a class="daily-permalink-link" href="#paper-33" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19343" rel="noopener noreferrer" target="_blank">Probing multipolar order in the candidate altermagnet MnF₂ through the elastocaloric effect under strain</a><a class="daily-permalink-link" href="#paper-33" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Rahel Ohlendorf, Luca Buiarelli, Hilary M. L. Noad, Andrew P. Mackenzie, Rafael M. Fernandes, Turan Birol, Jörg Schmalian, Elena Gati</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用应变下的弹热效应探测MnF₂的多极序，验证d波交错磁体的磁多极矩特征及对称性破缺。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>用弹热效应在应变下探测MnF₂的交错磁多极序。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19343" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19343" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-33">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-34">
+<span class="daily-paper-number">34</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2508.17984" rel="noopener noreferrer" target="_blank">通过自旋-极化激子形成实现腔修饰塞曼效应</a><a class="daily-permalink-link" href="#paper-34" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2508.17984" rel="noopener noreferrer" target="_blank">Cavity-Modified Zeeman Effect via Spin-Polariton Formation</a><a class="daily-permalink-link" href="#paper-34" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Eric W. Fischer, Michael Roemelt</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>研究有效自旋-1/2体系在低频光学腔强耦合与外磁场共同作用下的电子自旋塞曼效应，阐明腔磁耦合与自旋-极化激子形成之间的相互竞争与协同。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>提出腔强耦合诱导的自旋-极化激子可显著修饰塞曼分裂。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2508.17984" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2508.17984" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-34">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-35">
+<span class="daily-paper-number">35</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2504.05549" rel="noopener noreferrer" target="_blank">通过量子姆彭巴效应快速直接制备真实晶格玻色-爱因斯坦凝聚</a><a class="daily-permalink-link" href="#paper-35" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2504.05549" rel="noopener noreferrer" target="_blank">Fast and direct preparation of a genuine lattice BEC via the quantum Mpemba effect</a><a class="daily-permalink-link" href="#paper-35" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Philipp Westhoff, Sebastian Paeckel, Mattia Moroder</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用弱对称性解析识别一类简单耗散协议，借助量子姆彭巴效应显著加速多体系统中真实晶格玻色-爱因斯坦凝聚的制备。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>利用量子姆彭巴效应加速耗散制备真实晶格玻色-爱因斯坦凝聚。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2504.05549" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2504.05549" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-35">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-36">
+<span class="daily-paper-number">36</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19105" rel="noopener noreferrer" target="_blank">量子振荡测量揭示 CrSb 中的交替磁自旋劈裂费米面</a><a class="daily-permalink-link" href="#paper-36" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19105" rel="noopener noreferrer" target="_blank">Altermagnetic spin-split Fermi surfaces in CrSb revealed by quantum oscillation measurements</a><a class="daily-permalink-link" href="#paper-36" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Taichi Terashima, Yuya Hattori, David Graf, Takahiro Urata, Tomoki Yoshioka, Wataru Hattori, Hiroshi Ikuta, Hiroaki Ikeda</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>在 CrSb 单晶中通过转角量子振荡实验，直接观测到体相交替磁自旋劈裂费米面，为交替磁性作为本征 bulk 性质提供决定性实验证据。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>量子振荡首次在 CrSb 中直接证实体相交替磁自旋劈裂。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19105" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19105" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-36">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-37">
+<span class="daily-paper-number">37</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2501.14410" rel="noopener noreferrer" target="_blank">量子线中的二分涨落与电荷分数化</a><a class="daily-permalink-link" href="#paper-37" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2501.14410" rel="noopener noreferrer" target="_blank">Bipartite Fluctuations and Charge Fractionalization in Quantum Wires</a><a class="daily-permalink-link" href="#paper-37" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Magali Korolev, Karyn Le Hur</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>将二分涨落方法推广至 Luttinger 液体中的手征准粒子，提出通过电荷-电流涨落测量量子线中分数电荷的量子信息方案。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>二分涨落方案测量 Luttinger 液体中的分数电荷。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2501.14410" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2501.14410" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-37">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-38">
+<span class="daily-paper-number">38</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19648" rel="noopener noreferrer" target="_blank">阻挫伊辛蜂窝晶格上铁磁与反铁磁相的竞争</a><a class="daily-permalink-link" href="#paper-38" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19648" rel="noopener noreferrer" target="_blank">Competing ferromagnetic and antiferromagnetic phases on the frustrated Ising honeycomb lattice</a><a class="daily-permalink-link" href="#paper-38" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Pietro F. Dias, Fabio M. Zimmer, Nikolaos G. Fytas, Mateus Schmidt</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>研究 J₁-J₂-J₃ 伊辛模型在蜂窝晶格上的相图，J₁&gt;0、J₂&gt;0 为近邻铁磁耦合，J₃&lt;0 为三近邻反铁磁耦合，团簇平均场揭示铁磁与反铁磁序的竞争区域。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>团簇平均场揭示阻挫蜂窝晶格中铁磁与反铁磁相的复杂竞争。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19648" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19648" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-38">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-39">
+<span class="daily-paper-number">39</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2504.06217" rel="noopener noreferrer" target="_blank">隐蔽量子目标感知的切尔诺夫信息瓶颈</a><a class="daily-permalink-link" href="#paper-39" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2504.06217" rel="noopener noreferrer" target="_blank">Chernoff Information Bottleneck for Covert Quantum Target Sensing</a><a class="daily-permalink-link" href="#paper-39" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Giuseppe Ortolano, Ivano Ruo-Berchera, Leonardo Banchi</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>将切尔诺夫信息瓶颈框架应用于隐蔽量子传感，在固定探针能量约束下量化量子优势，为低可探测性量子计量提供优化策略。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>用切尔诺夫信息瓶颈优化隐蔽量子目标感知的探测策略。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2504.06217" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2504.06217" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-39">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-40">
+<span class="daily-paper-number">40</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2407.20577" rel="noopener noreferrer" target="_blank">高磁场下银和金原子尺寸接触的电导</a><a class="daily-permalink-link" href="#paper-40" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2407.20577" rel="noopener noreferrer" target="_blank">Conductance of atomic size contacts of Ag and Au at high magnetic fields</a><a class="daily-permalink-link" href="#paper-40" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Beilun Wu, Andrés Martínez, Paula Obladen, Marta Fernández-Lomana, Edwin Herrera, Carlos Sabater, Juan José Palacios, Isabel Guillamón, Hermann Suderow</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用朗道尔公式研究 Au 和 Ag 单原子点接触在高磁场下的电导，测量量子化电导平台随磁场的演化，分析单一导电通道的塞曼分裂效应。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>测量高磁场下金、银单原子点接触电导的量子化平台演化。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2407.20577" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2407.20577" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-40">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-41">
+<span class="daily-paper-number">41</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.science.org/doi/abs/10.1126/sciadv.aec7718?af=R" rel="noopener noreferrer" target="_blank">网络拓扑与溶剂协同实现高弹性和全能粘附凝胶</a><a class="daily-permalink-link" href="#paper-41" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.science.org/doi/abs/10.1126/sciadv.aec7718?af=R" rel="noopener noreferrer" target="_blank">Synergizing network topology and solvent compatibility for gels with hyperelasticity and omniadhesion</a><a class="daily-permalink-link" href="#paper-41" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 AAAS: Science Advances: Table of Contents</span><span class="daily-chip daily-chip-authors">👤 Qiqi Xue, Xinyu He, Jincheng Lei, Wei Hong, Canhui Yang</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>通过协同设计网络拓扑与溶剂相容性，制备兼具超弹性和全能粘附性能的凝胶材料。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>协同网络拓扑与溶剂相容性设计超弹性全能粘附凝胶。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://www.science.org/doi/abs/10.1126/sciadv.aec7718?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.science.org/doi/abs/10.1126/sciadv.aec7718?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-41">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-42">
+<span class="daily-paper-number">42</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="http://link.aps.org/doi/10.1103/j2qj-vwcl" rel="noopener noreferrer" target="_blank">量子储层计算中多体量子混沌的边界</a><a class="daily-permalink-link" href="#paper-42" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="http://link.aps.org/doi/10.1103/j2qj-vwcl" rel="noopener noreferrer" target="_blank">Edge of Many-Body Quantum Chaos in Quantum Reservoir Computing</a><a class="daily-permalink-link" href="#paper-42" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 物理 / 凝聚态</span><span class="daily-chip daily-chip-journal">📖 Phys. Rev. Lett.</span><span class="daily-chip daily-chip-authors">👤 Kaito Kobayashi and Yukitoshi Motome</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>研究量子储层计算的动力学相图，发现量子混沌边缘区域具有最优计算能力，为设计高效量子储层提供理论指导。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>量子混沌边缘对应量子储层计算的最优性能区。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="http://link.aps.org/doi/10.1103/j2qj-vwcl" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="http://link.aps.org/doi/10.1103/j2qj-vwcl" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-42">页内定位</a></div></div>
+</div>
+</li>
+</ol>
+</section>
+<section class="daily-topic-group" id="topic-ai-化学-分子-催化">
+<div class="daily-topic-head">
+<div>
+<h3 class="daily-topic-title">AI × 化学 / 分子 / 催化</h3><a class="daily-permalink-link daily-topic-anchor" href="#topic-ai-化学-分子-催化" title="复制专题定位">#</a>
+<p class="daily-topic-desc">分子设计、反应、催化、电化学与化学计算。</p>
+</div>
+<div class="daily-topic-count">4 篇</div>
+</div>
+<ol class="daily-paper-list">
+<li class="daily-paper-card" id="paper-43">
+<span class="daily-paper-number">43</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19669" rel="noopener noreferrer" target="_blank">神经网络辅助微环谐振器色散计量</a><a class="daily-permalink-link" href="#paper-43" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19669" rel="noopener noreferrer" target="_blank">Microring Resonator Dispersion Metrology with Neural Networks</a><a class="daily-permalink-link" href="#paper-43" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Ergun Simsek, Shao-Chien Ou, Gregory Moille, Kartik Srinivasan</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用神经网络从传输光谱中快速反演微环谐振器的几何与材料色散参数，精度媲美传统拟合方法，速度提升数个数量级。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>神经网络快速高精度反演微环谐振器色散参数。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19669" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19669" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-43">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-44">
+<span class="daily-paper-number">44</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626000522?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">GaN 辐照损伤的机器学习分子动力学：微位移效应</a><a class="daily-permalink-link" href="#paper-44" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626000522?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">Machine-learning molecular dynamics of GaN: micro-displacement effects in radiation damage</a><a class="daily-permalink-link" href="#paper-44" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 ScienceDirect</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>采用机器学习分子动力学模拟 GaN 中的级联碰撞，揭示微位移缺陷对辐照损伤演化的关键影响，为核能/空间电子器件提供参考。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>机器学习分子动力学揭示 GaN 辐照损伤的微位移效应。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626000522?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://www.sciencedirect.com/science/article/pii/S0927025626000522?dgcid=rss_sd_all" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-44">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-45">
+<span class="daily-paper-number">45</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c16942" rel="noopener noreferrer" target="_blank">机器学习融合多模态光谱揭示局域结构</a><a class="daily-permalink-link" href="#paper-45" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="http://dx.doi.org/10.1021/acsnano.5c16942" rel="noopener noreferrer" target="_blank">[ASAP] Revealing Local Structures through Machine-Learning-Fused Multimodal Spectroscopy</a><a class="daily-permalink-link" href="#paper-45" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 ACS Nano: Latest Articles (ACS Publications)</span><span class="daily-chip daily-chip-authors">👤 Haili Jia, Yiming Chen, Gi-Hyeok Lee, Jacob Smith, Miaofang Chi, Wanli Yang, and Maria K. Y. Chan</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>发展机器学习融合 X 射线吸收谱与电子能量损失谱的方法，从多模态光谱中精准提取复杂材料的局域原子与电子结构信息。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>机器学习融合多模态光谱解析材料局域结构。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="http://dx.doi.org/10.1021/acsnano.5c16942" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="http://dx.doi.org/10.1021/acsnano.5c16942" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-45">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-46">
+<span class="daily-paper-number">46</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514907?af=R" rel="noopener noreferrer" target="_blank">氨基酸诱导的界面富集粘附分子动态网络用于高强度可回收基材自适应蛋白粘附剂</a><a class="daily-permalink-link" href="#paper-46" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514907?af=R" rel="noopener noreferrer" target="_blank">Amino Acid‐Induced Dynamic Networks of Interface‐Enriched Adhesive Molecules for High‐Strength, Recyclable, and Substrate‐Adaptive Protein Adhesives</a><a class="daily-permalink-link" href="#paper-46" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 化学 / 分子</span><span class="daily-chip daily-chip-journal">📖 Wiley: Advanced Materials: Table of Contents</span><span class="daily-chip daily-chip-authors">👤 Kaiyuan Huo, Huaping Li, Hongxiang Wang, Chengwei Xu, Junpeng Wang, Qiang Chen, Fangfu Ye, Na Li</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用氨基酸诱导界面富集粘附分子形成动态网络，开发高强度、可回收且基材自适应的蛋白基粘附剂。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>开发氨基酸诱导动态网络的高强度可回收蛋白粘附剂。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514907?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514907?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-46">页内定位</a></div></div>
+</div>
+</li>
+</ol>
+</section>
+<section class="daily-topic-group" id="topic-ai-材料-器件">
+<div class="daily-topic-head">
+<div>
+<h3 class="daily-topic-title">AI × 材料 / 器件</h3><a class="daily-permalink-link daily-topic-anchor" href="#topic-ai-材料-器件" title="复制专题定位">#</a>
+<p class="daily-topic-desc">材料发现、结构、器件、表界面与性能预测。</p>
+</div>
+<div class="daily-topic-count">4 篇</div>
+</div>
+<ol class="daily-paper-list">
+<li class="daily-paper-card" id="paper-47">
+<span class="daily-paper-number">47</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2511.18069" rel="noopener noreferrer" target="_blank">TiCr₂Hₓ Laves 相中氢扩散：从头算与机器学习势联合研究</a><a class="daily-permalink-link" href="#paper-47" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2511.18069" rel="noopener noreferrer" target="_blank">Hydrogen diffusion in TiCr₂Hₓ Laves phases: A combined ab initio and machine-learning-potential study</a><a class="daily-permalink-link" href="#paper-47" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Pranav Kumar, Fritz Körmann, Kaveh Edalati, Blazej Grabowski, Yuji Ikeda</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>结合 DFT 与机器学习势，系统研究 C15/C14 TiCr₂Hₓ 中氢扩散动力学，阐明不同晶体结构和氢浓度下的扩散路径与能垒。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>DFT+机器学习势揭示 TiCr₂Hₓ 中氢扩散机制。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2511.18069" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2511.18069" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-47">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-48">
+<span class="daily-paper-number">48</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514904?af=R" rel="noopener noreferrer" target="_blank">纤维晶体管作为脉冲神经网络的硬件替代梯度</a><a class="daily-permalink-link" href="#paper-48" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514904?af=R" rel="noopener noreferrer" target="_blank">Fiber Transistors as a Hardware Surrogate Gradient for Backpropagation in Spiking Neural Networks</a><a class="daily-permalink-link" href="#paper-48" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Wiley: Advanced Materials: Table of Contents</span><span class="daily-chip daily-chip-authors">👤 Weichu Chen, Hao Jiang, Chengyang Du, Yueheng Zhong, Xiangyu Wang, Xiang Li, Zhu Chen, Qicheng Liang, Fengqiang Sun, Yuwen Zhu, Jian‐Gang Chen, Liang‐Wen Feng, Hongzhi Wang, Meifang Zhu, Hengda Sun, Gang Wang</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>利用纤维晶体管的电导调制特性，在硬件中实现脉冲神经网络的替代梯度反向传播，为可穿戴神经形态计算提供新方案。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>纤维晶体管硬件实现脉冲神经网络替代梯度反向传播。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514904?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202514904?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-48">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-49">
+<span class="daily-paper-number">49</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202516673?af=R" rel="noopener noreferrer" target="_blank">原位聚合电解质集成正极中网络驱动离子传输用于智能传感平台长寿命结构电池</a><a class="daily-permalink-link" href="#paper-49" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202516673?af=R" rel="noopener noreferrer" target="_blank">Network‐Driven Ion Transport in Robust In Situ Polymerized Electrolyte‐Integrated Cathodes for Long‐Life Structural Batteries in Intelligent Sensing Platforms</a><a class="daily-permalink-link" href="#paper-49" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Wiley: Advanced Materials: Table of Contents</span><span class="daily-chip daily-chip-authors">👤 Yu Fu, Zehua Wang, Yifan Chen, Xiang Xu, Rentao Li, Yiu Wing Mai</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>构建原位聚合电解质集成正极，利用网络结构驱动离子传输，实现智能传感平台用长寿命结构电池。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>设计网络驱动离子传输的长寿命结构电池正极。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202516673?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.202516673?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-49">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-50">
+<span class="daily-paper-number">50</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202516617?af=R" rel="noopener noreferrer" target="_blank">无线无电池人工喉贴片结合深度学习实现情感语音识别</a><a class="daily-permalink-link" href="#paper-50" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202516617?af=R" rel="noopener noreferrer" target="_blank">A Wireless, Battery‐Free Artificial Throat Patch with Deep Learning for Emotional Speech Recognition</a><a class="daily-permalink-link" href="#paper-50" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 材料 / 器件</span><span class="daily-chip daily-chip-journal">📖 Wiley: Advanced Science: Table of Contents</span><span class="daily-chip daily-chip-authors">👤 Bingxin Xu, Guanming Lin, Xiaohui Hong, Chuting Liu, Xinyi Qu, Kangjian Jiao, Lei Zhang, Bingzhe Xu, Jun Yan, Yancong Qiao, Xudong Lin</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>开发基于石墨烯的柔性无线无电池人工喉贴片，集成深度学习算法，可同时识别语音内容与情感状态，助力失声患者交流。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>柔性人工喉贴片结合深度学习实现情感语音识别。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202516617?af=R" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://advanced.onlinelibrary.wiley.com/doi/10.1002/advs.202516617?af=R" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-50">页内定位</a></div></div>
+</div>
+</li>
+</ol>
+</section>
+<section class="daily-topic-group" id="topic-相关方法-计算工具">
+<div class="daily-topic-head">
+<div>
+<h3 class="daily-topic-title">相关方法 / 计算工具</h3><a class="daily-permalink-link daily-topic-anchor" href="#topic-相关方法-计算工具" title="复制专题定位">#</a>
+<p class="daily-topic-desc">AI 方法、模拟工具与具有直接科研支撑价值的工作。</p>
+</div>
+<div class="daily-topic-count">4 篇</div>
+</div>
+<ol class="daily-paper-list">
+<li class="daily-paper-card" id="paper-51">
+<span class="daily-paper-number">51</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18848" rel="noopener noreferrer" target="_blank">基于小波的物理信息残差神经网络实现极稀疏数据流场重构</a><a class="daily-permalink-link" href="#paper-51" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18848" rel="noopener noreferrer" target="_blank">An Efficient Wavelet-based Physics Informed Residual Neural Networks for Flow Field Reconstruction with Extremely Sparse Data</a><a class="daily-permalink-link" href="#paper-51" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 方法 / 工具</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Biswanath Barman, Rajendra K. Ray</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>提出小波-物理信息残差神经网络，从极稀疏监督数据重构复杂流场，通过多尺度小波分解提升物理约束下的重建精度。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>小波物理信息残差网络从极稀疏数据重构流场。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18848" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18848" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-51">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-52">
+<span class="daily-paper-number">52</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19118" rel="noopener noreferrer" target="_blank">网络型与堆垛型玻璃动力学结构因子中的玻色峰</a><a class="daily-permalink-link" href="#paper-52" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.19118" rel="noopener noreferrer" target="_blank">Boson peak in the dynamical structure factor of network- and packing-type glasses</a><a class="daily-permalink-link" href="#paper-52" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 方法 / 工具</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Hideyuki Mizuno, Emi Minamitani</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>通过模拟研究网络玻璃与堆垛玻璃的动力学结构因子，揭示玻色峰在两种玻璃形成机制中的共性特征与微观结构起源。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>阐明网络玻璃与堆垛玻璃中玻色峰的微观结构起源。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.19118" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.19118" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-52">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-53">
+<span class="daily-paper-number">53</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2509.03743" rel="noopener noreferrer" target="_blank">应变硬化过程中位错网络的链统计</a><a class="daily-permalink-link" href="#paper-53" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2509.03743" rel="noopener noreferrer" target="_blank">Link Statistics of Dislocation Network during Strain Hardening</a><a class="daily-permalink-link" href="#paper-53" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 其他</span><span class="daily-chip daily-chip-journal">📖 arXiv / cond-mat</span><span class="daily-chip daily-chip-authors">👤 Sh. Akhondzadeh, Hanfeng Zhai, Wurong Jian, Ryan B. Sills, Nicolas Bertin, Wei Cai</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>分析应变硬化阶段位错网络中连接相邻节点的位错链长度统计，揭示位错网络演化的关键微观信息。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>通过位错链统计揭示应变硬化中位错网络演化规律。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2509.03743" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2509.03743" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-53">页内定位</a></div></div>
+</div>
+</li>
+<li class="daily-paper-card" id="paper-54">
+<span class="daily-paper-number">54</span>
+<div class="daily-paper-body">
+<div class="daily-paper-head">
+<div class="daily-paper-titles">
+<div class="daily-paper-title-zh"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18895" rel="noopener noreferrer" target="_blank">网络上异步表达隐私q-voter模型：自我反从众与偏好伪装</a><a class="daily-permalink-link" href="#paper-54" title="复制本页定位">#</a></div>
+<div class="daily-paper-title-en"><a class="daily-title-link" href="https://arxiv.org/abs/2601.18895" rel="noopener noreferrer" target="_blank">Competition between private and expressed opinions in binary choice: the α-EPO q-voter model</a><a class="daily-permalink-link" href="#paper-54" title="复制本页定位">#</a></div>
+</div>
+</div>
+<div class="daily-paper-meta"><span class="daily-chip daily-chip-topic">🧭 其他</span><span class="daily-chip daily-chip-journal">📖 arXiv / physics</span><span class="daily-chip daily-chip-authors">👤 Barbara Kamińska, Barbara Nowak, Arkadiusz Lipiecki, Katarzyna Sznajd-Weron</span></div>
+<div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>建立网络上异步表达隐私q-voter模型，研究社会压力下的偏好伪装与意图-行为差距等社会动力学现象。</p><p class="daily-paper-highlight"><strong>💡 亮点：</strong>提出异步表达隐私q-voter模型研究偏好伪装行为。</p></div>
+<div class="daily-paper-actions">
+<a class="daily-news-link" href="https://arxiv.org/abs/2601.18895" rel="noopener noreferrer" target="_blank">阅读原文 ↗</a>
+<div class="daily-inline-links"><a class="daily-inline-link" href="https://arxiv.org/abs/2601.18895" rel="noopener noreferrer" target="_blank">原文链接</a><a class="daily-inline-link" href="#paper-54">页内定位</a></div></div>
+</div>
+</li>
+</ol>
+</section>
+</section>
+<nav aria-label="日报日期导航" class="daily-nav daily-nav-bottom"><a class="daily-nav-link daily-nav-prev" href="2026-01-26.html">← 前一天 · 2026-01-26</a><a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a><a class="daily-nav-link daily-nav-next" href="2026-01-29.html">后一天 · 2026-01-29 →</a></nav>
+<div class="daily-page-nav" id="daily-enhancement-bottom-nav"><a class="daily-page-nav-link" href="2026-01-27.html">前一天 · 2026-01-27</a><a class="daily-page-nav-link" href="2026-01-29.html">后一天 · 2026-01-29</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-01-28.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div><div class="daily-footer">
+          本页由文献追踪系统自动生成，仅保留 AI × 物理 / 化学 / 材料主线相关文献，并按专题重新整理，方便快速筛选与深度阅读。
+        </div>
+</article>
+<aside class="daily-toc">
+<div class="daily-toc-card">
+<div class="daily-toc-title">目录</div>
+<a href="#core-focus"><span>🎯 核心关注</span><span>00</span></a>
+<a href="#summary"><span>今日摘要</span><span>01</span></a>
+<a href="#highlights"><span>交叉重点</span><span>02</span></a>
+<a href="#papers"><span>完整速览</span><span>03</span></a>
+<div class="daily-sidebar-block">
+<div class="daily-sidebar-title">专题分布</div>
+<div class="daily-sidebar-stats"><div class="daily-sidebar-fact"><span>AI × 物理 / 凝聚态</span><strong>42</strong></div><div class="daily-sidebar-fact"><span>AI × 化学 / 分子 / 催化</span><strong>4</strong></div><div class="daily-sidebar-fact"><span>AI × 材料 / 器件</span><strong>4</strong></div><div class="daily-sidebar-fact"><span>相关方法 / 计算工具</span><strong>4</strong></div></div>
+</div>
+<div class="daily-sidebar-block" id="daily-enhancement-outline"><div class="daily-sidebar-title">单页目录</div><div class="daily-outline-scroll"><div class="daily-outline-group"><a class="daily-outline-group-title" href="#highlights">交叉重点</a><div class="daily-outline-list"><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-1">机器学习加速发现巨极化超四方钙钛矿<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-2">从设定点依赖扫描隧道谱学习分子哈密顿量<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-3">增强光子神经网络的量子光探测<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-4">MAD-SURF：贵金属表面分子吸附的机器学习原子势<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-5">应变可调二维 Janus 铁电交替磁体中的全电学自旋纹理翻转<span class="daily-outline-meta">交叉重点</span></a><a class="daily-outline-link daily-outline-link-highlight" href="#highlight-6">自旋轨道耦合双层三角晶格反铁磁体 Rb₂Co₂(SeO₃)₃ 中的磁化平台<span class="daily-outline-meta">交叉重点</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-物理-凝聚态">AI × 物理 / 凝聚态</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-1">Eu掺杂无限层镍酸盐中顺磁驱动的超导再入<span class="daily-outline-meta">01</span></a><a class="daily-outline-link" href="#paper-2">Fe₂₋ₓScₓO₃中晶格结构与反铁磁序破缺对铁磁、电磁及磁电性能的增强作用<span class="daily-outline-meta">02</span></a><a class="daily-outline-link" href="#paper-3">Lee-Huang-Yang偶极超流体中的稳定量子涡旋<span class="daily-outline-meta">03</span></a><a class="daily-outline-link" href="#paper-4">PT 对称反铁磁双层中的非常规约瑟夫森效应<span class="daily-outline-meta">04</span></a><a class="daily-outline-link" href="#paper-5">p波磁体中的非相对论Ising超导<span class="daily-outline-meta">05</span></a><a class="daily-outline-link" href="#paper-6">Rimu.jl：多体量子系统的随机积分器<span class="daily-outline-meta">06</span></a><a class="daily-outline-link" href="#paper-7">一类关联非中心对称材料中的自旋-轨道纠缠拓扑超导<span class="daily-outline-meta">07</span></a><a class="daily-outline-link" href="#paper-8">三维自旋玻璃中德阿尔梅达-图勒斯转变的证据<span class="daily-outline-meta">08</span></a><a class="daily-outline-link" href="#paper-9">原位洛伦兹透射电镜测绘 (Fe₀.₅Co₀.₅)₅GeTe₂ 中的亚稳磁结构<span class="daily-outline-meta">09</span></a><a class="daily-outline-link" href="#paper-10">原子自旋二极管的微观理论<span class="daily-outline-meta">10</span></a><a class="daily-outline-link" href="#paper-11">双层Ising模型中的莫尔磁性<span class="daily-outline-meta">11</span></a><a class="daily-outline-link" href="#paper-12">受控磁岛分叉对电子扩散的影响<span class="daily-outline-meta">12</span></a><a class="daily-outline-link" href="#paper-13">合成维度中的原子超导量子干涉器件<span class="daily-outline-meta">13</span></a><a class="daily-outline-link" href="#paper-14">基于 Al/AlOₓ/4Hb-TaS₂ 约瑟夫森结的磁通可调 transmon<span class="daily-outline-meta">14</span></a><a class="daily-outline-link" href="#paper-15">基于随机采样Krylov量子对角化的可证明收敛量子化学<span class="daily-outline-meta">15</span></a><a class="daily-outline-link" href="#paper-16">堆叠量子Ising系统与量子Ashkin-Teller模型<span class="daily-outline-meta">16</span></a><a class="daily-outline-link" href="#paper-17">小行星 (16) 灵神星及其他天体的早期太阳风与发电机磁场拓扑预测<span class="daily-outline-meta">17</span></a><a class="daily-outline-link" href="#paper-18">无限层钐镍氧化物中超导体-绝缘体转变的玻色子相<span class="daily-outline-meta">18</span></a><a class="daily-outline-link" href="#paper-19">晶格孤子分数拓扑泵浦的量子理论<span class="daily-outline-meta">19</span></a><a class="daily-outline-link" href="#paper-20">有效横向弛豫（T2*）的磁共振模拟<span class="daily-outline-meta">20</span></a><a class="daily-outline-link" href="#paper-21">淬火后一维周期体系量子几何张量的演化<span class="daily-outline-meta">21</span></a><a class="daily-outline-link" href="#paper-22">滑移铁电反铁磁中层锁定反常谷霍尔效应的双开关调控<span class="daily-outline-meta">22</span></a><a class="daily-outline-link" href="#paper-23">相互作用条件语义与量子悖论的消解<span class="daily-outline-meta">23</span></a><a class="daily-outline-link" href="#paper-24">磁通量绳爆发过程中重联磁通的演化<span class="daily-outline-meta">24</span></a><a class="daily-outline-link" href="#paper-25">等离激元与亚铁磁磁振子的拓扑杂化<span class="daily-outline-meta">25</span></a><a class="daily-outline-link" href="#paper-26">紧凑环向体的磁压缩实验与模拟<span class="daily-outline-meta">26</span></a><a class="daily-outline-link" href="#paper-27">耗散量子Rabi模型中的非高斯相变与不稳定级联<span class="daily-outline-meta">27</span></a><a class="daily-outline-link" href="#paper-28">莫尔激子绝缘体中激子晶体的观测<span class="daily-outline-meta">28</span></a><a class="daily-outline-link" href="#paper-29">超导涨落输运图解入门笔记 II：弱场微扰下的霍尔与能斯特效应<span class="daily-outline-meta">29</span></a><a class="daily-outline-link" href="#paper-30">辐照下共线铁磁螺旋结构中的自旋热电子学<span class="daily-outline-meta">30</span></a><a class="daily-outline-link" href="#paper-31">迈向可调磁狄拉克半金属：Cd₃As₂的Mn掺杂<span class="daily-outline-meta">31</span></a><a class="daily-outline-link" href="#paper-32">通用多体纠缠交换协议：分布式量子计算的机遇<span class="daily-outline-meta">32</span></a><a class="daily-outline-link" href="#paper-33">通过应变下弹热效应探测候选交错磁体MnF₂的多极序<span class="daily-outline-meta">33</span></a><a class="daily-outline-link" href="#paper-34">通过自旋-极化激子形成实现腔修饰塞曼效应<span class="daily-outline-meta">34</span></a><a class="daily-outline-link" href="#paper-35">通过量子姆彭巴效应快速直接制备真实晶格玻色-爱因斯坦凝聚<span class="daily-outline-meta">35</span></a><a class="daily-outline-link" href="#paper-36">量子振荡测量揭示 CrSb 中的交替磁自旋劈裂费米面<span class="daily-outline-meta">36</span></a><a class="daily-outline-link" href="#paper-37">量子线中的二分涨落与电荷分数化<span class="daily-outline-meta">37</span></a><a class="daily-outline-link" href="#paper-38">阻挫伊辛蜂窝晶格上铁磁与反铁磁相的竞争<span class="daily-outline-meta">38</span></a><a class="daily-outline-link" href="#paper-39">隐蔽量子目标感知的切尔诺夫信息瓶颈<span class="daily-outline-meta">39</span></a><a class="daily-outline-link" href="#paper-40">高磁场下银和金原子尺寸接触的电导<span class="daily-outline-meta">40</span></a><a class="daily-outline-link" href="#paper-41">网络拓扑与溶剂协同实现高弹性和全能粘附凝胶<span class="daily-outline-meta">41</span></a><a class="daily-outline-link" href="#paper-42">量子储层计算中多体量子混沌的边界<span class="daily-outline-meta">42</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-化学-分子-催化">AI × 化学 / 分子 / 催化</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-43">神经网络辅助微环谐振器色散计量<span class="daily-outline-meta">43</span></a><a class="daily-outline-link" href="#paper-44">GaN 辐照损伤的机器学习分子动力学：微位移效应<span class="daily-outline-meta">44</span></a><a class="daily-outline-link" href="#paper-45">机器学习融合多模态光谱揭示局域结构<span class="daily-outline-meta">45</span></a><a class="daily-outline-link" href="#paper-46">氨基酸诱导的界面富集粘附分子动态网络用于高强度可回收基材自适应蛋白粘附剂<span class="daily-outline-meta">46</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-ai-材料-器件">AI × 材料 / 器件</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-47">TiCr₂Hₓ Laves 相中氢扩散：从头算与机器学习势联合研究<span class="daily-outline-meta">47</span></a><a class="daily-outline-link" href="#paper-48">纤维晶体管作为脉冲神经网络的硬件替代梯度<span class="daily-outline-meta">48</span></a><a class="daily-outline-link" href="#paper-49">原位聚合电解质集成正极中网络驱动离子传输用于智能传感平台长寿命结构电池<span class="daily-outline-meta">49</span></a><a class="daily-outline-link" href="#paper-50">无线无电池人工喉贴片结合深度学习实现情感语音识别<span class="daily-outline-meta">50</span></a></div></div><div class="daily-outline-group"><a class="daily-outline-group-title" href="#topic-相关方法-计算工具">相关方法 / 计算工具</a><div class="daily-outline-list"><a class="daily-outline-link" href="#paper-51">基于小波的物理信息残差神经网络实现极稀疏数据流场重构<span class="daily-outline-meta">51</span></a><a class="daily-outline-link" href="#paper-52">网络型与堆垛型玻璃动力学结构因子中的玻色峰<span class="daily-outline-meta">52</span></a><a class="daily-outline-link" href="#paper-53">应变硬化过程中位错网络的链统计<span class="daily-outline-meta">53</span></a><a class="daily-outline-link" href="#paper-54">网络上异步表达隐私q-voter模型：自我反从众与偏好伪装<span class="daily-outline-meta">54</span></a></div></div></div></div><div class="daily-sidebar-block" id="daily-enhancement-sidebar-nav"><div class="daily-sidebar-title">日期跳转</div><div class="daily-page-nav" id="daily-sidebar-nav-inner"><a class="daily-page-nav-link" href="2026-01-27.html">前一天 · 2026-01-27</a><a class="daily-page-nav-link" href="2026-01-29.html">后一天 · 2026-01-29</a><a class="daily-page-nav-link" href="2026-04-15.html">最新一期 · 2026-04-15</a><a class="daily-page-nav-link" href="index.html">日报归档</a><a class="daily-page-nav-link" href="2026-01-28.xml">当日RSS</a><a class="daily-page-nav-link" href="../feed.xml">站点RSS</a><a class="daily-page-nav-link" href="../index.html">主页</a><a class="daily-page-nav-link" href="#summary">今日摘要</a><a class="daily-page-nav-link" href="#highlights">交叉重点</a><a class="daily-page-nav-link" href="#papers">完整速览</a></div></div><div class="daily-sidebar-block">
+<div class="daily-sidebar-title">阅读建议</div>
+<ul class="insight-note-list">
+<li class="insight-note-item">先看交叉重点，再按物理、化学、材料与方法分区深读。</li>
+<li class="insight-note-item">明显偏离主线的医学、教育等内容已自动剔除。</li>
+<li class="insight-note-item">若需回看历史日报，可从日报索引页按日期倒序进入。</li>
+</ul>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<script>
+    const THEME_KEY = 'literature_theme';
+
+    function initTheme() {
+      const theme = localStorage.getItem(THEME_KEY) || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+      updateThemeButton();
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || 'light';
+      const next = current === 'light' ? 'dark' : 'light';
+      localStorage.setItem(THEME_KEY, next);
+      document.documentElement.setAttribute('data-theme', next);
+      updateThemeButton();
+    }
+
+    function updateThemeButton() {
+      const btn = document.getElementById('themeToggle');
+      const theme = document.documentElement.getAttribute('data-theme') || 'light';
+      if (btn) btn.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+
+    initTheme();
+  </script>
+</body>
+</html>
