@@ -342,24 +342,21 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
         return "".join(meta_parts)
 
     def render_focus_item(item: Dict, index: int) -> str:
-        # 确保有中文标题
-        title_zh = item.get('title_zh', '')
-        title_en = item.get('title_en') or item.get('title', '')
-        
-        if not title_zh:
-            title_zh = title_en
-            
-        title_zh_html = safe_text(title_zh)
-        title_en_html = safe_text(title_en)
+        title_zh = (item.get('title_zh') or '').strip()
+        title_en = (item.get('title_en') or item.get('title') or '').strip()
+        show_zh = bool(title_zh) and title_zh.casefold() != title_en.casefold()
+        title_zh_html = safe_text(title_zh if show_zh else title_en)
+        title_en_html = safe_text(title_en) if show_zh else ""
         meta_html = render_meta_chips(item)
         reason = safe_text(build_highlight_reason(item))
-        
+
+        title_en_block = f'<div class="daily-news-title-en">{title_en_html}</div>' if title_en_html else ''
         return f"""
         <li class="daily-news-item">
             <div class="daily-news-index">{index:02d}</div>
             <div class="daily-news-body">
                 <div class="daily-news-title-zh">{title_zh_html}</div>
-                <div class="daily-news-title-en">{title_en_html}</div>
+                {title_en_block}
                 <div class="daily-news-meta">{meta_html}</div>
                 {safe_summary_text(item)}
                 <p class="daily-news-reason"><strong>关注理由：</strong>{reason}</p>
@@ -369,16 +366,12 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
         """
 
     def render_item(item: Dict, index: int) -> str:
-        # 确保有中文标题（使用AI生成的或显示原标题）
-        title_zh = item.get('title_zh', '')
-        title_en = item.get('title_en') or item.get('title', '')
-        
-        # 如果没有中文标题，用英文标题代替
-        if not title_zh:
-            title_zh = title_en
-        
-        title_zh_html = safe_text(title_zh)
-        title_en_html = safe_text(title_en)
+        title_zh = (item.get('title_zh') or '').strip()
+        title_en = (item.get('title_en') or item.get('title') or '').strip()
+        # 若中文标题缺失或与英文相同，只渲染英文标题一行，不显示重复
+        show_zh = bool(title_zh) and title_zh.casefold() != title_en.casefold()
+        title_zh_html = safe_text(title_zh if show_zh else title_en)
+        title_en_html = safe_text(title_en) if show_zh else ""
         meta_html = render_meta_chips(item)
         
         return f"""
@@ -388,7 +381,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
                 <div class="daily-paper-head">
                     <div class="daily-paper-titles">
                         <div class="daily-paper-title-zh">{title_zh_html}</div>
-                        <div class="daily-paper-title-en">{title_en_html}</div>
+                        {('<div class="daily-paper-title-en">' + title_en_html + '</div>') if title_en_html else ''}
                     </div>
                 </div>
                 <div class="daily-paper-meta">{meta_html}</div>

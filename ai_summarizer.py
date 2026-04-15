@@ -36,6 +36,37 @@ def _clamp_text(text: str, max_chars: int) -> str:
     return text[: max_chars - 1].rstrip() + "…"
 
 
+def _cjk_ratio(text: str) -> float:
+    """Return fraction of CJK characters among letter-like characters (ignores whitespace/punctuation)."""
+    if not text:
+        return 0.0
+    letters = 0
+    cjk = 0
+    for ch in text:
+        if ch.isalpha() or '\u4e00' <= ch <= '\u9fff':
+            letters += 1
+            if '\u4e00' <= ch <= '\u9fff':
+                cjk += 1
+    return (cjk / letters) if letters else 0.0
+
+
+def _looks_untranslated_title(candidate: str, english_title: str) -> bool:
+    """True if AI returned the English title (or near-copy) as `title_zh`."""
+    if not candidate:
+        return False
+    c = candidate.strip()
+    if not c:
+        return False
+    # No Chinese at all → untranslated
+    if _cjk_ratio(c) < 0.3:
+        return True
+    # Direct copy of English (case/whitespace-insensitive, first 60 chars)
+    def norm(s): return "".join((s or "").lower().split())[:60]
+    if norm(c) == norm(english_title):
+        return True
+    return False
+
+
 class AIProvider(ABC):
     """AI提供商基类"""
     
@@ -607,7 +638,9 @@ class AISummarizer:
             "生成一份面向同行研究者的高信息密度中文日报。\n\n"
             f"【文献列表】（格式: [序号] Title / Journal / Authors / Abstract）\n{articles_str}\n\n"
             "【写作硬性要求】\n"
-            "1. title_zh：对原英文标题的准确中译，保留关键术语与材料分子式（如 BaTiO3、MoS2、GaN/AlN），不超过 40 字。\n"
+            "1. title_zh：**必须**把英文标题翻成中文，不超过 40 字。只有**化学式/材料符号/缩写**"
+            "（如 BaTiO3、MoS2、GaN/AlN、DFT、GNN、MBQC）可原样保留，其他英文词一律译成中文。"
+            "**禁止**把 title_zh 填成英文原标题或英文多数词；若检测到输出的 title_zh 里中文字符占比 < 50%，视为违反要求。\n"
             "2. abstract_zh：用中文把摘要压缩成 ≤120 字的研究要点，必须写出：体系/方法/关键数值或结论，至少一项。"
             "禁止任何套话：'本研究/取得进展/具有重要意义/为…提供新思路/点击查看' 等一律不允许。\n"
             "3. one_sentence_summary：一句话 ≤40 字，只写最有信息量的那一点（创新点或最强结论），不得空泛。\n"
@@ -849,9 +882,14 @@ class AISummarizer:
 
             truncated_count = 0
             missing_summary_count = 0
+            untranslated_title_count = 0
             for i, article in enumerate(original_articles, 1):
                 ai_info = summaries_map.get(i, {})
-                title_zh = _clamp_text(ai_info.get('title_zh') or article.get('title_zh') or "", 80)
+                raw_title_zh = ai_info.get('title_zh') or article.get('title_zh') or ""
+                if _looks_untranslated_title(raw_title_zh, article.get('title') or ""):
+                    untranslated_title_count += 1
+                    raw_title_zh = ""  # blank → renderer falls back to English once
+                title_zh = _clamp_text(raw_title_zh, 80)
                 abstract_zh_raw = ai_info.get('abstract_zh') or ""
                 abstract_zh = _clamp_text(abstract_zh_raw, 240)
                 one_sentence = _clamp_text(ai_info.get('one_sentence_summary') or "", 80)
@@ -884,6 +922,10 @@ class AISummarizer:
                 print(f"ℹ️ _parse_response: clamped {truncated_count} over-long field(s)")
             if missing_summary_count:
                 print(f"⚠️ _parse_response: {missing_summary_count}/{len(original_articles)} 文章 AI 总结为空（将显示 '—'）")
+            if untranslated_title_count:
+                print(
+                    f"⚠️ _parse_response: {untranslated_title_count}/{len(original_articles)} 条 title_zh 未翻译（已清空，将回退显示英文原标题）"
+                )
             
             # 处理 highlights
             ml_highlights = []
