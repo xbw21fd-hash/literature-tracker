@@ -26,6 +26,16 @@ except ImportError:
     repair_json = None
 
 
+def _clamp_text(text: str, max_chars: int) -> str:
+    """Clamp text to max_chars (character count, not bytes). Empty input → empty output."""
+    if not text:
+        return ""
+    text = str(text).strip()
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1].rstrip() + "…"
+
+
 class AIProvider(ABC):
     """AI提供商基类"""
     
@@ -101,6 +111,130 @@ class GeminiProvider(AIProvider):
             sleep_s = min(wait_base_seconds * (2 ** max(0, attempt - 1)), wait_max_sleep_seconds)
             # Keep a bit of jitterless wait to reduce flakiness in CI.
             time.sleep(min(sleep_s, max(1.0, (wait_max_seconds - elapsed) if wait_max_seconds > 0 else sleep_s)))
+
+class KimiClaudeCodeProvider(AIProvider):
+    """Kimi-for-Coding endpoint (Anthropic Messages protocol, Claude Code client spoofing).
+
+    Base URL defaults to https://api.kimi.com/coding; endpoint is {base_url}/v1/messages.
+    """
+
+    DEFAULT_BASE_URL = "https://api.kimi.com/coding"
+    DEFAULT_MODEL = "kimi-k2-turbo-preview"
+
+    def __init__(self, api_key: str, model: str = None):
+        self.api_key = (api_key or "").strip()
+        self.model = (
+            model
+            or os.environ.get("AI_MODEL")
+            or os.environ.get("KIMI_MODEL")
+            or self.DEFAULT_MODEL
+        )
+        base = (
+            os.environ.get("KIMI_BASE_URL")
+            or os.environ.get("AI_BASE_URL")
+            or self.DEFAULT_BASE_URL
+        ).rstrip("/")
+        # Accept both ".../coding" and ".../coding/v1/messages"
+        if base.endswith("/v1/messages"):
+            self.endpoint = base
+        elif base.endswith("/v1"):
+            self.endpoint = f"{base}/messages"
+        else:
+            self.endpoint = f"{base}/v1/messages"
+        self.timeout = int(os.environ.get("AI_TIMEOUT_SECONDS", "120"))
+        self.max_retries = int(os.environ.get("AI_MAX_RETRIES", "3"))
+
+    def _headers(self) -> Dict[str, str]:
+        # Header recipe verified against api.kimi.com/coding on 2026-04-15.
+        # Spoofs a Claude Code CLI client (required by the endpoint).
+        return {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.api_key}",
+            "x-api-key": self.api_key,
+            "anthropic-version": "2023-06-01",
+            "anthropic-beta": "prompt-caching-2024-07-31",
+            "user-agent": os.environ.get("KIMI_USER_AGENT", "claude-cli/1.0.60 (external, cli)"),
+            "x-app": "cli",
+            "x-stainless-lang": "js",
+            "x-stainless-package-version": "0.60.0",
+        }
+
+    def call_api(self, prompt: str) -> str:
+        if not self.api_key:
+            raise ValueError("Kimi api_key is empty (set KIMI_API_KEY or AI_API_KEY).")
+
+        wait_max_seconds = int(os.environ.get("AI_WAIT_MAX_SECONDS", "0") or "0")
+        wait_base_seconds = float(os.environ.get("AI_WAIT_BASE_SECONDS", "10") or "10")
+        wait_max_sleep_seconds = float(os.environ.get("AI_WAIT_MAX_SLEEP_SECONDS", "300") or "300")
+
+        system_prompt = (
+            "你是一位资深的凝聚态物理/计算材料科学研究员，擅长把英文学术文献压缩为"
+            "精准、信息密度高、无套话的中文要点；严格按要求输出 JSON。"
+        )
+        payload: Dict[str, Any] = {
+            "model": self.model,
+            "max_tokens": int(os.environ.get("AI_MAX_TOKENS", "8192")),
+            "temperature": 0.2,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+
+        start = time.monotonic()
+        attempt = 0
+        last_err: Optional[Exception] = None
+
+        while True:
+            attempt += 1
+            response = None
+            try:
+                response = requests.post(
+                    self.endpoint, headers=self._headers(), json=payload, timeout=self.timeout
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    blocks = data.get("content") or []
+                    text_parts = [b.get("text", "") for b in blocks if isinstance(b, dict) and b.get("type") == "text"]
+                    text = "".join(text_parts).strip()
+                    if not text:
+                        raise Exception(f"Kimi API 返回空文本: {data}")
+                    return text
+
+                if response.status_code in (401, 403):
+                    # Fatal: don't waste retry budget on auth failure.
+                    raise Exception(f"Kimi API 鉴权失败 ({response.status_code}): {response.text}")
+
+                if response.status_code in (429, 500, 502, 503, 504):
+                    last_err = Exception(f"Kimi API错误 ({response.status_code}): {response.text}")
+                else:
+                    raise Exception(f"Kimi API错误 ({response.status_code}): {response.text}")
+            except Exception as e:
+                last_err = e
+
+            elapsed = time.monotonic() - start
+            if wait_max_seconds > 0:
+                if elapsed >= wait_max_seconds:
+                    raise last_err or Exception("Kimi API failed")
+            else:
+                if attempt >= self.max_retries:
+                    raise last_err or Exception("Kimi API failed")
+
+            retry_after = 0.0
+            if response is not None:
+                try:
+                    ra = (response.headers.get("Retry-After") or "").strip()
+                    if ra:
+                        retry_after = float(ra)
+                except Exception:
+                    retry_after = 0.0
+
+            sleep_s = min(wait_base_seconds * (2 ** max(0, attempt - 1)), wait_max_sleep_seconds)
+            if retry_after > 0:
+                sleep_s = max(sleep_s, retry_after)
+            if wait_max_seconds > 0:
+                remaining = max(0.0, wait_max_seconds - elapsed)
+                sleep_s = min(sleep_s, max(1.0, remaining))
+            time.sleep(sleep_s)
+
 
 class OpenRouterProvider(AIProvider):
     """
@@ -267,7 +401,9 @@ def normalize_chat_completions_url(raw_url: Optional[str]) -> str:
 def build_provider(api_provider: str, api_key: str, model: str = None) -> AIProvider:
     """Factory for AI providers."""
     name = (api_provider or "").strip().lower()
-    if name in ("openrouter", "open-router", "or", "kimi"):
+    if name in ("kimi", "kimi-coding", "moonshot-coding", "kimi-claude"):
+        return KimiClaudeCodeProvider(api_key=api_key, model=model)
+    if name in ("openrouter", "open-router", "or"):
         return OpenRouterProvider(api_key=api_key, model=model)
     # default: gemini
     gemini_model = model if model and "/" not in model else None
@@ -326,6 +462,21 @@ class AISummarizer:
                     merged_ml.extend(part.get("ml_highlights", []))
                     merged_ferro.extend(part.get("ferro_highlights", []))
 
+                # Dedup highlights across chunks by article link.
+                def _dedup_by_link(items: List[Dict]) -> List[Dict]:
+                    seen: set = set()
+                    out: List[Dict] = []
+                    for it in items:
+                        key = it.get("link") or it.get("title_en")
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        out.append(it)
+                    return out
+
+                merged_ml = _dedup_by_link(merged_ml)
+                merged_ferro = _dedup_by_link(merged_ferro)
+
                 # Overview/trends: second-pass with titles only (cheap prompt).
                 overview, trends = self._build_overview_trends(articles, date)
 
@@ -335,8 +486,8 @@ class AISummarizer:
                     "overview": overview,
                     "trends": trends,
                     "full_list": merged_full_list,
-                    "ml_highlights": merged_ml[:20],
-                    "ferro_highlights": merged_ferro[:20],
+                    "ml_highlights": merged_ml[:5],
+                    "ferro_highlights": merged_ferro[:5],
                     "generated_by": self.provider_name,
                 }
                 summary["summaries"] = summary.get("full_list", [])
@@ -379,7 +530,18 @@ class AISummarizer:
             titles.append(f"[{i}] {t}")
         titles_str = "\n".join(titles)
 
-        prompt = f"""你是一位专业的计算材料科学文献分析助手。\n请基于以下 {date} 的文献标题列表，输出今日文献总览与研究热点分析。\n\n标题列表:\n{titles_str}\n\n请严格输出 JSON：\n{{\n  \"overview\": \"今日文献总览（中文，2-3句）\",\n  \"trends\": \"研究热点分析（中文，3-5句）\"\n}}\n不要输出除 JSON 以外的任何内容。"""
+        prompt = (
+            f"你是一位资深凝聚态物理/计算材料科学研究员。请基于 {date} 的以下标题列表，"
+            "输出今日文献的高信息密度总览与热点分析，面向同行读者。\n\n"
+            f"标题列表：\n{titles_str}\n\n"
+            "严格要求：\n"
+            "- overview 2-3 句，必须包含具体的材料体系/方法/现象名称（如 BaTiO3、Moire 超晶格、DFT+U、MACE），"
+            "不得使用 '本研究/具有重要意义/取得进展/为…提供新思路' 之类套话。\n"
+            "- trends 3-5 句，列出 2-3 个真正的研究热点，每个热点写清 '方向 → 具体做法/现象 → 体现它的典型工作'。\n"
+            "- 全中文，不输出任何英文。\n\n"
+            "仅输出如下 JSON，禁止任何额外文字：\n"
+            '{"overview": "...", "trends": "..."}'
+        )
         wait_max_seconds = int(os.environ.get("AI_DAILY_WAIT_MAX_SECONDS") or os.environ.get("AI_WAIT_MAX_SECONDS", "0") or "0")
         wait_base_seconds = float(os.environ.get("AI_DAILY_WAIT_BASE_SECONDS") or os.environ.get("AI_WAIT_BASE_SECONDS", "10") or "10")
         wait_max_sleep_seconds = float(os.environ.get("AI_DAILY_WAIT_MAX_SLEEP_SECONDS") or os.environ.get("AI_WAIT_MAX_SLEEP_SECONDS", "300") or "300")
@@ -427,37 +589,46 @@ class AISummarizer:
         
         articles_str = '\n'.join(articles_text)
         
-        return f"""你是一位专业的计算材料科学文献分析助手。请分析以下{date}的{len(articles)}篇文献，生成报告。
+        example_block = (
+            "示例（仅示范风格，不要直接复制）：\n"
+            "输入: [X] Title: Room-temperature ferroelectricity in two-dimensional van der Waals NbOI2\n"
+            "      Abstract: We report robust out-of-plane ferroelectric switching ...\n"
+            "输出: {\n"
+            '  "index": X,\n'
+            '  "title_zh": "二维范德华 NbOI2 中的室温铁电性",\n'
+            '  "abstract_zh": "在二维 NbOI2 薄层中观测到稳定的面外铁电翻转，矫顽场约 0.3 V/nm，"\n'
+            '                "室温保持时间 > 10^4 s，为低维非易失存储提供候选体系。",\n'
+            '  "one_sentence_summary": "首次在二维 NbOI2 中实现室温稳定的面外铁电翻转。"\n'
+            "}\n"
+        )
 
-文献列表 (格式为 [序号] 标题 - 摘要):
-{articles_str}
-
-请输出以下 JSON 格式（必须严格遵循序号对应，确保每一篇都被总结）：
-{{
-    "overview": "今日文献总览（中文，2-3句）",
-    "trends": "研究热点分析（中文，3-5句）",
-    "summaries": [
-        {{
-            "index": 1,
-            "title_zh": "中文标题（翻译原标题）",
-            "abstract_zh": "摘要中文翻译（100字以内）",
-            "one_sentence_summary": "一句话中文总结（突出研究亮点）"
-        }},
-        ... (直到序号 {len(articles)})
-    ],
-    "highlights": [
-        {{
-            "index": 序号,
-            "reason": "推荐理由（中文，20字以内）"
-        }}
-    ]
-}}
-
-要求：
-1. summaries 必须包含输入的所有文献，且 index 必须与输入的 [序号] 严格一致。
-2. title_zh、abstract_zh 和 one_sentence_summary 必须使用中文。
-3. 不要输出任何链接，链接将由 Python 程序根据序号自动补全。
-"""
+        return (
+            f"你将分析 {date} 的 {len(articles)} 篇学术文献（凝聚态物理 / 计算材料科学 / AI for science 方向），"
+            "生成一份面向同行研究者的高信息密度中文日报。\n\n"
+            f"【文献列表】（格式: [序号] Title / Journal / Authors / Abstract）\n{articles_str}\n\n"
+            "【写作硬性要求】\n"
+            "1. title_zh：对原英文标题的准确中译，保留关键术语与材料分子式（如 BaTiO3、MoS2、GaN/AlN），不超过 40 字。\n"
+            "2. abstract_zh：用中文把摘要压缩成 ≤120 字的研究要点，必须写出：体系/方法/关键数值或结论，至少一项。"
+            "禁止任何套话：'本研究/取得进展/具有重要意义/为…提供新思路/点击查看' 等一律不允许。\n"
+            "3. one_sentence_summary：一句话 ≤40 字，只写最有信息量的那一点（创新点或最强结论），不得空泛。\n"
+            "4. 全部用中文；不输出链接（程序按序号自动补全）；不得编造原文没有的数据。\n"
+            "5. summaries 必须覆盖所有输入序号，index 严格一致。\n"
+            "6. highlights：仅挑选 ≤3 篇**真正**最突出的工作（创新点、方法论或关键结论）。"
+            "reason ≤25 字，必须落到具体材料/现象/方法，不得写 '重要进展/意义重大' 之流。\n\n"
+            f"{example_block}\n"
+            "【输出格式】只输出以下 JSON，不要任何额外文字、不要 markdown 代码块标记：\n"
+            "{\n"
+            '  "overview": "今日文献总览（中文，2-3句，含具体方向与代表性工作）",\n'
+            '  "trends": "研究热点分析（中文，3-5句）",\n'
+            '  "summaries": [\n'
+            '    {"index": 1, "title_zh": "...", "abstract_zh": "...", "one_sentence_summary": "..."},\n'
+            f'    ... (共 {len(articles)} 条)\n'
+            "  ],\n"
+            '  "highlights": [\n'
+            '    {"index": <序号>, "reason": "具体亮点（≤25字）"}\n'
+            "  ]\n"
+            "}\n"
+        )
 
     def _build_missing_summaries_prompt(self, original_articles: List[Dict], missing_indices: List[int], date: str) -> str:
         articles_text = []
@@ -625,7 +796,12 @@ class AISummarizer:
         if not missing_indices:
             return summaries_map
 
-        print(f"⚠️ AI summaries incomplete for {len(missing_indices)} article(s); requesting targeted refill")
+        preview = missing_indices[:15]
+        more = "" if len(missing_indices) <= 15 else f" ...+{len(missing_indices) - 15}"
+        print(
+            f"⚠️ AI summaries incomplete for {len(missing_indices)} article(s) "
+            f"(indices: {preview}{more}); requesting targeted refill"
+        )
         try:
             prompt = self._build_missing_summaries_prompt(original_articles, missing_indices, date)
             response = self.provider.call_api(prompt)
@@ -670,15 +846,33 @@ class AISummarizer:
                 summaries_map[idx] = item
 
             summaries_map = self._fill_missing_summaries(summaries_map, original_articles, date)
-            
+
+            truncated_count = 0
+            missing_summary_count = 0
             for i, article in enumerate(original_articles, 1):
                 ai_info = summaries_map.get(i, {})
+                title_zh = _clamp_text(ai_info.get('title_zh') or article.get('title_zh') or "", 80)
+                abstract_zh_raw = ai_info.get('abstract_zh') or ""
+                abstract_zh = _clamp_text(abstract_zh_raw, 240)
+                one_sentence = _clamp_text(ai_info.get('one_sentence_summary') or "", 80)
+                if not (title_zh or abstract_zh or one_sentence):
+                    missing_summary_count += 1
+                if any(
+                    len(x or "") < len(raw or "")
+                    for x, raw in (
+                        (title_zh, ai_info.get('title_zh') or article.get('title_zh') or ""),
+                        (abstract_zh, abstract_zh_raw),
+                        (one_sentence, ai_info.get('one_sentence_summary') or ""),
+                    )
+                ):
+                    truncated_count += 1
                 full_list.append({
                     "title_en": article.get('title'),
-                    "title_zh": ai_info.get('title_zh') or article.get('title_zh') or "标题翻译失败",
-                    "abstract_zh": ai_info.get('abstract_zh') or "",  # 摘要中文翻译
-                    "summary": ai_info.get('one_sentence_summary') or "总结生成失败",
-                    "link": article.get('link'),  # 核心：直接使用 Python 里的原始链接
+                    # Empty-on-failure (front-end shows "—"), never leak "标题翻译失败" style placeholders.
+                    "title_zh": title_zh,
+                    "abstract_zh": abstract_zh,
+                    "summary": one_sentence,
+                    "link": article.get('link'),
                     "journal": article.get("journal", ""),
                     "authors": article.get("authors", []),
                     "pub_date": article.get("pub_date", ""),
@@ -686,22 +880,33 @@ class AISummarizer:
                     "source_url": article.get("source_url", ""),
                     "arxiv_category": article.get("arxiv_category", ""),
                 })
+            if truncated_count:
+                print(f"ℹ️ _parse_response: clamped {truncated_count} over-long field(s)")
+            if missing_summary_count:
+                print(f"⚠️ _parse_response: {missing_summary_count}/{len(original_articles)} 文章 AI 总结为空（将显示 '—'）")
             
             # 处理 highlights
             ml_highlights = []
             ferro_highlights = []
-            for h in data.get('highlights', []):
-                idx = h.get('index')
+            seen_highlight_idx: set = set()
+            for h in data.get('highlights', []) or []:
+                try:
+                    idx = int(h.get('index'))
+                except Exception:
+                    continue
+                if idx in seen_highlight_idx:
+                    continue
+                seen_highlight_idx.add(idx)
                 if idx and 1 <= idx <= len(original_articles):
                     art = original_articles[idx-1]
                     info = summaries_map.get(idx, {})
                     h_item = {
                         "title_en": art.get('title'),
-                        "title_zh": info.get('title_zh'),
-                        "abstract_zh": info.get('abstract_zh') or "",  # 摘要中文翻译
+                        "title_zh": _clamp_text(info.get('title_zh') or "", 80),
+                        "abstract_zh": _clamp_text(info.get('abstract_zh') or "", 240),
                         "link": art.get('link'),
-                        "summary": info.get('one_sentence_summary'),
-                        "reason": h.get('reason'),
+                        "summary": _clamp_text(info.get('one_sentence_summary') or "", 80),
+                        "reason": _clamp_text(h.get('reason') or "", 50),
                         "journal": art.get("journal", ""),
                         "authors": art.get("authors", []),
                         "pub_date": art.get("pub_date", ""),
@@ -744,9 +949,9 @@ class AISummarizer:
             'full_list': [
                 {
                     "title_en": a.get('title'),
-                    "title_zh": a.get('title_zh') or "待翻译",
-                    "abstract_zh": "",  # 摘要中文翻译
-                    "summary": "请查阅原文了解详情",
+                    "title_zh": a.get('title_zh') or "",
+                    "abstract_zh": "",
+                    "summary": "",
                     "link": a.get('link'),
                     "journal": a.get("journal", ""),
                     "authors": a.get("authors", []),

@@ -158,13 +158,20 @@ except ImportError:
     pass
 
 AI_CONFIG = {
-    "enabled": True,  # 是否启用AI摘要
-    # 默认使用兼容 OpenAI 的聚合网关（避免没有 Gemini Key 时摘要/翻译直接失效）
-    "provider": _local_ai_config.get("provider") or os.environ.get("AI_PROVIDER", "openrouter"),  # gemini, openrouter, siliconflow, groq, deepseek
-    "api_key": _local_ai_config.get("api_key") or os.environ.get("AI_API_KEY", ""),  # API密钥（优先从config.local.py读取）
-    # OpenAI-compatible model id (used when provider=openrouter)
-    "model": _local_ai_config.get("model") or os.environ.get("AI_MODEL", "gpt-5.4(auto)"),
-    # 支持填写根 base URL（如 https://supercodex.space/v1），代码会自动补全 /chat/completions
+    "enabled": True,
+    # provider 可选: kimi（推荐，Anthropic 协议，api.kimi.com/coding）、gemini、openrouter
+    "provider": _local_ai_config.get("provider") or os.environ.get("AI_PROVIDER", "kimi"),
+    # API key：优先 AI_API_KEY，其次 KIMI_API_KEY，再其次 GEMINI_API_KEY
+    "api_key": (
+        _local_ai_config.get("api_key")
+        or os.environ.get("AI_API_KEY")
+        or os.environ.get("KIMI_API_KEY")
+        or os.environ.get("GEMINI_API_KEY")
+        or ""
+    ),
+    # model：Kimi 默认 kimi-k2-turbo-preview；OpenRouter 默认 gpt-5.4(auto)
+    "model": _local_ai_config.get("model") or os.environ.get("AI_MODEL", "kimi-k2-turbo-preview"),
+    # base_url：仅 OpenRouter 使用（Kimi 用 KIMI_BASE_URL，默认 https://api.kimi.com/coding）
     "base_url": _local_ai_config.get("base_url") or os.environ.get("AI_BASE_URL") or os.environ.get("OPENROUTER_BASE_URL", "https://supercodex.space/v1"),
 }
 

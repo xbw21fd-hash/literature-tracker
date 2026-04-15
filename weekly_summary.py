@@ -113,6 +113,8 @@ class WeeklySummarizer:
         api_key = (
             (api_key or "").strip()
             or (os.environ.get("AI_API_KEY") or "").strip()
+            or (os.environ.get("KIMI_API_KEY") or "").strip()
+            or (os.environ.get("GEMINI_API_KEY") or "").strip()
             or (DEFAULT_AI_CONFIG.get("api_key") if isinstance(DEFAULT_AI_CONFIG, dict) else "")  # type: ignore[arg-type]
         )
         provider = (
@@ -129,8 +131,10 @@ class WeeklySummarizer:
         
         if api_key:
             self.provider = build_provider(provider, api_key, model=model)
+            self.provider_name = provider
         else:
             self.provider = None
+            self.provider_name = None
             print("⚠️ 未配置AI API密钥，将使用基础模板")
         
         # 初始化摘要爬取器
@@ -578,92 +582,160 @@ class WeeklySummarizer:
             return self._fallback_summary(all_articles, ferro_articles, ai_articles,
                                          week_start, week_end, by_journal)
     
-    def _generate_ai_summary(self, all_articles: List[Dict], ferro_articles: List[Dict], 
-                            ai_articles: List[Dict], week_start: str, week_end: str, 
+    def _generate_ai_summary(self, all_articles: List[Dict], ferro_articles: List[Dict],
+                            ai_articles: List[Dict], week_start: str, week_end: str,
                             by_journal: Dict) -> Dict:
-        """使用AI生成周报"""
-        
-        # 构建提示词 - 使用all_articles包含所有文献
+        """使用AI生成周报 — index-based，不在 prompt 里传 URL 防止被改写。"""
+
+        # 构建 index→article 映射；prompt 仅输入序号 / 期刊 / 标题 / 摘要，不输 URL。
         articles_text = []
         for i, article in enumerate(all_articles, 1):
             title = article.get('title_zh') or article.get('title', '')
             journal = article.get('journal', '')
-            link = article.get('link', '')
             abstract = (article.get('abstract_zh') or article.get('abstract', ''))[:400]
-            
-            # 标记文献类型
+
             tags = []
             if article in ferro_articles:
-                tags.append('铁电')
+                tags.append('铁电/磁性')
             if article in ai_articles:
-                tags.append('AI/机器学习')
-            tag_str = f"[{'/'.join(tags)}]" if tags else ""
-            
-            articles_text.append(f"""
-{i}. {tag_str}【{journal}】{title}
-   链接: {link}
-   摘要: {abstract}...
-""")
-        
+                tags.append('AI/ML')
+            tag_str = f"[{'/'.join(tags)}]" if tags else "[其他]"
+
+            articles_text.append(
+                f"[{i}] {tag_str}【{journal}】{title}\n    摘要: {abstract}"
+            )
+
         articles_str = '\n'.join(articles_text)
-        
-        prompt = f"""你是一位专业的凝聚态物理/材料科学研究助手。请分析以下{week_start}至{week_end}这一周内，Nature/Science系列期刊发表的{len(all_articles)}篇磁性/铁电/AI相关文献，生成一份专业的周报。
 
-本周共有{len(all_articles)}篇文献，其中：
-- 铁电/磁性相关: {len(ferro_articles)}篇
-- AI/机器学习相关: {len(ai_articles)}篇
+        prompt = (
+            f"你是一位资深凝聚态物理/材料科学研究员。下面是 {week_start} 至 {week_end} 这一周"
+            f"Nature/Science 系列期刊的 {len(all_articles)} 篇磁性/铁电/AI 相关文献。"
+            f"本周其中铁电/磁性 {len(ferro_articles)} 篇、AI/ML {len(ai_articles)} 篇。\n\n"
+            f"【文献列表】(格式: [序号] [类型]【期刊】标题 / 摘要)\n{articles_str}\n\n"
+            "【写作硬性要求】\n"
+            "1. 全部中文。禁止 '本研究/具有重要意义/取得进展/为…提供新思路/重要科学意义' 等套话；"
+            "必须写出具体材料体系（如 BaTiO3、BiFeO3、CrI3、MoTe2）、方法（DFT、GGA+U、MLIP、中子衍射等）、"
+            "或关键数值/结论。若原文没有，可留空，不得编造。\n"
+            "2. highlights 只选 5-8 篇**最有突破性**的工作（新材料/新机理/新方法）；其中 Nature/Science 正刊优先。\n"
+            "3. 不要在输出中填任何 URL，链接由程序按 index 自动补全。\n"
+            "4. 长度约束：overview 3-4 句；trends 4-5 句；outlook 2-3 句；单条 innovation ≤60 字、significance ≤30 字。\n\n"
+            "【输出格式】只输出 JSON，不要 markdown 标记：\n"
+            "{\n"
+            '  "overview": "...",\n'
+            '  "article_summaries": [ {"index": <序号>, "one_sentence": "≤50字，具体"} ],\n'
+            '  "highlights": [ {"index": <序号>, "material": "...", "property": "...", "method": "...", "innovation": "...", "significance": "..."} ],\n'
+            '  "by_topic": { "铁电材料": [<序号>...], "磁性材料": [<序号>...], "多铁性材料": [<序号>...], "方法学创新": [<序号>...] },\n'
+            '  "trends": "...",\n'
+            '  "outlook": "..."\n'
+            "}\n"
+        )
 
-文献列表:
-{articles_str}
-
-请按以下格式输出（使用JSON格式）:
-{{
-    "overview": "本周总览：文献总数、主要研究方向、重要发现（3-4句话）",
-    "article_summaries": [
-        {{
-            "title": "文献标题",
-            "link": "原文链接",
-            "one_sentence": "一句话总结（30-50字，突出核心创新点）"
-        }}
-    ],
-    "highlights": [
-        {{
-            "title": "文献标题",
-            "journal": "期刊名",
-            "link": "原文链接",
-            "material": "研究材料体系（如BaTiO3、BiFeO3等）",
-            "property": "研究性质（如铁电性、磁性、多铁性等）",
-            "method": "研究方法（如第一性原理、实验、机器学习等）",
-            "innovation": "核心创新点（50字以内）",
-            "significance": "研究意义（30字以内）"
-        }}
-    ],
-    "by_topic": {{
-        "铁电材料": ["文献链接1", "文献链接2"],
-        "磁性材料": ["文献链接1", "文献链接2"],
-        "多铁性材料": ["文献链接1", "文献链接2"],
-        "方法学创新": ["文献链接1", "文献链接2"]
-    }},
-    "trends": "本周研究趋势和热点分析（4-5句话）",
-    "outlook": "未来研究方向展望（2-3句话）"
-}}
-
-要求:
-1. highlights选择5-8篇最重要的文献，优先选择Nature/Science正刊
-2. innovation要突出与以往研究的不同之处
-3. 使用专业术语，但保持可读性
-4. 确保所有链接都是原始文献链接
-5. 使用中文输出"""
-        
         response = self.provider.call_api(prompt)
-        
-        # 解析响应
-        import re
-        json_match = re.search(r'\{[\s\S]*\}', response)
-        if json_match:
-            data = json.loads(json_match.group())
-        else:
-            raise ValueError("无法解析JSON")
+
+        try:
+            from ai_summarizer import AISummarizer as _AS
+            data = _AS._load_json_lenient(response, context="weekly summary")
+        except Exception:
+            # Fallback: find outermost JSON object span
+            import re
+            m = re.search(r'\{[\s\S]*\}', response)
+            if not m:
+                raise ValueError("无法解析周报 JSON")
+            data = json.loads(m.group())
+        if not isinstance(data, dict):
+            raise ValueError("周报 JSON 根不是对象")
+
+        # --- Resolve index → full article, then inject real URLs server-side. ---
+        def _clamp(t: str, n: int) -> str:
+            t = (t or "").strip()
+            return t if len(t) <= n else t[: n - 1].rstrip() + "…"
+
+        def _resolve(idx_like) -> Optional[Dict]:
+            try:
+                idx = int(idx_like)
+            except Exception:
+                return None
+            if 1 <= idx <= len(all_articles):
+                return all_articles[idx - 1]
+            return None
+
+        article_summaries: List[Dict] = []
+        for item in data.get('article_summaries', []) or []:
+            if not isinstance(item, dict):
+                continue
+            art = _resolve(item.get('index'))
+            if not art:
+                continue
+            article_summaries.append({
+                'title': art.get('title_zh') or art.get('title', ''),
+                'title_en': art.get('title', ''),
+                'link': art.get('link', ''),
+                'journal': art.get('journal', ''),
+                'one_sentence': _clamp(item.get('one_sentence', ''), 80),
+            })
+
+        highlights: List[Dict] = []
+        seen_h: set = set()
+        for item in data.get('highlights', []) or []:
+            if not isinstance(item, dict):
+                continue
+            art = _resolve(item.get('index'))
+            if not art:
+                continue
+            key = art.get('link') or art.get('title')
+            if key in seen_h:
+                continue
+            seen_h.add(key)
+            highlights.append({
+                'title': art.get('title_zh') or art.get('title', ''),
+                'title_en': art.get('title', ''),
+                'journal': art.get('journal', ''),
+                'link': art.get('link', ''),
+                'material': _clamp(item.get('material', ''), 60),
+                'property': _clamp(item.get('property', ''), 40),
+                'method': _clamp(item.get('method', ''), 60),
+                'innovation': _clamp(item.get('innovation', ''), 120),
+                'significance': _clamp(item.get('significance', ''), 60),
+            })
+        highlights = highlights[:8]
+
+        # by_topic: prefer AI's index lists; fallback to keyword rule bucketing.
+        topic_buckets = {"铁电材料": [], "磁性材料": [], "多铁性材料": [], "方法学创新": []}
+        ai_topic = data.get('by_topic') or {}
+        for topic, idxs in ai_topic.items():
+            if topic not in topic_buckets or not isinstance(idxs, list):
+                continue
+            for raw in idxs:
+                art = _resolve(raw)
+                if art and art.get('link'):
+                    if art['link'] not in [x['link'] for x in topic_buckets[topic]]:
+                        topic_buckets[topic].append({
+                            'title': art.get('title_zh') or art.get('title', ''),
+                            'link': art.get('link', ''),
+                            'journal': art.get('journal', ''),
+                        })
+
+        # Rule-based fallback: if AI's output is empty, bucket by keywords.
+        if not any(topic_buckets.values()):
+            for art in all_articles:
+                text = ((art.get('title') or '') + ' ' + (art.get('abstract') or '')).lower()
+                entry = {
+                    'title': art.get('title_zh') or art.get('title', ''),
+                    'link': art.get('link', ''),
+                    'journal': art.get('journal', ''),
+                }
+                if 'multiferroic' in text or '多铁' in text:
+                    topic_buckets['多铁性材料'].append(entry)
+                elif 'ferroelectric' in text or 'piezoelectric' in text:
+                    topic_buckets['铁电材料'].append(entry)
+                elif 'ferromagnet' in text or 'antiferromagnet' in text or 'magnetic' in text:
+                    topic_buckets['磁性材料'].append(entry)
+                elif any(kw in text for kw in ['machine learn', 'neural network', 'mlip', 'ml potential', 'graph network', 'deep learn']):
+                    topic_buckets['方法学创新'].append(entry)
+            for k in topic_buckets:
+                topic_buckets[k] = topic_buckets[k][:5]
+
+        # Skip parse — `data` is already loaded above.
         
         # 给每篇文章添加类型标记，并计算统计
         ferro_only = []
@@ -698,18 +770,18 @@ class WeeklySummarizer:
             'ferro_count': len(ferro_articles),
             'ai_count': len(ai_articles),
             'both_count': len(both),
-            'overview': data.get('overview', ''),
-            'article_summaries': data.get('article_summaries', []),  # 每篇文章的一句话总结
-            'highlights': data.get('highlights', []),
-            'by_topic': data.get('by_topic', {}),
+            'overview': _clamp(data.get('overview', ''), 400),
+            'article_summaries': article_summaries,
+            'highlights': highlights,
+            'by_topic': topic_buckets,
             'by_journal': by_journal,
-            'trends': data.get('trends', ''),
-            'outlook': data.get('outlook', ''),
-            'all_articles': all_articles,  # 保存所有文献
-            'ferro_articles': ferro_only,  # 保存铁电文献（排除交叉）
-            'ai_articles': ai_only,  # 保存AI文献（排除交叉）
-            'both_articles': both,  # 保存交叉研究文献
-            'generated_by': 'gemini'
+            'trends': _clamp(data.get('trends', ''), 600),
+            'outlook': _clamp(data.get('outlook', ''), 300),
+            'all_articles': all_articles,
+            'ferro_articles': ferro_only,
+            'ai_articles': ai_only,
+            'both_articles': both,
+            'generated_by': getattr(self, 'provider_name', None) or 'ai'
         }
     
     def _fallback_summary(self, all_articles: List[Dict], ferro_articles: List[Dict], 

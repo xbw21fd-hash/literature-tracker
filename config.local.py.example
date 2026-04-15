@@ -5,15 +5,24 @@
   cp config.local.py.example config.local.py
 """
 
-# AI 配置（推荐：兼容 OpenAI 的聚合网关）
+# AI 配置（推荐：Kimi-for-Coding，Anthropic 协议）
+#   - provider 可选: kimi / openrouter / gemini
+#   - Kimi 端点 base URL 通过环境变量 KIMI_BASE_URL 覆盖（默认 https://api.kimi.com/coding）
 AI_CONFIG = {
-    "provider": "openrouter",
-    "api_key": "sk-or-REPLACE_ME",
-    # 可以填写根 base URL，代码会自动补全 /chat/completions
+    "provider": "kimi",
+    "api_key": "sk-kimi-REPLACE_ME",
+    "model": "kimi-k2-turbo-preview",
+    # 仅 OpenRouter 用；Kimi 忽略此项
     "base_url": "https://supercodex.space/v1",
-    # OpenAI-compatible 模型（provider=openrouter 时生效）
-    "model": "gpt-5.4(auto)",
 }
+
+# —— 备选：OpenRouter 网关 ——
+# AI_CONFIG = {
+#     "provider": "openrouter",
+#     "api_key": "sk-or-REPLACE_ME",
+#     "base_url": "https://supercodex.space/v1",
+#     "model": "gpt-5.4(auto)",
+# }
 
 # 邮件配置（可选）
 EMAIL_CONFIG = {

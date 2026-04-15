@@ -14,7 +14,7 @@ import html
 import shutil
 from urllib.parse import urlparse
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 import hashlib
 
 from ai_summarizer import AISummarizer
@@ -235,6 +235,56 @@ def group_daily_items(items: List[Dict]) -> List[Dict]:
     return ordered
 
 
+def _adjacent_dates(date_str: str) -> Tuple[Optional[str], Optional[str]]:
+    """Return (prev_date, next_date) that actually have generated daily pages.
+
+    Reads summaries.json (older→newer relative to date_str) and scans docs/daily/*.html
+    as a fallback so newly-generated days without an index entry still link correctly.
+    """
+    dates: set = set()
+    idx = load_summary_index()
+    for s in idx.get("summaries", []) or []:
+        d = s.get("date")
+        if isinstance(d, str) and len(d) == 10:
+            dates.add(d)
+    daily_dir = "docs/daily"
+    if os.path.isdir(daily_dir):
+        for name in os.listdir(daily_dir):
+            if name.endswith(".html") and len(name) == 15:  # YYYY-MM-DD.html
+                dates.add(name[:-5])
+    sorted_dates = sorted(dates)
+    prev_d = None
+    next_d = None
+    for d in sorted_dates:
+        if d < date_str:
+            prev_d = d  # keep updating; last one < date_str wins
+        elif d > date_str and next_d is None:
+            next_d = d
+            break
+    return prev_d, next_d
+
+
+def _render_date_nav(date_str: str, position: str = "top") -> str:
+    prev_d, next_d = _adjacent_dates(date_str)
+    prev_html = (
+        f'<a class="daily-nav-link daily-nav-prev" href="{safe_text(prev_d)}.html">← 前一天 · {safe_text(prev_d)}</a>'
+        if prev_d else
+        '<span class="daily-nav-link daily-nav-disabled">← 前一天</span>'
+    )
+    next_html = (
+        f'<a class="daily-nav-link daily-nav-next" href="{safe_text(next_d)}.html">后一天 · {safe_text(next_d)} →</a>'
+        if next_d else
+        '<span class="daily-nav-link daily-nav-disabled">后一天 →</span>'
+    )
+    return (
+        f'<nav class="daily-nav daily-nav-{position}" aria-label="日报日期导航">'
+        f'{prev_html}'
+        f'<a class="daily-nav-home" href="../index.html#daily">📅 日报索引</a>'
+        f'{next_html}'
+        f'</nav>'
+    )
+
+
 def render_daily_html(date_str: str, summary: Dict) -> str:
     items = summary.get("full_list") or summary.get("summaries") or []
     items = sorted(items, key=focus_priority)
@@ -257,17 +307,17 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
 
     def safe_summary_text(item: Dict) -> str:
         """返回文章的摘要信息：优先显示AI生成的摘要翻译，其次是一句话总结"""
-        # 优先显示摘要中文翻译
-        abstract_zh = item.get('abstract_zh', '')
-        one_sentence = item.get('one_sentence_summary', '')
-        
+        abstract_zh = (item.get('abstract_zh') or '').strip()
+        # 兼容老字段名：解析器写入的是 `summary`，历史数据可能是 `one_sentence_summary`
+        one_sentence = (item.get('summary') or item.get('one_sentence_summary') or '').strip()
+
         parts = []
         if abstract_zh:
             parts.append(f"<p class='daily-paper-abstract'><strong>📄 摘要：</strong>{safe_text(abstract_zh)}</p>")
         if one_sentence:
             parts.append(f"<p class='daily-paper-highlight'><strong>💡 亮点：</strong>{safe_text(one_sentence)}</p>")
-        
-        return "".join(parts) if parts else "<p class='daily-paper-abstract'>暂无摘要</p>"
+
+        return "".join(parts) if parts else "<p class='daily-paper-abstract daily-paper-empty'>—</p>"
 
     def item_key(item: Dict) -> str:
         return str(item.get('link') or item.get('title_en') or item.get('title') or item.get('title_zh') or '')
@@ -394,6 +444,9 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     if excluded_count > 0 or focused_total > len(items):
         filtered_note = f"<p class='daily-filter-note'>原始候选 {raw_total} 篇中，已剔除 {excluded_count} 篇明显偏离主线的内容，并从剩余 {focused_total} 篇主线相关文献中精选 {len(items)} 篇进入日报页，优先保留 AI × 物理 / 化学 / 材料交叉与关键计算方法工作。</p>"
 
+    date_nav_top = _render_date_nav(date_str, position="top")
+    date_nav_bottom = _render_date_nav(date_str, position="bottom")
+
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -465,6 +518,21 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     .daily-sidebar-stats {{ display: grid; gap: 10px; }}
     .daily-sidebar-fact {{ display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(244,247,255,0.96)); border: 1px solid var(--border-color); }}
     .daily-footer {{ margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 0.94rem; line-height: 1.8; }}
+    .daily-nav {{ display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 14px 18px; margin: 18px 0; border-radius: 18px; background: rgba(255,255,255,0.88); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }}
+    .daily-nav-top {{ margin: 0 0 22px; }}
+    .daily-nav-bottom {{ margin: 28px 0 12px; }}
+    .daily-nav-link {{ color: var(--accent-primary); text-decoration: none; font-weight: 600; padding: 8px 12px; border-radius: 12px; transition: background 0.15s ease; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+    .daily-nav-link:hover {{ background: rgba(99,102,241,0.08); }}
+    .daily-nav-prev {{ justify-self: start; }}
+    .daily-nav-next {{ justify-self: end; text-align: right; }}
+    .daily-nav-home {{ color: var(--text-secondary); text-decoration: none; padding: 8px 14px; border-radius: 999px; background: rgba(99,102,241,0.08); font-weight: 600; font-size: 0.95rem; }}
+    .daily-nav-home:hover {{ background: rgba(99,102,241,0.16); color: var(--accent-primary); }}
+    .daily-nav-disabled {{ color: var(--text-muted); opacity: 0.55; padding: 8px 12px; }}
+    @media (max-width: 720px) {{
+      .daily-nav {{ grid-template-columns: 1fr 1fr; padding: 10px 12px; }}
+      .daily-nav-home {{ grid-column: span 2; justify-self: center; order: 3; }}
+      .daily-nav-link {{ font-size: 0.92rem; }}
+    }}
     @media (max-width: 980px) {{
       .daily-layout {{ grid-template-columns: 1fr; }}
       .daily-toc {{ position: static; order: -1; }}
@@ -493,6 +561,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
         <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="切换主题">🌙</button>
       </div>
     </div>
+    {date_nav_top}
     <div class="daily-layout">
       <article class="daily-article">
         <div class="daily-hero">
@@ -548,6 +617,8 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
           </div>
           {paper_section_html}
         </section>
+
+        {date_nav_bottom}
 
         <div class="daily-footer">
           本页由文献追踪系统自动生成，仅保留 AI × 物理 / 化学 / 材料主线相关文献，并按专题重新整理，方便快速筛选与深度阅读。
@@ -715,10 +786,14 @@ def main():
 
     new_entries: List[Dict] = []
     
-    # 检测是否使用本地Kimi模式
+    # Provider 选择顺序：环境变量 AI_PROVIDER > config.py 默认值 > 'kimi'
     use_local_kimi = os.environ.get('AI_PROVIDER', '').lower() == 'localkimi'
-    api_key = os.environ.get('AI_API_KEY') or os.environ.get('GEMINI_API_KEY')
-    provider = os.environ.get('AI_PROVIDER') or 'openrouter'
+    api_key = (
+        os.environ.get('AI_API_KEY')
+        or os.environ.get('KIMI_API_KEY')
+        or os.environ.get('GEMINI_API_KEY')
+    )
+    provider = os.environ.get('AI_PROVIDER') or 'kimi'
     
     if use_local_kimi:
         # 本地模式：不初始化远程API，使用LocalKimiProvider
