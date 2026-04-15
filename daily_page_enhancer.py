@@ -462,9 +462,23 @@ def _apply_article_title_fallback(item_node: Tag, article_lookup: Dict[str, Dict
     zh_selector = ".daily-paper-title-zh" if is_paper else ".daily-news-title-zh"
     en_selector = ".daily-paper-title-en" if is_paper else ".daily-news-title-en"
 
-    display_zh = title_zh if title_zh and not is_suspicious_text(title_zh) else title_en
-    if display_zh and not is_suspicious_text(display_zh):
-        _replace_plain_text(item_node.select_one(zh_selector), display_zh)
+    # 如果渲染层已经输出了真正的中文标题（由 Kimi 生成，不在 data/index.json 里），
+    # 不要用英文原标题覆盖它。判定依据：当前 zh 节点文本包含 CJK 且不与 en 完全相同。
+    def _has_cjk(s: str) -> bool:
+        return any('\u4e00' <= ch <= '\u9fff' for ch in (s or ""))
+
+    zh_node = item_node.select_one(zh_selector)
+    current_zh = _title_plain_text(zh_node) if zh_node is not None else ""
+    current_already_translated = (
+        _has_cjk(current_zh)
+        and current_zh.casefold() != title_en.casefold()
+    )
+
+    if not current_already_translated:
+        display_zh = title_zh if title_zh and not is_suspicious_text(title_zh) else title_en
+        if display_zh and not is_suspicious_text(display_zh):
+            _replace_plain_text(zh_node, display_zh)
+
     if title_en and not is_suspicious_text(title_en):
         _replace_plain_text(item_node.select_one(en_selector), title_en)
 
