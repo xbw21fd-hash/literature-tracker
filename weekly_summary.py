@@ -829,33 +829,33 @@ class WeeklySummarizer:
         except Exception:
             CORE_FOCUS_CONFIG = {"enabled": True, "weekly_max_items": 20, "min_score": 0.60}
 
-        from focus_core import is_core_focus as _icf, core_score as _cs
-        core_items_raw = [a for a in all_articles if _icf(a)]
-        core_items_raw.sort(key=lambda x: -_cs(x))
-        min_s = float(CORE_FOCUS_CONFIG.get("min_score", 0.60))
-        core_items_raw = [a for a in core_items_raw if _cs(a) >= min_s]
-        core_items_raw = core_items_raw[: int(CORE_FOCUS_CONFIG.get("weekly_max_items", 20))]
-
+        core_items_enriched: List[Dict] = []
         weekly_note = ""
-        core_deep: Dict[str, Dict[str, str]] = {}
-        if CORE_FOCUS_CONFIG.get("enabled", True) and core_items_raw:
-            weekly_note, core_deep = self._generate_core_weekly(core_items_raw, week_start, week_end)
+        if CORE_FOCUS_CONFIG.get("enabled", True):
+            from focus_core import is_core_focus as _icf, core_score as _cs
+            min_s = float(CORE_FOCUS_CONFIG.get("min_score", 0.60))
+            core_items_raw = [a for a in all_articles if _icf(a) and _cs(a) >= min_s]
+            core_items_raw.sort(key=lambda x: -_cs(x))
+            core_items_raw = core_items_raw[: int(CORE_FOCUS_CONFIG.get("weekly_max_items", 20))]
 
-        core_items_enriched = []
-        for a in core_items_raw:
-            link = a.get("link") or ""
-            info = core_deep.get(link, {})
-            core_items_enriched.append({
-                "title": a.get("title_zh") or a.get("title", ""),
-                "title_en": a.get("title", ""),
-                "link": a.get("link", ""),
-                "journal": a.get("journal", ""),
-                "abstract_zh": a.get("abstract_zh", ""),
-                "method_point": info.get("method_point", ""),
-                "related_work": info.get("related_work", ""),
-                "implication": info.get("implication", ""),
-                "core_score": _cs(a),
-            })
+            core_deep: Dict[str, Dict[str, str]] = {}
+            if core_items_raw:
+                weekly_note, core_deep = self._generate_core_weekly(core_items_raw, week_start, week_end)
+
+            for a in core_items_raw:
+                link = a.get("link") or ""
+                info = core_deep.get(link, {})
+                core_items_enriched.append({
+                    "title": a.get("title_zh") or a.get("title", ""),
+                    "title_en": a.get("title", ""),
+                    "link": a.get("link", ""),
+                    "journal": a.get("journal", ""),
+                    "abstract_zh": a.get("abstract_zh", ""),
+                    "method_point": info.get("method_point", ""),
+                    "related_work": info.get("related_work", ""),
+                    "implication": info.get("implication", ""),
+                    "core_score": _cs(a),
+                })
 
         return {
             'week_start': week_start,
