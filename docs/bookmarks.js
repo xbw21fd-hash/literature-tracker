@@ -275,8 +275,155 @@
       card.addEventListener('pointercancel', cancel);
       card.addEventListener('pointerleave', cancel);
     }
+
+    renderFab() {
+      let fab = document.querySelector('.bookmark-fab');
+      if (!fab) {
+        fab = document.createElement('button');
+        fab.type = 'button';
+        fab.className = 'bookmark-fab';
+        fab.setAttribute('aria-label', '我的收藏');
+        fab.innerHTML = '<span class="bookmark-fab-icon">⭐</span><span class="bookmark-fab-label">收藏</span><span class="bookmark-fab-badge">0</span>';
+        document.body.appendChild(fab);
+        fab.addEventListener('click', () => this.openPanel());
+      }
+      const update = () => {
+        const n = this.store.count();
+        const badge = fab.querySelector('.bookmark-fab-badge');
+        if (badge) badge.textContent = String(n);
+        fab.classList.toggle('is-empty', n === 0);
+      };
+      update();
+      document.addEventListener('bookmarkschange', update);
+    }
+
+    openPanel() {
+      let panel = document.querySelector('.bookmark-panel');
+      if (!panel) {
+        panel = document.createElement('div');
+        panel.className = 'bookmark-panel';
+        panel.innerHTML = `
+          <div class="bookmark-panel-overlay"></div>
+          <div class="bookmark-panel-card">
+            <div class="bookmark-panel-head">
+              <h2 class="bookmark-panel-title">我的收藏 <span class="bookmark-panel-count">0</span></h2>
+              <div class="bookmark-panel-actions">
+                <button type="button" class="bookmark-export-btn" data-fmt="rss">RSS</button>
+                <button type="button" class="bookmark-export-btn" data-fmt="md">MD</button>
+                <button type="button" class="bookmark-export-btn" data-fmt="bib">BibTeX</button>
+                <button type="button" class="bookmark-panel-close" aria-label="关闭">✕</button>
+              </div>
+            </div>
+            <div class="bookmark-panel-body"></div>
+          </div>
+        `;
+        document.body.appendChild(panel);
+        panel.querySelector('.bookmark-panel-close').addEventListener('click', () => this._closePanel());
+        panel.querySelector('.bookmark-panel-overlay').addEventListener('click', () => this._closePanel());
+        panel.querySelectorAll('.bookmark-export-btn').forEach(b => {
+          b.addEventListener('click', () => this._exportAs(b.dataset.fmt));
+        });
+      }
+      this._renderPanelBody(panel);
+      panel.classList.add('open');
+    }
+
+    _closePanel() {
+      const panel = document.querySelector('.bookmark-panel');
+      if (panel) panel.classList.remove('open');
+    }
+
+    _renderPanelBody(panel) {
+      const body = panel.querySelector('.bookmark-panel-body');
+      const countEl = panel.querySelector('.bookmark-panel-count');
+      const list = this.store.list();
+      countEl.textContent = `(${list.length})`;
+      if (list.length === 0) {
+        body.innerHTML = '<div class="bookmark-panel-empty"><p>还没有收藏任何文章。在日报/周报里点击 ☆ 或长按卡片即可。</p></div>';
+        return;
+      }
+      const groups = {};
+      for (const it of list) {
+        const k = it.source_date || '其他';
+        (groups[k] = groups[k] || []).push(it);
+      }
+      const keys = Object.keys(groups).sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+      const html = keys.map(k => {
+        const items = groups[k].map(it => {
+          const ttl = it.title_zh || it.title_en || it.link;
+          const en = it.title_en && it.title_en !== it.title_zh ? `<div class="bookmark-panel-item-en">${_escapeHtml(it.title_en)}</div>` : '';
+          const meta = [it.journal, _hostname(it.link)].filter(Boolean).join(' · ');
+          return `
+            <li class="bookmark-panel-item" data-link="${_escapeHtml(it.link)}">
+              <a class="bookmark-panel-item-title" href="${_escapeHtml(it.link)}" target="_blank" rel="noopener noreferrer">${_escapeHtml(ttl)}</a>
+              ${en}
+              <div class="bookmark-panel-item-meta">${_escapeHtml(meta)}</div>
+              <button type="button" class="bookmark-panel-item-remove" aria-label="删除">删</button>
+            </li>`;
+        }).join('');
+        return `<section class="bookmark-panel-group"><h3>📅 ${_escapeHtml(k)} <span class="bookmark-panel-group-count">(${groups[k].length})</span></h3><ol>${items}</ol></section>`;
+      }).join('');
+      body.innerHTML = html;
+      body.querySelectorAll('.bookmark-panel-item-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const li = e.target.closest('[data-link]');
+          if (!li) return;
+          const link = li.dataset.link;
+          this.store.remove(link);
+          this._renderPanelBody(panel);
+          document.querySelectorAll(`[data-bookmark-key="${(window.CSS && CSS.escape ? CSS.escape(link) : link)}"]`).forEach(card => {
+            card.classList.remove('is-bookmarked');
+            const sb = card.querySelector(':scope > .bookmark-btn');
+            if (sb) { sb.setAttribute('aria-pressed', 'false'); sb.textContent = '☆'; }
+          });
+        });
+      });
+    }
+
+    _exportAs(fmt) {
+      if (!window.BookmarkExports) {
+        alert('exports.js 未加载');
+        return;
+      }
+      const list = this.store.list();
+      if (list.length === 0) { alert('收藏为空'); return; }
+      const ymd = new Date().toISOString().slice(0, 10);
+      const map = {
+        rss: { fn: window.BookmarkExports.exportRSS, ext: 'xml', mime: 'application/rss+xml' },
+        md:  { fn: window.BookmarkExports.exportMarkdown, ext: 'md', mime: 'text/markdown' },
+        bib: { fn: window.BookmarkExports.exportBibTeX, ext: 'bib', mime: 'application/x-bibtex' },
+      };
+      const m = map[fmt];
+      if (!m) return;
+      const blob = m.fn(list);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bookmarks-${ymd}.${m.ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
   }
 
   window.BookmarkUI = BookmarkUI;
   window.BookmarkStore = BookmarkStore;
+
+  function _autoInit() {
+    if (window.__bookmarksInited) return;
+    window.__bookmarksInited = true;
+    const store = new BookmarkStore();
+    const ui = new BookmarkUI(store);
+    ui.attachToCards();
+    ui.bindGestures();
+    ui.renderFab();
+    window.literatureBookmarks = { store, ui };
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _autoInit);
+  } else {
+    _autoInit();
+  }
 })();
