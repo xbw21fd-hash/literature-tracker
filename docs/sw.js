@@ -11,7 +11,10 @@ const STATIC_ASSETS = [
     '/style.css',
     '/app.js',
     '/analytics.js',
-    '/manifest.json'
+    '/manifest.json',
+    '/bookmarks.js',
+    '/bookmarks.css',
+    '/exports.js'
 ];
 
 const DATA_CACHE_NAME = 'literature-data-v2';
@@ -46,24 +49,38 @@ self.addEventListener('activate', event => {
     );
 });
 
-// 请求拦截
 self.addEventListener('fetch', event => {
     const url = new URL(event.request.url);
+    const isDailyOrWeekly =
+        (url.pathname.startsWith('/daily/') || url.pathname.startsWith('/weekly/')) &&
+        url.pathname.endsWith('.html');
 
-    // 数据文件使用 Network First 策略
-    if (url.pathname.includes('/data/') || url.pathname.endsWith('.json')) {
-        event.respondWith(networkFirst(event.request, DATA_CACHE_NAME));
+    if (isDailyOrWeekly) {
+        // network-first with cache fallback for daily/weekly HTML
+        event.respondWith(
+            fetch(event.request).then(resp => {
+                if (resp && resp.ok) {
+                    const copy = resp.clone();
+                    caches.open(DATA_CACHE_NAME).then(c => c.put(event.request, copy));
+                }
+                return resp;
+            }).catch(() => caches.match(event.request).then(r => r || Response.error()))
+        );
         return;
     }
 
-    // 每日/周报与 HTML 页面：优先网络，避免长时间看到旧摘要
-    if (url.pathname.includes('/daily/') || url.pathname.includes('/weekly/') || url.pathname.endsWith('.html')) {
-        event.respondWith(networkFirst(event.request, CACHE_NAME));
-        return;
-    }
-
-    // 静态资源使用 Cache First 策略
-    event.respondWith(cacheFirst(event.request));
+    // default: cache-first for static assets, fall back to network
+    event.respondWith(
+        caches.match(event.request).then(cached => {
+            return cached || fetch(event.request).then(resp => {
+                if (resp && resp.ok && event.request.method === 'GET') {
+                    const copy = resp.clone();
+                    caches.open(DATA_CACHE_NAME).then(c => c.put(event.request, copy));
+                }
+                return resp;
+            }).catch(() => caches.match(event.request));
+        })
+    );
 });
 
 // Cache First 策略
