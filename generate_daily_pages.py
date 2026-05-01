@@ -902,7 +902,10 @@ def main():
 
         if should_skip:
             print(f"⏭️  Skip daily page (unchanged): {out_path}")
-            new_entries.append({"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest})
+            entry = {"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest}
+            if prev.get("generated_by"):
+                entry["generated_by"] = prev["generated_by"]
+            new_entries.append(entry)
         else:
             try:
                 if not daily_articles:
@@ -962,7 +965,8 @@ def main():
                 with open(out_path, "w", encoding="utf-8") as f:
                     f.write(page_html)
                 print(f"✅ Daily page generated: {out_path} (daily {len(daily_articles)} / focus {len(focused_articles)} / raw {len(raw_day_articles)})")
-                new_entries.append({"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest})
+                generated_by = summary.get("generated_by") or ("fallback" if summarizer is None else "kimi")
+                new_entries.append({"date": day_str, "file": f"{day_str}.html", "total": total, "digest": digest, "generated_by": generated_by})
             except Exception as exc:
                 has_existing_page = os.path.exists(out_path)
                 if has_existing_page:

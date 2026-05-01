@@ -75,8 +75,9 @@ jobs:
           fi
           echo "AI提供商: $AI_PROVIDER"
           echo "AI模型: $AI_MODEL"
-          # 回填最近一周：避免 RSS 晚到/Actions 偶发失败导致「每日摘要缺失或不完整」
-          python generate_daily_pages.py --days 7
+          # 回填最近 2 天：覆盖 RSS 晚到，但不重跑整周
+          # 需要更长窗口的回填请手动 dispatch backfill-daily.yml（接受 days/force 参数）
+          python generate_daily_pages.py --days 2
 
       - name: 复制数据到docs目录
         run: |
