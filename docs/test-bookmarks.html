@@ -57,6 +57,46 @@ const list = s5.list();
 assert(list.length === 2, 'list returns all entries');
 assert(list[0].link && list[0].title_zh, 'list entries have link + title_zh');
 
+log('--- BookmarkUI inject ---');
+const card = document.createElement('li');
+card.className = 'daily-paper-card';
+card.dataset.bookmarkKey = 'https://ex.com/u1';
+card.innerHTML = `
+  <span class="daily-paper-number">01</span>
+  <div class="daily-paper-body">
+    <div class="daily-paper-titles">
+      <div class="daily-paper-title-zh">测试中文标题</div>
+      <div class="daily-paper-title-en">Test English Title</div>
+    </div>
+    <div class="daily-paper-meta"><span class="daily-chip daily-chip-journal">📖 Nature</span></div>
+    <div class="daily-paper-summary"><p class="daily-paper-abstract"><strong>📄 摘要：</strong>测试摘要内容。</p></div>
+  </div>
+`;
+document.body.appendChild(card);
+
+localStorage.removeItem('literature_bookmarks');
+const ui = new window.BookmarkUI(new window.BookmarkStore());
+ui.attachToCards();
+const btn = card.querySelector('.bookmark-btn');
+assert(!!btn, 'star button injected on card');
+assert(btn.getAttribute('aria-pressed') === 'false', 'initial aria-pressed is false');
+
+btn.click();
+assert(btn.getAttribute('aria-pressed') === 'true', 'aria-pressed becomes true after click');
+assert(card.classList.contains('is-bookmarked'), 'card gets is-bookmarked class');
+
+const stored = JSON.parse(localStorage.getItem('literature_bookmarks'));
+assert(stored['https://ex.com/u1'], 'storage has entry after click');
+assert(stored['https://ex.com/u1'].title_zh === '测试中文标题', 'metadata extracted from DOM');
+assert(stored['https://ex.com/u1'].title_en === 'Test English Title', 'title_en extracted');
+assert(stored['https://ex.com/u1'].journal === 'Nature', 'journal extracted from chip');
+
+btn.click();
+assert(btn.getAttribute('aria-pressed') === 'false', 'second click toggles off');
+assert(!card.classList.contains('is-bookmarked'), 'class removed on toggle off');
+const stored2 = JSON.parse(localStorage.getItem('literature_bookmarks') || '{}');
+assert(!stored2['https://ex.com/u1'], 'storage entry removed on toggle off');
+
 log('\n--- summary ---');
 log(`PASS: ${pass}  FAIL: ${fail}`);
 if (fail > 0) document.title = '✗ ' + document.title;
