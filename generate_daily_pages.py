@@ -352,7 +352,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
 
         title_en_block = f'<div class="daily-news-title-en">{title_en_html}</div>' if title_en_html else ''
         return f"""
-        <li class="daily-news-item">
+        <li class="daily-news-item" data-bookmark-key="{safe_url(item.get('link') or '')}">
             <div class="daily-news-index">{index:02d}</div>
             <div class="daily-news-body">
                 <div class="daily-news-title-zh">{title_zh_html}</div>
@@ -375,7 +375,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
         meta_html = render_meta_chips(item)
         
         return f"""
-        <li class="daily-paper-card" id="paper-{index}">
+        <li class="daily-paper-card" id="paper-{index}" data-bookmark-key="{safe_url(item.get('link') or '')}">
             <span class="daily-paper-number">{index:02d}</span>
             <div class="daily-paper-body">
                 <div class="daily-paper-head">
@@ -465,7 +465,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
             abstract_html = f"<p class='daily-paper-abstract'><strong>📄 摘要：</strong>{abstract_zh}</p>" if abstract_zh else ""
             highlight_html = f"<p class='daily-paper-highlight'><strong>💡 亮点：</strong>{one_sentence}</p>" if one_sentence else ""
             cards.append(f"""
-            <li class="daily-core-card">
+            <li class="daily-core-card" data-bookmark-key="{safe_url(it.get('link') or '')}">
                 <div class="daily-core-number">{i:02d}</div>
                 <div class="daily-core-body">
                     <div class="daily-core-title-zh">{display_title}</div>
@@ -500,6 +500,13 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{date_str} 文献日报 - 文献追踪系统</title>
   <link rel="stylesheet" href="../style.css" />
+  <link rel="stylesheet" href="../bookmarks.css" />
+  <script defer src="../exports.js"></script>
+  <script defer src="../bookmarks.js"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="文献追踪" />
+  <meta name="theme-color" content="#f59e0b" />
   <link rel="alternate" type="application/rss+xml" title="{safe_text(date_str)} 日报 RSS" href="{daily_rss_filename(date_str)}" />
   <style>
     body {{ background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(248, 250, 252, 0.85) 220px), var(--bg-primary); overflow-x: hidden; }}
@@ -625,6 +632,12 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
       </div>
     </div>
     {date_nav_top}
+    <nav class="daily-toc-sticky" aria-label="移动目录">
+      <a href="#summary">摘要</a>
+      {('<a href="#core-focus">核心关注</a>' if summary.get('core_items') else '')}
+      <a href="#highlights">交叉重点</a>
+      <a href="#papers">完整速览</a>
+    </nav>
     <div class="daily-layout">
       <article class="daily-article">
         <div class="daily-hero">
