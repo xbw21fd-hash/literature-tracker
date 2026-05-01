@@ -72,7 +72,22 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -A
-          git diff --staged --quiet || git commit -m "📰 Backfill daily pages"
-          git fetch origin main
-          git rebase origin/main || git rebase --abort
-          git push origin main
+          if git diff --staged --quiet; then
+            echo 'nothing to commit'
+            exit 0
+          fi
+          git commit -m "📰 Backfill daily pages"
+          # Race-safe push: rebase using "ours" (backfill output IS the wanted content),
+          # retry up to 5 times if push rejected by concurrent push.
+          for i in 1 2 3 4 5; do
+            git fetch origin main
+            git rebase -X ours origin/main || { echo "rebase still conflicted on attempt $i"; git rebase --abort; exit 1; }
+            if git push origin main; then
+              echo "push succeeded on attempt $i"
+              exit 0
+            fi
+            echo "push rejected on attempt $i, retrying..."
+            sleep 5
+          done
+          echo "❌ push still failing after 5 attempts"
+          exit 1
