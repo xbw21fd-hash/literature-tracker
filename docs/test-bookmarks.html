@@ -4,6 +4,7 @@
 <h1>bookmarks.js unit tests</h1>
 <pre id="out"></pre>
 <script>window.__bookmarksInited = true;</script>
+<script src="exports.js"></script>
 <script src="bookmarks.js"></script>
 <script>
 const out = document.getElementById('out');
@@ -96,6 +97,18 @@ assert(btn.getAttribute('aria-pressed') === 'false', 'second click toggles off')
 assert(!card.classList.contains('is-bookmarked'), 'class removed on toggle off');
 const stored2 = JSON.parse(localStorage.getItem('literature_bookmarks') || '{}');
 assert(!stored2['https://ex.com/u1'], 'storage entry removed on toggle off');
+
+log('--- exports ---');
+const sample = [
+  { link: 'https://arxiv.org/abs/2604.11578', title_zh: '二维 NbOI2 室温铁电', title_en: 'Room-temp ferro 2D NbOI2', journal: 'Nature', abstract_zh: '面外铁电翻转。', summary: '一句话亮点。', source_date: '2026-04-15' },
+  { link: 'https://example.com/x?q=1&y=2', title_zh: '另一篇', title_en: 'Another', journal: 'Science', abstract_zh: '另一段。', source_date: '2026-04-14' },
+];
+const rss = window.BookmarkExports.exportRSS(sample);
+const md = window.BookmarkExports.exportMarkdown(sample);
+const bib = window.BookmarkExports.exportBibTeX(sample);
+assert(rss instanceof Blob && rss.type.includes('rss'), 'exportRSS returns RSS Blob');
+assert(md instanceof Blob && md.type.includes('markdown'), 'exportMarkdown returns markdown Blob');
+assert(bib instanceof Blob && bib.type.includes('bibtex'), 'exportBibTeX returns bibtex Blob');
 
 log('\n--- summary ---');
 log(`PASS: ${pass}  FAIL: ${fail}`);
