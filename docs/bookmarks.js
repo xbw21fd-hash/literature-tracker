@@ -215,6 +215,66 @@
       clearTimeout(this._toastTimer);
       this._toastTimer = setTimeout(() => t.classList.remove('show'), 1500);
     }
+
+    bindGestures(root = document) {
+      const cards = root.querySelectorAll(CARD_SELECTORS.join(','));
+      cards.forEach(card => this._bindGestures(card));
+    }
+
+    _bindGestures(card) {
+      if (card.dataset.gestureBound === '1') return;
+      card.dataset.gestureBound = '1';
+
+      let pressTimer = null;
+      let startX = 0, startY = 0;
+      let triggered = false;
+      const link = card.dataset.bookmarkKey;
+      if (!link) return;
+
+      const cancel = () => {
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+      };
+
+      const triggerToggle = () => {
+        if (triggered) return;
+        triggered = true;
+        const btn = card.querySelector(':scope > .bookmark-btn');
+        const meta = _extractMeta(card);
+        const nowOn = this.store.toggle(link, meta);
+        if (btn) {
+          btn.setAttribute('aria-pressed', nowOn ? 'true' : 'false');
+          btn.textContent = nowOn ? '★' : '☆';
+        }
+        card.classList.toggle('is-bookmarked', nowOn);
+        if (navigator.vibrate) try { navigator.vibrate(30); } catch {}
+        this._toast(nowOn ? '已收藏' : '已取消');
+      };
+
+      card.addEventListener('pointerdown', (e) => {
+        if (e.target.closest && e.target.closest('.bookmark-btn,a')) return;
+        startX = e.clientX; startY = e.clientY;
+        triggered = false;
+        pressTimer = setTimeout(() => {
+          pressTimer = null;
+          triggerToggle();
+        }, 350);
+      });
+
+      card.addEventListener('pointermove', (e) => {
+        if (!pressTimer && triggered) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        if (pressTimer && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) cancel();
+        if (!triggered && dx > 50 && Math.abs(dy) < 30) {
+          cancel();
+          triggerToggle();
+        }
+      });
+
+      card.addEventListener('pointerup', cancel);
+      card.addEventListener('pointercancel', cancel);
+      card.addEventListener('pointerleave', cancel);
+    }
   }
 
   window.BookmarkUI = BookmarkUI;
