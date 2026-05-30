@@ -20,7 +20,6 @@ import hashlib
 from ai_summarizer import AISummarizer
 from local_kimi_provider import build_provider_extended
 from author_utils import authors_label
-from daily_page_enhancer import enhance_daily_archive
 from focus_filter import analyze_focus, filter_daily_focus_items, filter_focus_items, focus_priority, topic_bucket
 from rss_generator import generate_daily_rss_feed
 from text_normalizer import normalize_articles_inplace, normalize_text
@@ -285,7 +284,51 @@ def _render_date_nav(date_str: str, position: str = "top") -> str:
     )
 
 
+def render_deep_section(aps_items):
+    if not aps_items:
+        return ""
+    cards = []
+    for a in aps_items:
+        link = safe_text((a.get("link") or a.get("doi") or "").strip())
+        poster = a.get("poster") or {}
+        img = poster.get("image"); el = poster.get("elements") or {}
+        overlay = ""
+        if el:
+            rows = "".join(
+                f'<div class="poster-row"><b>{safe_text(k)}</b>{safe_text(el.get(k,""))}</div>'
+                for k in ["研究问题","创新方法","工作流程","关键结果","应用价值"] if el.get(k))
+            overlay = f'<div class="poster-overlay">{rows}</div>'
+        figure = (f'<div class="poster-figure"><img loading="lazy" src="{safe_text(img)}" '
+                  f'onerror="this.style.display=\'none\'">{overlay}</div>') if img else ""
+        deep = safe_text(a.get("deep_analysis","")) if a.get("deep_analysis") else ""
+        deep_html = (f'<details class="deep-details"><summary>展开精读</summary>'
+                     f'<div class="deep-body">{deep}</div></details>') if deep else ""
+        cards.append(
+            f'<article class="daily-deep-card daily-core-card" data-bookmark-key="{link}">'
+            f'<span class="cat-tag">{safe_text(a.get("category","其他"))}</span>'
+            f'<h3>{safe_text(a.get("title_zh") or a.get("title",""))}</h3>'
+            f'{figure}{deep_html}'
+            f'<a class="src-link" href="{link}" target="_blank">原文 ↗</a>'
+            f'</article>')
+    return ('<section class="daily-deep-section"><h2>📖 今日精读</h2>'
+            + "".join(cards) + "</section>")
+
+
 def render_daily_html(date_str: str, summary: Dict) -> str:
+    # 「今日精读」(deep-read) section, populated from APS full-text papers.
+    # Absent/broken file → empty list → page identical to before.
+    aps_items: List[Dict] = []
+    try:
+        aps_path = os.path.join("data", f"aps_{date_str}.json")
+        if os.path.exists(aps_path):
+            with open(aps_path, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+            if isinstance(loaded, list):
+                aps_items = loaded
+    except Exception:
+        aps_items = []
+    deep_section_html = render_deep_section(aps_items)
+
     items = summary.get("full_list") or summary.get("summaries") or []
     items = sorted(items, key=focus_priority)
     highlight_items = sorted(collect_focus_highlights(summary, items, limit=6), key=focus_priority)
@@ -503,6 +546,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
   <link rel="stylesheet" href="../bookmarks.css" />
   <script defer src="../exports.js"></script>
   <script defer src="../bookmarks.js"></script>
+  <script src="likes.js" defer></script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="文献追踪" />
@@ -511,6 +555,17 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
   <style>
     body {{ background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(248, 250, 252, 0.85) 220px), var(--bg-primary); overflow-x: hidden; }}
     body::before {{ content: none !important; }}
+    .daily-deep-section{{margin:18px 0;}}
+    .daily-deep-card{{border:1px solid #e3e8f0;border-radius:12px;padding:14px;margin:12px 0;background:#fff;}}
+    .cat-tag{{display:inline-block;padding:2px 10px;border-radius:999px;background:#eef2f7;color:#1456b8;font-size:12px;}}
+    .poster-figure{{position:relative;margin:10px 0;}}
+    .poster-figure img{{width:100%;border-radius:10px;display:block;}}
+    .poster-overlay{{position:absolute;inset:0;display:flex;flex-direction:column;gap:4px;padding:14px;
+      background:linear-gradient(180deg,rgba(245,245,247,.82),rgba(245,245,247,.62));
+      font-family:"Songti SC","SimSun",serif;overflow:auto;}}
+    .poster-row b{{color:#1456b8;margin-right:6px;}}
+    .deep-details{{margin-top:8px;}} .deep-body{{white-space:pre-wrap;font-size:14px;line-height:1.6;}}
+    .src-link{{display:inline-block;margin-top:8px;color:#1456b8;}}
     .daily-shell {{ max-width: 1260px; margin: 0 auto; padding: 28px 20px 48px; }}
     .daily-topbar {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }}
     .daily-topbar-left, .daily-topbar-right {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}
@@ -667,6 +722,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
           {filtered_note}
         </div>
 
+        {deep_section_html}
         {render_core_section(summary.get('core_items', []) or [], summary.get('core_direction_note') or '')}
         <section id="summary" class="daily-section">
           <div class="daily-section-head">
@@ -956,6 +1012,24 @@ def main():
                     ]
                     core_items.sort(key=lambda x: -float(x.get("core_score") or 0.0))
                     core_items = core_items[:max_n]
+                    # Export the selected arXiv core list for later enrichment
+                    # (e.g. adding illustrations). Never let this break generation.
+                    try:
+                        core_export = [
+                            {
+                                "title": it.get("title") or it.get("title_en") or "",
+                                "title_zh": it.get("title_zh") or "",
+                                "summary": it.get("summary") or it.get("abstract_zh") or "",
+                                "link": it.get("link") or "",
+                                "journal": it.get("journal") or "",
+                            }
+                            for it in core_items
+                        ]
+                        os.makedirs("data", exist_ok=True)
+                        with open(os.path.join("data", f"arxiv_core_{day_str}.json"), "w", encoding="utf-8") as cf:
+                            json.dump(core_export, cf, ensure_ascii=False, indent=2)
+                    except Exception as e:
+                        print(f"⚠️ arxiv core export skipped: {e}")
                     if core_items:
                         try:
                             deep_fields, direction_note = summarizer.generate_core_deep_fields(core_items, day_str)
@@ -997,6 +1071,7 @@ def main():
     save_summary_index(merged[:120])
     rss_changed = sync_daily_rss_feeds(index_articles, relevant_articles, merged[:120])
     print(f"📡 Synced daily RSS feeds for {rss_changed} date(s)")
+    from daily_page_enhancer import enhance_daily_archive
     enhanced = enhance_daily_archive("docs/daily/summaries.json")
     print(f"🧭 Enhanced daily navigation/TOC for {enhanced} page(s)")
 

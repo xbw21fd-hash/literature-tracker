@@ -91,5 +91,26 @@ def main() -> int:
     return 0
 
 
+def test_daily_renders_deep_read_section():
+    from generate_daily_pages import render_deep_section
+    aps = [{"title": "T", "title_zh": "标题", "category": "AI×物理",
+            "deep_analysis": "## 第一部分：核心概览\n内容",
+            "poster": {"image": "images/posters/d1.webp",
+                       "elements": {"研究问题": "q", "创新方法": "m",
+                                    "工作流程": "f", "关键结果": "r", "应用价值": "v"}},
+            "link": "http://x", "doc_id": "d1"}]
+    html = render_deep_section(aps)
+    assert "今日精读" in html
+    assert "images/posters/d1.webp" in html
+    assert "poster-overlay" in html
+    assert "AI×物理" in html
+    assert 'data-bookmark-key="http://x"' in html
+
+
+def test_render_deep_section_empty_returns_empty():
+    from generate_daily_pages import render_deep_section
+    assert render_deep_section([]) == ""
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
