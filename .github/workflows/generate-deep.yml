@@ -37,7 +37,9 @@ jobs:
           APS_HTTP_BASE: ${{ secrets.APS_HTTP_BASE }}
           APS_HTTP_USER: ${{ secrets.APS_HTTP_USER }}
           APS_HTTP_PASS: ${{ secrets.APS_HTTP_PASS }}
-          DEEP_WINDOW_DAYS: ${{ github.event.inputs.window || '1' }}
+          DEEP_WINDOW_DAYS: ${{ github.event.inputs.window || '4' }}
+          AI_TIMEOUT_SECONDS: "600"
+          AI_MAX_RETRIES: "2"
         run: python run_deep.py
       - name: Regenerate daily pages (insert 今日精读)
         env:

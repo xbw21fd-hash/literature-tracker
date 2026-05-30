@@ -16,15 +16,17 @@ from feed_builder import build_feed, write_feed_json
 
 
 def _enrich_one(meta, client, provider, out_dir, cached=None):
-    # 幂等复用：已生成过深读的论文直接返回缓存记录，省去 gpt-5.5 调用
-    if cached and (cached.get("deep_analysis") or cached.get("poster")):
+    # 幂等复用：只有已生成深读(主内容)的论文才算完成、直接复用
+    if cached and cached.get("deep_analysis"):
         return cached
     md = client.fetch_markdown(meta)
     rec = dict(meta)
     rec["source"] = "APS"
-    rec["category"] = classify(meta, provider=provider)
+    rec["category"] = (cached or {}).get("category") or classify(meta, provider=provider)
     rec["deep_analysis"] = deep_read(meta, md, provider=provider) if md else ""
-    rec["poster"] = generate_poster(meta, md, provider=provider, out_dir=out_dir) if md else None
+    # 复用已有海报，避免重复图像生成；缺失才生成
+    rec["poster"] = (cached or {}).get("poster") or (
+        generate_poster(meta, md, provider=provider, out_dir=out_dir) if md else None)
     return rec
 
 
@@ -40,7 +42,8 @@ def process_date(date, client, provider, out_dir="docs/images/posters", max_work
     cached, fresh = [], []
     for m in full:
         c = cache.get(m.get("doc_id") or m.get("paper_id"))
-        (cached if (c and (c.get("deep_analysis") or c.get("poster"))) else fresh).append((m, c))
+        # 只有带 deep_analysis 才算完成；有海报但缺深读的要重试(走 fresh，复用海报)
+        (cached if (c and c.get("deep_analysis")) else fresh).append((m, c))
     if max_new is not None:
         fresh = fresh[:max(0, max_new)]
     results = [c for (_m, c) in cached]  # 复用缓存，零成本
