@@ -4,7 +4,7 @@ on:
     inputs:
       window:
         description: "回看天数"
-        default: "3"
+        default: "1"
   schedule:
     - cron: "30 3 * * *"
 permissions:
@@ -37,7 +37,7 @@ jobs:
           APS_HTTP_BASE: ${{ secrets.APS_HTTP_BASE }}
           APS_HTTP_USER: ${{ secrets.APS_HTTP_USER }}
           APS_HTTP_PASS: ${{ secrets.APS_HTTP_PASS }}
-          DEEP_WINDOW_DAYS: ${{ github.event.inputs.window || '3' }}
+          DEEP_WINDOW_DAYS: ${{ github.event.inputs.window || '1' }}
         run: python run_deep.py
       - name: Regenerate daily pages (insert 今日精读)
         env:

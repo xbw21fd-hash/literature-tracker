@@ -1,4 +1,8 @@
-"""编排：拉 APS → 精读 → 海报 → 分类 → 写 feed.json。所有步骤失败静默降级。"""
+"""编排：拉 APS → 精读 → 海报 → 分类 → 写 feed.json。所有步骤失败静默降级。
+
+幂等：已在 data/aps_<date>.json 里带 deep_analysis 的论文直接复用，不重复调用 gpt-5.5。
+默认只处理最近 1 天（DEEP_WINDOW_DAYS=1），手动 dispatch 可传更大窗口做增量回填。
+"""
 import os, json, glob, datetime, hashlib
 from concurrent.futures import ThreadPoolExecutor
 
@@ -10,7 +14,11 @@ from auto_classifier import classify
 from image_provider import generate_and_save
 from feed_builder import build_feed, write_feed_json
 
-def _enrich_one(meta, client, provider, out_dir):
+
+def _enrich_one(meta, client, provider, out_dir, cached=None):
+    # 幂等复用：已生成过深读的论文直接返回缓存记录，省去 gpt-5.5 调用
+    if cached and (cached.get("deep_analysis") or cached.get("poster")):
+        return cached
     md = client.fetch_markdown(meta)
     rec = dict(meta)
     rec["source"] = "APS"
@@ -19,18 +27,22 @@ def _enrich_one(meta, client, provider, out_dir):
     rec["poster"] = generate_poster(meta, md, provider=provider, out_dir=out_dir) if md else None
     return rec
 
-def process_date(date, client, provider, out_dir="docs/images/posters", max_workers=3):
+
+def process_date(date, client, provider, out_dir="docs/images/posters", max_workers=5, cache=None):
     metas = client.fetch_metadata(date)
     full = [m for m in metas if m.get("has_full_text")]
     if not full:
         return []
+    cache = cache or {}
     results = []
     with ThreadPoolExecutor(max_workers=max_workers) as ex:
-        futs = [ex.submit(_enrich_one, m, client, provider, out_dir) for m in full]
+        futs = [ex.submit(_enrich_one, m, client, provider, out_dir,
+                          cache.get(m.get("doc_id") or m.get("paper_id"))) for m in full]
         for f in futs:
             try: results.append(f.result())
             except Exception as e: print(f"⚠️ enrich failed: {e}")
     return results
+
 
 def prune_images(window_days=60, today=None, dirs=("docs/images/posters", "docs/images/cards")):
     today = today or datetime.date.today()
@@ -46,20 +58,33 @@ def prune_images(window_days=60, today=None, dirs=("docs/images/posters", "docs/
             except Exception:
                 pass
 
-def enrich_arxiv_core(items, provider=None, out_dir="docs/images/cards"):
+
+def _enrich_arxiv_one(a, provider, out_dir):
+    rec = dict(a)
+    rec["source"] = "arxiv"
+    rec["category"] = classify(a, provider=provider)
+    # 幂等：已有 image 的不重复生成
+    if a.get("image"):
+        return rec
+    h = hashlib.sha1((a.get("link") or a.get("title", "")).encode("utf-8")).hexdigest()[:16]
+    prompt = ("Flat vector minimalist scientific illustration, single clear concept, "
+              "clean lines, off-white background, deep blue + teal accents, no text. "
+              f"Concept: {a.get('title','')[:120]}")
+    saved = generate_and_save(prompt, os.path.join(out_dir, f"{h}.webp"), max_edge=768)
+    rec["image"] = (saved or "").replace("docs/", "") or None
+    return rec
+
+
+def enrich_arxiv_core(items, provider=None, out_dir="docs/images/cards", max_workers=5):
+    items = items or []
     out = []
-    for a in (items or []):
-        rec = dict(a)
-        rec["source"] = "arxiv"
-        rec["category"] = classify(a, provider=provider)
-        h = hashlib.sha1((a.get("link") or a.get("title", "")).encode("utf-8")).hexdigest()[:16]
-        prompt = ("Flat vector minimalist scientific illustration, single clear concept, "
-                  "clean lines, off-white background, deep blue + teal accents, no text. "
-                  f"Concept: {a.get('title','')[:120]}")
-        saved = generate_and_save(prompt, os.path.join(out_dir, f"{h}.webp"), max_edge=768)
-        rec["image"] = (saved or "").replace("docs/", "") or None
-        out.append(rec)
+    with ThreadPoolExecutor(max_workers=max_workers) as ex:
+        futs = [ex.submit(_enrich_arxiv_one, a, provider, out_dir) for a in items]
+        for f in futs:
+            try: out.append(f.result())
+            except Exception as e: print(f"⚠️ arxiv enrich failed: {e}")
     return out
+
 
 def _load_arxiv_core(date):
     path = f"data/arxiv_core_{date}.json"
@@ -68,10 +93,24 @@ def _load_arxiv_core(date):
         except Exception: return []
     return []
 
+
+def _load_aps_cache(date):
+    """已生成的 aps_<date>.json → {doc_id: rec} 供幂等复用。"""
+    path = f"data/aps_{date}.json"
+    if not os.path.exists(path):
+        return {}
+    try:
+        recs = json.load(open(path, encoding="utf-8"))
+    except Exception:
+        return {}
+    return {(r.get("doc_id") or r.get("paper_id")): r for r in recs if isinstance(r, dict)}
+
+
 def _save_aps_index(date, aps):
     os.makedirs("data", exist_ok=True)
     with open(f"data/aps_{date}.json", "w", encoding="utf-8") as f:
         json.dump(aps, f, ensure_ascii=False)
+
 
 def _load_existing_feeds():
     feeds = []
@@ -82,26 +121,36 @@ def _load_existing_feeds():
         feeds.append(build_feed(aps, _load_arxiv_core(date), date=date))
     return feeds
 
+
 def main():
     provider = build_provider(os.environ.get("AI_PROVIDER", "aigw"),
                               os.environ.get("AI_API_KEY", ""),
                               os.environ.get("AI_MODEL", "gpt-5.5"))
     client = ApsClient()
-    window = int(os.environ.get("DEEP_WINDOW_DAYS", "3"))
+    window = int(os.environ.get("DEEP_WINDOW_DAYS", "1"))
+    workers = int(os.environ.get("DEEP_WORKERS", "5"))
+    arxiv_images = (os.environ.get("DEEP_ENABLE_ARXIV_IMAGES", "") or "").lower() in ("1", "true", "yes")
     dates = client.list_dates(window_days=window)
+    print(f"📚 APS dates to process (window={window}): {dates}")
     for d in dates:
-        aps = process_date(d, client, provider)
+        cache = _load_aps_cache(d)
+        aps = process_date(d, client, provider, max_workers=workers, cache=cache)
+        enriched = sum(1 for a in aps if a.get("deep_analysis"))
+        print(f"  {d}: {len(aps)} papers ({enriched} with deep_analysis)")
         _save_aps_index(d, aps)
-        try:
-            core = _load_arxiv_core(d)
-            if core:
-                enriched = enrich_arxiv_core(core, provider=provider)
-                with open(f"data/arxiv_core_{d}.json", "w", encoding="utf-8") as f:
-                    json.dump(enriched, f, ensure_ascii=False)
-        except Exception as e:
-            print(f"⚠️ arxiv core enrich failed for {d}: {e}")
+        if arxiv_images:
+            try:
+                core = _load_arxiv_core(d)
+                if core:
+                    out = enrich_arxiv_core(core, provider=provider, max_workers=workers)
+                    with open(f"data/arxiv_core_{d}.json", "w", encoding="utf-8") as f:
+                        json.dump(out, f, ensure_ascii=False)
+            except Exception as e:
+                print(f"⚠️ arxiv core enrich failed for {d}: {e}")
     write_feed_json(_load_existing_feeds(), window_days=60)
     prune_images(window_days=60)
+    print("✅ run_deep done; feed.json written")
+
 
 if __name__ == "__main__":
     main()

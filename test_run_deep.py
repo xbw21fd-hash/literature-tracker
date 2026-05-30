@@ -68,3 +68,20 @@ def test_enrich_arxiv_core_image_none_on_failure():
                            side_effect=lambda prompt, out_path, **k: None):
         out = run_deep.enrich_arxiv_core(items, out_dir=tempfile.mkdtemp())
     assert out[0]["image"] is None
+
+
+def test_process_date_reuses_cache():
+    """已缓存(带 deep_analysis)的论文不重复调用 provider。"""
+    metas = [{"title": "x", "has_full_text": True, "markdown_oss_key": "k",
+              "doc_id": "d1", "summary": "s"}]
+    class FakeClient:
+        def fetch_metadata(self, d): return metas
+        def fetch_markdown(self, m): raise AssertionError("should not fetch when cached")
+    class Explode:
+        def call_api(self, p): raise AssertionError("provider should not be called when cached")
+    cache = {"d1": {"doc_id": "d1", "source": "APS", "deep_analysis": "## cached",
+                    "category": "AI×物理", "poster": None}}
+    out = run_deep.process_date("2026-05-28", client=FakeClient(),
+                                provider=Explode(), cache=cache)
+    assert len(out) == 1
+    assert out[0]["deep_analysis"] == "## cached"
