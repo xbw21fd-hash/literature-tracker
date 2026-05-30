@@ -436,6 +436,8 @@ def build_provider(api_provider: str, api_key: str, model: str = None) -> AIProv
         return KimiClaudeCodeProvider(api_key=api_key, model=model)
     if name in ("openrouter", "open-router", "or"):
         return OpenRouterProvider(api_key=api_key, model=model)
+    if name in ("aigw", "gpt5", "openai-gateway", "sota"):
+        return OpenRouterProvider(api_key=api_key, model=model)
     # default: gemini
     gemini_model = model if model and "/" not in model else None
     return GeminiProvider(api_key=api_key, model=gemini_model)

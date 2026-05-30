@@ -159,9 +159,11 @@ except ImportError:
 
 AI_CONFIG = {
     "enabled": True,
-    # provider 可选: kimi（推荐，Anthropic 协议，api.kimi.com/coding）、gemini、openrouter
-    "provider": _local_ai_config.get("provider") or os.environ.get("AI_PROVIDER", "kimi"),
-    # API key：优先 AI_API_KEY，其次 KIMI_API_KEY，再其次 GEMINI_API_KEY
+    # provider 可选: aigw（默认，OpenAI-compatible gateway）、kimi、gemini、openrouter
+    # Fallback / 回退 Kimi 配置: 将下行改为 "kimi" 即可切回
+    # "provider": _local_ai_config.get("provider") or os.environ.get("AI_PROVIDER", "kimi"),
+    "provider": _local_ai_config.get("provider") or os.environ.get("AI_PROVIDER", "aigw"),
+    # API key：优先 AI_API_KEY，其次 KIMI_API_KEY，再其次 GEMINI_API_KEY（运行时注入，不可硬编码）
     "api_key": (
         _local_ai_config.get("api_key")
         or os.environ.get("AI_API_KEY")
@@ -169,10 +171,13 @@ AI_CONFIG = {
         or os.environ.get("GEMINI_API_KEY")
         or ""
     ),
-    # model：Kimi 默认 kimi-k2-turbo-preview；OpenRouter 默认 gpt-5.4(auto)
-    "model": _local_ai_config.get("model") or os.environ.get("AI_MODEL", "kimi-k2-turbo-preview"),
-    # base_url：仅 OpenRouter 使用（Kimi 用 KIMI_BASE_URL，默认 https://api.kimi.com/coding）
-    "base_url": _local_ai_config.get("base_url") or os.environ.get("AI_BASE_URL") or os.environ.get("OPENROUTER_BASE_URL", "https://supercodex.space/v1"),
+    # model：aigw 默认 gpt-5.5
+    # Fallback / 回退 Kimi 配置: "kimi-k2-turbo-preview"
+    # "model": _local_ai_config.get("model") or os.environ.get("AI_MODEL", "kimi-k2-turbo-preview"),
+    "model": _local_ai_config.get("model") or os.environ.get("AI_MODEL", "gpt-5.5"),
+    # base_url：aigw gateway；切回 Kimi 时可删除此行（Kimi 用 KIMI_BASE_URL）
+    # Fallback / 回退: "https://supercodex.space/v1"
+    "base_url": _local_ai_config.get("base_url") or os.environ.get("AI_BASE_URL") or os.environ.get("OPENROUTER_BASE_URL", "https://aigw.sotatts.online/v1"),
 }
 
 # 去重配置
