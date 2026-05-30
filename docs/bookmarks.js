@@ -125,6 +125,7 @@
     '.daily-core-card',
     '.weekly-core-card',
     '.weekly-paper-card',
+    '.feed-card',
   ];
 
   function _text(node) {

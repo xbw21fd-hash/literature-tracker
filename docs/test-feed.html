@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>feed unit tests</title><link rel="stylesheet" href="bookmarks.css"></head>
+<body>
+<h1>feed.js unit tests</h1>
+<pre id="out"></pre>
+<script>window.__bookmarksInited = true; window.__likesInited = true;</script>
+<script src="bookmarks.js"></script>
+<script src="likes.js"></script>
+<script src="feed.js"></script>
+<script>
+const out = document.getElementById('out');
+const log = (...a) => { out.textContent += a.join(' ') + '\n'; console.log(...a); };
+let pass = 0, fail = 0;
+function assert(cond, msg) { if (cond) { pass++; log('  ✓', msg); } else { fail++; log('  ✗ FAIL:', msg); } }
+
+try { localStorage.removeItem('literature_bookmarks'); localStorage.removeItem('literature_likes'); } catch (e) {}
+
+const mockItems = [
+  {
+    source: 'APS', journal: 'PRL', title_en: 'Quantum Foo', title_zh: '量子 Foo',
+    summary: 'APS 第一篇摘要。', category: 'AI×物理',
+    link: 'https://ex.com/aps1', doc_id: 'd1', image: 'images/posters/d1.webp',
+    poster_elements: { '研究问题': '如何理解量子 Foo?', '创新方法': '新方法', '工作流程': '流程', '关键结果': '结果', '应用价值': '价值' },
+    deep_analysis: '这是一段深度精读。\n第二行。', enriched: true, date: '2026-05-28'
+  },
+  {
+    source: 'APS', journal: 'PRX', title_en: 'Topological Bar', title_zh: '拓扑 Bar',
+    summary: 'APS 第二篇摘要。', category: '凝聚态',
+    link: 'https://ex.com/aps2', doc_id: 'd2', image: 'images/posters/d2.webp',
+    poster_elements: { '研究问题': 'Bar 的拓扑性质?', '关键结果': '部分结果' },
+    deep_analysis: '', enriched: true, date: '2026-05-27'
+  },
+  {
+    source: 'arxiv', journal: 'arXiv', title_en: 'Diffusion Models', title_zh: '扩散模型',
+    summary: 'arXiv 有图的一篇。', category: 'AI×物理',
+    link: 'https://arxiv.org/abs/2605.00001', doc_id: 'd3', image: 'images/cores/d3.webp',
+    poster_elements: null, deep_analysis: '', enriched: false, date: '2026-05-26'
+  },
+  {
+    source: 'arxiv', journal: 'arXiv', title_en: 'No Image Paper', title_zh: '',
+    summary: 'arXiv 无图的一篇。', category: '凝聚态',
+    link: 'https://arxiv.org/abs/2605.00002', doc_id: 'd4', image: null,
+    poster_elements: null, deep_analysis: '', enriched: false, date: '2026-05-25'
+  }
+];
+
+log('--- FeedUI present ---');
+assert(window.FeedUI && typeof window.FeedUI.renderFeed === 'function', 'FeedUI.renderFeed exists');
+assert(typeof window.FeedUI.buildCatBar === 'function', 'FeedUI.buildCatBar exists');
+assert(typeof window.FeedUI.filterByCategory === 'function', 'FeedUI.filterByCategory exists');
+
+log('--- renderFeed ---');
+const container = document.createElement('main');
+document.body.appendChild(container);
+let threw = false;
+try { window.FeedUI.renderFeed(mockItems, container); } catch (e) { threw = true; log('  render threw:', e.message); }
+assert(!threw, 'renderFeed does not throw');
+
+const cards = container.querySelectorAll('.feed-card');
+assert(cards.length === 4, 'one .feed-card per item (4 cards) — got ' + cards.length);
+
+log('--- APS poster overlay ---');
+const aps1 = container.querySelector('[data-bookmark-key="https://ex.com/aps1"]');
+assert(!!aps1, 'aps1 card present');
+const overlay = aps1 && aps1.querySelector('.poster-overlay');
+assert(!!overlay, 'APS card has .poster-overlay');
+assert(overlay && /如何理解量子 Foo\?/.test(overlay.textContent), 'overlay contains 研究问题 text');
+
+log('--- bookmark keys ---');
+mockItems.forEach(it => {
+  const c = container.querySelector('[data-bookmark-key="' + it.link + '"]');
+  assert(!!c, 'card has data-bookmark-key = ' + it.link);
+});
+
+log('--- text-only (image:null) ---');
+const noImg = container.querySelector('[data-bookmark-key="https://arxiv.org/abs/2605.00002"]');
+assert(!!noImg, 'no-image card present');
+assert(noImg && !noImg.querySelector('img'), 'no-image card renders WITHOUT <img>');
+
+log('--- hooks attached ---');
+assert(!!aps1.querySelector('.bookmark-btn'), 'BookmarkUI star button attached');
+assert(!!aps1.querySelector('.like-btn'), 'LikeUI heart button attached');
+
+log('--- buildCatBar ---');
+const bar = document.createElement('nav');
+document.body.appendChild(bar);
+window.FeedUI.buildCatBar(mockItems, bar);
+const chips = bar.querySelectorAll('.chip');
+const chipText = Array.from(chips).map(c => c.textContent);
+assert(chips.length >= 3, 'cat bar has chips for distinct categories + all — got ' + chips.length);
+assert(chipText.some(t => /AI×物理/.test(t)), 'chip for AI×物理 present');
+assert(chipText.some(t => /凝聚态/.test(t)), 'chip for 凝聚态 present');
+assert(chipText.some(t => /全部/.test(t)), 'chip for 全部 (all) present');
+
+log('--- filterByCategory ---');
+function visible(card) { return !card.classList.contains('hidden') && card.style.display !== 'none'; }
+window.FeedUI.filterByCategory('AI×物理');
+const visAfter = Array.from(container.querySelectorAll('.feed-card')).filter(visible);
+assert(visAfter.length === 2, 'filter AI×物理 shows 2 cards — got ' + visAfter.length);
+assert(visAfter.every(c => c.dataset.category === 'AI×物理'), 'all visible cards are AI×物理');
+
+window.FeedUI.filterByCategory('全部');
+const visAll = Array.from(container.querySelectorAll('.feed-card')).filter(visible);
+assert(visAll.length === 4, '全部 shows all 4 cards — got ' + visAll.length);
+
+window.FeedUI.filterByCategory(null);
+const visNull = Array.from(container.querySelectorAll('.feed-card')).filter(visible);
+assert(visNull.length === 4, 'null shows all 4 cards — got ' + visNull.length);
+
+log('\n--- summary ---');
+log(`PASS: ${pass}  FAIL: ${fail}`);
+if (fail > 0) document.title = '✗ ' + document.title;
+else document.title = '✓ ' + document.title;
+</script>
+</body></html>
