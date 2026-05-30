@@ -115,5 +115,26 @@ ${items}
     return new Blob([entries + '\n'], { type: 'application/x-bibtex;charset=utf-8' });
   }
 
-  window.BookmarkExports = { exportRSS, exportMarkdown, exportBibTeX };
+  /**
+   * collectAll() — merges entries from both localStorage keys
+   * `literature_bookmarks` and `literature_likes` into a single
+   * deduplicated array (dedupe by link/key). Bookmark entry wins on conflict.
+   */
+  function collectAll() {
+    function _loadKey(key) {
+      try {
+        const raw = (typeof localStorage !== 'undefined') && localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        return {};
+      }
+    }
+    const bookmarks = _loadKey('literature_bookmarks');
+    const likes = _loadKey('literature_likes');
+    // Merge: start with likes, then overwrite/add bookmarks (bookmark wins on conflict)
+    const merged = Object.assign({}, likes, bookmarks);
+    return Object.entries(merged).map(([link, meta]) => Object.assign({ link }, meta));
+  }
+
+  window.BookmarkExports = { exportRSS, exportMarkdown, exportBibTeX, collectAll };
 })();
