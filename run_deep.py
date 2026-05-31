@@ -192,11 +192,18 @@ def _save_aps_index(date, aps):
 
 
 def _load_existing_feeds():
+    # union of APS dates and arXiv-core dates: an arXiv-only date (no APS that day) must
+    # still contribute its arxiv items to the feed.
+    aps_dates = {os.path.basename(p)[len("aps_"):-len(".json")]
+                 for p in glob.glob("data/aps_*.json")}
+    core_dates = {os.path.basename(p)[len("arxiv_core_"):-len(".json")]
+                  for p in glob.glob("data/arxiv_core_*.json")}
     feeds = []
-    for p in sorted(glob.glob("data/aps_*.json")):
-        date = os.path.basename(p)[4:-5]
-        try: aps = json.load(open(p, encoding="utf-8"))
-        except Exception: continue
+    for date in sorted(aps_dates | core_dates):
+        try:
+            aps = json.load(open(f"data/aps_{date}.json", encoding="utf-8")) if date in aps_dates else []
+        except Exception:
+            aps = []
         feeds.append(build_feed(aps, _load_arxiv_core(date), date=date))
     return feeds
 
@@ -212,36 +219,43 @@ def main():
     # Per-run budget of NEW papers to deep-read (prevents 90-min timeout on first backfill;
     # idempotent cache lets repeated/scheduled runs finish the rest).
     budget = int(os.environ.get("DEEP_MAX_NEW_PER_RUN", "14"))
+    # ---- APS full-text deep-read (T1) ----
     dates = client.list_dates(window_days=window)
     print(f"📚 APS dates to process (window={window}, new-budget={budget}): {dates}")
-    # newest first so the freshest papers get processed within budget
-    for d in sorted(dates, reverse=True):
+    for d in sorted(dates, reverse=True):  # newest first → freshest within budget
         cache = _load_aps_cache(d)
         aps, used = process_date(d, client, provider, max_workers=workers,
                                  cache=cache, max_new=budget)
         budget -= used
         enriched = sum(1 for a in aps if a.get("deep_analysis"))
-        print(f"  {d}: {len(aps)} papers ({enriched} with deep_analysis), {used} new this run")
+        print(f"  APS {d}: {len(aps)} papers ({enriched} with deep_analysis), {used} new this run")
         if aps:
             _save_aps_index(d, aps)
-        # T2: arXiv AI×交叉 摘要级深析 + 信息图（用剩余预算）
+
+    # ---- arXiv tier-2 abstract-level deep-read + infographic (T2) ----
+    # DECOUPLED from APS dates: iterate the arxiv_tier2_<date>.json files the daily generator
+    # wrote (arXiv has data even when APS is unavailable/empty). Shared budget, newest-first.
+    # run_deep is the SOLE writer of arxiv_core_<date>.json (with deep_analysis/image/poster_elements).
+    t2dates = sorted({os.path.basename(p)[len("arxiv_tier2_"):-len(".json")]
+                      for p in glob.glob("data/arxiv_tier2_*.json")}, reverse=True)
+    print(f"📰 arXiv tier-2 dates: {t2dates} (remaining budget {budget})")
+    for d in t2dates:
+        if budget <= 0:
+            break
         try:
-            tpath = f"data/arxiv_tier2_{d}.json"
-            if budget > 0 and os.path.exists(tpath):
-                cands = json.load(open(tpath, encoding="utf-8"))
-                t2cache = {(x.get("link") or x.get("title")): x for x in _load_core_cache(d)}
-                t2, t2used = process_arxiv_tier2(d, cands, provider, max_workers=workers,
-                                                 cache=t2cache, max_new=budget)
-                budget -= t2used
-                if t2:
-                    # run_deep is the AUTHORITATIVE writer of arxiv_core_<date>.json post-enrichment:
-                    # it intentionally widens the daily generator's core set (≤8, core-focus only) to
-                    # the tier-2 set (≤20, AI×交叉 OR core-focus) WITH deep_analysis/image/poster_elements.
-                    # _load_existing_feeds reads this file → feed.json. (idempotent via _deep_complete_abstract)
-                    with open(f"data/arxiv_core_{d}.json", "w", encoding="utf-8") as cf:
-                        json.dump(t2, cf, ensure_ascii=False)
+            cands = json.load(open(f"data/arxiv_tier2_{d}.json", encoding="utf-8"))
+            t2cache = {(x.get("link") or x.get("title")): x for x in _load_core_cache(d)}
+            t2, t2used = process_arxiv_tier2(d, cands, provider, max_workers=workers,
+                                             cache=t2cache, max_new=budget)
+            budget -= t2used
+            ndeep = sum(1 for x in t2 if x.get("deep_analysis"))
+            print(f"  tier2 {d}: {len(t2)} items ({ndeep} with deep_analysis), {t2used} new this run")
+            if t2:
+                with open(f"data/arxiv_core_{d}.json", "w", encoding="utf-8") as cf:
+                    json.dump(t2, cf, ensure_ascii=False)
         except Exception as e:
             print(f"⚠️ tier2 processing failed for {d}: {e}")
+
     import datetime as _dt
     today = (_dt.datetime.utcnow() + _dt.timedelta(hours=8)).date().isoformat()
     write_feed_json(_load_existing_feeds(), today=today, window_days=60)
