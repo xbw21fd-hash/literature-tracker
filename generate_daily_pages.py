@@ -24,6 +24,7 @@ from focus_filter import analyze_focus, filter_daily_focus_items, filter_focus_i
 from rss_generator import generate_daily_rss_feed
 from text_normalizer import normalize_articles_inplace, normalize_text
 from focus_core import classify_taxonomy, is_core_focus
+from feed_builder import normalize_link
 
 
 def beijing_today() -> str:
@@ -320,34 +321,37 @@ def build_tier2_candidates(full_list, max_n=20):
     return cand[:max_n]
 
 
-def render_deep_section(aps_items):
+def render_deep_section(aps_items, date=""):
     if not aps_items:
         return ""
     cards = []
     for a in aps_items:
-        link = safe_text((a.get("link") or a.get("doi") or "").strip())
+        link = safe_text(normalize_link((a.get("link") or a.get("doi") or "").strip()))
         poster = a.get("poster") or {}
         img = poster.get("image"); el = poster.get("elements") or {}
         # Daily pages live at docs/daily/<date>.html; sibling-dir assets need a ../ prefix
         # (image paths are stored relative to docs/, e.g. "images/posters/<id>.webp").
         img_src = img if (not img or img.startswith(("http", "/", "../"))) else f"../{img}"
-        overlay = ""
+        figure = (f'<div class="poster-figure"><img loading="lazy" src="{safe_text(img_src)}" '
+                  f'onerror="this.style.display=\'none\'"></div>') if img else ""
+        elems = ""
         if el:
             rows = "".join(
                 f'<div class="poster-row"><b>{safe_text(k)}</b>{safe_text(el.get(k,""))}</div>'
                 for k in ["研究问题","创新方法","工作流程","关键结果","应用价值"] if el.get(k))
-            overlay = f'<div class="poster-overlay">{rows}</div>'
-        figure = (f'<div class="poster-figure"><img loading="lazy" src="{safe_text(img_src)}" '
-                  f'onerror="this.style.display=\'none\'">{overlay}</div>') if img else ""
+            if rows:
+                elems = f'<div class="daily-deep-elements">{rows}</div>'
         deep = safe_text(a.get("deep_analysis","")) if a.get("deep_analysis") else ""
         deep_html = (f'<details class="deep-details"><summary>展开精读</summary>'
                      f'<div class="deep-body">{deep}</div></details>') if deep else ""
+        feed_link = (f'<a class="to-feed" href="../feed.html?date={safe_text(date)}&doc={safe_text(a.get("doc_id",""))}">在 Feed 中查看 ↗</a>'
+                     if date else "")
         cards.append(
             f'<article class="daily-deep-card daily-core-card" data-bookmark-key="{link}">'
             f'<span class="cat-tag">{safe_text(a.get("category","其他"))}</span>'
-            f'<h3>{safe_text(a.get("title_zh") or a.get("title",""))}</h3>'
-            f'{figure}{deep_html}'
-            f'<a class="src-link" href="{link}" target="_blank">原文 ↗</a>'
+            f'<h3 class="daily-deep-title-zh">{safe_text(a.get("title_zh") or a.get("title",""))}</h3>'
+            f'{figure}{elems}{deep_html}'
+            f'<div class="daily-deep-links"><a class="src-link" href="{link}" target="_blank">原文 ↗</a>{feed_link}</div>'
             f'</article>')
     return ('<section class="daily-deep-section"><h2>📖 今日精读</h2>'
             + "".join(cards) + "</section>")
@@ -366,7 +370,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
                 aps_items = loaded
     except Exception:
         aps_items = []
-    deep_section_html = render_deep_section(aps_items)
+    deep_section_html = render_deep_section(aps_items, date=date_str)
 
     items = summary.get("full_list") or summary.get("summaries") or []
     items = sorted(items, key=focus_priority)
@@ -600,12 +604,13 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     .cat-tag{{display:inline-block;padding:2px 10px;border-radius:999px;background:#eef2f7;color:#1456b8;font-size:12px;}}
     .poster-figure{{position:relative;margin:10px 0;}}
     .poster-figure img{{width:100%;border-radius:10px;display:block;}}
-    .poster-overlay{{position:absolute;inset:0;display:flex;flex-direction:column;gap:4px;padding:14px;
-      background:linear-gradient(180deg,rgba(245,245,247,.82),rgba(245,245,247,.62));
-      font-family:"Songti SC","SimSun",serif;overflow:auto;}}
+    .daily-deep-elements{{margin:8px 0;display:flex;flex-direction:column;gap:5px;font-size:14px;line-height:1.6;}}
+    .daily-deep-elements .poster-row b{{color:#1456b8;margin-right:6px;}}
     .poster-row b{{color:#1456b8;margin-right:6px;}}
     .deep-details{{margin-top:8px;}} .deep-body{{white-space:pre-wrap;font-size:14px;line-height:1.6;}}
     .src-link{{display:inline-block;margin-top:8px;color:#1456b8;}}
+    .daily-deep-links{{display:flex;gap:16px;margin-top:8px;}}
+    .to-feed{{color:#0f766e;text-decoration:none;}}
     .daily-shell {{ max-width: 1260px; margin: 0 auto; padding: 28px 20px 48px; }}
     .daily-topbar {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }}
     .daily-topbar-left, .daily-topbar-right {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}

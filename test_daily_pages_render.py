@@ -103,7 +103,9 @@ def test_daily_renders_deep_read_section():
     assert "今日精读" in html
     # daily pages live at docs/daily/<date>.html → sibling assets need ../ prefix
     assert 'src="../images/posters/d1.webp"' in html
-    assert "poster-overlay" in html
+    # image/text separated: 5 elements live in a dedicated block, not overlaid on image
+    assert "poster-overlay" not in html
+    assert "daily-deep-elements" in html
     assert "AI×物理" in html
     assert 'data-bookmark-key="http://x"' in html
 
@@ -111,6 +113,29 @@ def test_daily_renders_deep_read_section():
 def test_render_deep_section_empty_returns_empty():
     from generate_daily_pages import render_deep_section
     assert render_deep_section([]) == ""
+
+
+def test_deep_section_has_feed_link_and_no_overlay():
+    from generate_daily_pages import render_deep_section
+    aps = [{"title": "T", "title_zh": "标题", "category": "AI×物理",
+            "deep_analysis": "x",
+            "poster": {"image": "images/posters/d1.webp",
+                       "elements": {"研究问题": "q", "创新方法": "m", "工作流程": "f",
+                                    "关键结果": "r", "应用价值": "v"}},
+            "link": "10.1103/abc", "doc_id": "d1"}]
+    html = render_deep_section(aps, date="2026-05-28")
+    assert "feed.html" in html and "在 Feed" in html
+    # image/text separated: elements live in a non-overlay block, image still present
+    assert "poster-overlay" not in html
+    assert "daily-deep-elements" in html
+    assert "../images/posters/d1.webp" in html
+    # bare DOI normalized to a real URL somewhere in the card
+    assert "doi.org/10.1103/abc" in html
+
+
+def test_deep_section_empty_still_empty():
+    from generate_daily_pages import render_deep_section
+    assert render_deep_section([], date="2026-05-28") == ""
 
 
 def test_build_core_export_has_category_and_link():
