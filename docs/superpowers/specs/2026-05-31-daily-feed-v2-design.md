@@ -41,7 +41,7 @@ WS-F 死链/元信息/中文兜底 ───────────────
 
 ### WS-A：英文信息图配图（替代纯背景海报）
 - `poster_generator.py`：
-  - `extract_elements` 升级：除现有中文 5 要素 JSON，新增英文短标签 `elements_en`（5 个，如 `{"research_question":"...", "method":"GNN potential", ...}`，每个 ≤6 词），供信息图标签用。沿用 `safe_substitute` 容错。
+  - `extract_elements` 升级：除现有中文 5 要素 JSON，新增 (1) 英文短标签 `elements_en`（5 个，如 `{"research_question":"...", "method":"GNN potential", ...}`，每个 ≤6 词）供信息图标签用；(2) `title_zh`（论文标题的中文翻译）。沿用 `safe_substitute` 容错。`run_deep._enrich_one` 把 `title_zh` 写进 APS 记录，使 Feed/日报每篇 APS 都有中文标题。
   - 新增 `build_infographic_prompt(elements_en, title)`：产出英文信息图 prompt——现代极简科技信息图、左→右 5 节点流程（用 elements_en 的英文短标签）、允许柱状/折线/网络示意、深学术蓝+板岩灰+橙/青、`#F5F5F7` 底、16:9。**明确"schematic/illustrative chart, do NOT invent specific numeric values"**；negative prompt 保留 `no Chinese characters, no garbled text, no photorealism`。
   - `generate_poster` 改为生成信息图：`max_edge=1280`（小字清晰）、WebP q≈82。返回 `{elements(中文), elements_en, image, doc_id}`。
 - 复用 `image_provider.generate_and_save`（流式 + 压缩）不变。
@@ -70,7 +70,7 @@ WS-F 死链/元信息/中文兜底 ───────────────
 - **修收藏/点赞**：`.feed-card{position:relative}`；⭐ 定位 `top:8px;right:8px`、❤️ `top:8px;right:48px`（错开）；新增 `.like-btn` CSS（参照 `.bookmark-btn` 角标）；`renderFeed` 末尾补调 `BookmarkUI.renderFab()` + `bindGestures(container)` 与 `LikeUI` 对应方法（若存在），实现右下 FAB+计数+长按。
 - **分类条**：`buildCatBar` 按 `TAXONOMY` tier 排序，`AI×物理`/`AI×化学·材料` chip 置顶 + 高亮 class。
 - **进度+分组**：顶部进度条（`第 N / 共 M`，随 scroll 更新）；按 `date` 分组插日期标头（轻量 sticky 标签，非占满屏的分隔卡）；未读计数（localStorage 键 `literature_feed_read` 记已读 doc_id/link）。
-- **中文兜底**：`title_zh||title_en`；无 `summary` 时渲染 `abstract`(截断) 占位，避免空卡。
+- **标题全中文**：Feed 每张卡标题一律用中文 `title_zh`（APS 来自 WS-A 的 `extract_elements.title_zh`；arXiv 来自日报翻译管线，core_export 透传）。仅当翻译确实缺失才回退 `title_en`，目标是 100% 中文标题。无 `summary` 时渲染 `abstract`(截断) 占位，避免空卡。
 - **样式自包含**：所有 Feed 所需样式（含 `.like-btn`/`.bookmark-btn` 在 `.feed-card` 内的角标定位）写进 `feed.css`，不依赖 `style.css`（`feed.html` 只引 `feed.css`+`bookmarks.css`），避免缺样式/404。
 
 ### WS-E：显眼入口（`docs/index.html`）
