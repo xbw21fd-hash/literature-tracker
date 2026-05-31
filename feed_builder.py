@@ -19,11 +19,17 @@ def _item_from_aps(a):
             "deep_analysis": a.get("deep_analysis", ""), "enriched": True}
 
 def _item_from_arxiv(a):
+    poster = a.get("poster") or {}
+    # tier-2 records store poster_elements/image at top level; also accept nested poster.elements
+    elements = a.get("poster_elements") or poster.get("elements")
+    image = a.get("image") or poster.get("image")
+    deep = a.get("deep_analysis", "")
     return {"source": "arxiv", "journal": a.get("journal", "arXiv"),
             "title_en": a.get("title", ""), "title_zh": a.get("title_zh", ""),
             "summary": a.get("summary", ""), "category": a.get("category", "其他"),
-            "link": normalize_link(a.get("link", "")), "image": a.get("image"),
-            "poster_elements": None, "deep_analysis": "", "enriched": bool(a.get("image"))}
+            "link": normalize_link(a.get("link", "")), "image": image,
+            "poster_elements": elements, "deep_analysis": deep,
+            "enriched": bool(image or deep)}
 
 def build_feed(aps_items, arxiv_items, date):
     items = [_item_from_aps(a) for a in (aps_items or [])] + \

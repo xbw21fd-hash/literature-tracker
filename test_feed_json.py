@@ -61,3 +61,17 @@ def test_arxiv_item_daily_url():
     it = feed["items"][0]
     assert it["link"] == "http://arxiv.org/abs/1"
     assert it["daily_url"] == "daily/2026-05-27.html"
+
+
+def test_arxiv_item_carries_deep_and_elements():
+    # C1 regression: tier-2 arXiv records' deep_analysis/poster_elements must survive into feed
+    from feed_builder import build_feed
+    arxiv = [{"source": "arxiv", "title": "T", "title_zh": "标题", "category": "AI×物理",
+              "link": "http://x", "image": "images/posters/ax1.webp",
+              "poster_elements": {"研究问题": "q"}, "deep_analysis": "## 摘要级\n创新"}]
+    feed = build_feed([], arxiv, date="2026-05-28")
+    it = feed["items"][0]
+    assert it["deep_analysis"].startswith("## 摘要级")
+    assert it["poster_elements"]["研究问题"] == "q"
+    assert it["image"] == "images/posters/ax1.webp"
+    assert it["enriched"] is True

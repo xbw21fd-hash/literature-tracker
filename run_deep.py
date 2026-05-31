@@ -16,8 +16,14 @@ from feed_builder import build_feed, write_feed_json
 
 
 def _deep_complete(text):
-    """深读是否完整：苏格拉底 prompt 第五部分为「创新评估」，截断会缺它。"""
+    """全文深读是否完整：苏格拉底 prompt 第五部分为「创新评估」，截断会缺它。"""
     return bool(text) and ("创新" in text) and len(text) >= 5000
+
+
+def _deep_complete_abstract(text):
+    """摘要级解析完整性：abstract 解析是精炼的(远短于全文)，含创新性判断且达基本篇幅即视为完成。
+    用 5000 字门槛会让短摘要解析永远判为未完成→每轮无限重处理耗尽预算；120 字足以区分真解析与空/截断。"""
+    return bool(text) and ("创新" in text) and len(text) >= 120
 
 
 def _enrich_one(meta, client, provider, out_dir, cached=None):
@@ -63,7 +69,7 @@ def process_date(date, client, provider, out_dir="docs/images/posters", max_work
 
 
 def _enrich_arxiv_tier2_one(cand, provider, out_dir, cached=None):
-    if cached and _deep_complete(cached.get("deep_analysis")):
+    if cached and _deep_complete_abstract(cached.get("deep_analysis")):
         return cached
     import hashlib
     abs_txt = cand.get("abstract") or cand.get("summary") or ""
@@ -91,7 +97,7 @@ def process_arxiv_tier2(date, candidates, provider, out_dir="docs/images/posters
     for c in cands:
         key = c.get("link") or c.get("title")
         prev = cache.get(key)
-        (cached if (prev and _deep_complete(prev.get("deep_analysis"))) else fresh).append((c, prev))
+        (cached if (prev and _deep_complete_abstract(prev.get("deep_analysis"))) else fresh).append((c, prev))
     if max_new is not None:
         fresh = fresh[:max(0, max_new)]
     results = [p for (_c, p) in cached]
@@ -222,6 +228,10 @@ def main():
                                                  cache=t2cache, max_new=budget)
                 budget -= t2used
                 if t2:
+                    # run_deep is the AUTHORITATIVE writer of arxiv_core_<date>.json post-enrichment:
+                    # it intentionally widens the daily generator's core set (≤8, core-focus only) to
+                    # the tier-2 set (≤20, AI×交叉 OR core-focus) WITH deep_analysis/image/poster_elements.
+                    # _load_existing_feeds reads this file → feed.json. (idempotent via _deep_complete_abstract)
                     with open(f"data/arxiv_core_{d}.json", "w", encoding="utf-8") as cf:
                         json.dump(t2, cf, ensure_ascii=False)
         except Exception as e:

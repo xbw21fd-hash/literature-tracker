@@ -163,3 +163,26 @@ def test_process_arxiv_tier2_enriches_and_budgets():
                                                  out_dir=tempfile.mkdtemp(), max_new=3)
     assert used == 3
     assert sum(1 for x in out if x.get("deep_analysis")) == 3
+
+
+def test_tier2_short_abstract_analysis_is_complete_not_reprocessed():
+    # C2 regression: a concise (realistic) abstract analysis must count as complete,
+    # else tier-2 gets reprocessed every run and exhausts the budget.
+    import run_deep, tempfile
+    from unittest import mock
+    # realistic concise abstract analysis: ~400 chars (far below the 5000 full-text bar)
+    short = ("## 核心概览\n" + "本文用图神经网络构建可迁移的原子间势，研究钙钛矿铁电相变。" * 6 +
+             "\n## 创新性判断\n相对前人首次实现跨组分迁移。" * 2)
+    assert 120 <= len(short) < 5000
+    assert run_deep._deep_complete_abstract(short) is True
+    assert run_deep._deep_complete(short) is False  # full-text bar would wrongly reject
+    cands = [{"title": "P", "abstract": "abs", "link": "http://z", "category": "AI×物理"}]
+    cache = {"http://z": {"link": "http://z", "deep_analysis": short, "poster": {"image": "x.webp"}}}
+    class Explode:
+        def call_api(self, p): raise AssertionError("provider must not be called for complete tier-2")
+    with mock.patch.object(run_deep, "generate_and_save",
+                           side_effect=AssertionError("no image regen for complete tier-2")):
+        out, used = run_deep.process_arxiv_tier2("2026-05-28", cands, Explode(),
+                                                 out_dir=tempfile.mkdtemp(), cache=cache)
+    assert used == 0
+    assert out[0]["deep_analysis"] == short
