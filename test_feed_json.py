@@ -38,3 +38,26 @@ def test_write_feed_json_drops_out_of_window():
     data = json.load(open(path, encoding="utf-8"))
     titles = [i["title_zh"] for i in data["items"]]
     assert "new" in titles and "old" not in titles
+
+def test_normalize_link_doi_to_url():
+    from feed_builder import normalize_link
+    assert normalize_link("10.1103/766t-tqsy") == "https://doi.org/10.1103/766t-tqsy"
+    assert normalize_link("http://arxiv.org/abs/2601.1") == "http://arxiv.org/abs/2601.1"
+    assert normalize_link("https://x.com/a") == "https://x.com/a"
+    assert normalize_link("") == ""
+
+def test_aps_item_link_normalized_and_daily_url():
+    from feed_builder import build_feed
+    aps = [{"source": "APS", "title": "T", "title_zh": "标题", "doi": "10.1103/abc",
+            "doc_id": "d1", "deep_analysis": "x"}]
+    feed = build_feed(aps, [], date="2026-05-28")
+    it = feed["items"][0]
+    assert it["link"] == "https://doi.org/10.1103/abc"
+    assert it["daily_url"] == "daily/2026-05-28.html"
+
+def test_arxiv_item_daily_url():
+    from feed_builder import build_feed
+    feed = build_feed([], [{"source": "arxiv", "title": "A", "link": "http://arxiv.org/abs/1"}], date="2026-05-27")
+    it = feed["items"][0]
+    assert it["link"] == "http://arxiv.org/abs/1"
+    assert it["daily_url"] == "daily/2026-05-27.html"

@@ -1,12 +1,20 @@
 """聚合 APS 精读 + arXiv 核心 → docs/data/feed.json，含 60 天滚动裁剪。"""
 import os, json, datetime
 
+def normalize_link(link):
+    s = (link or "").strip()
+    if not s:
+        return ""
+    if s.startswith("http://") or s.startswith("https://"):
+        return s
+    return f"https://doi.org/{s}"
+
 def _item_from_aps(a):
     poster = a.get("poster") or {}
     return {"source": "APS", "journal": a.get("journal", ""),
             "title_en": a.get("title", ""), "title_zh": a.get("title_zh", ""),
             "summary": a.get("summary", ""), "category": a.get("category", "其他"),
-            "link": a.get("link") or a.get("doi", ""), "doc_id": a.get("doc_id", ""),
+            "link": normalize_link(a.get("link") or a.get("doi", "")), "doc_id": a.get("doc_id", ""),
             "image": poster.get("image"), "poster_elements": poster.get("elements"),
             "deep_analysis": a.get("deep_analysis", ""), "enriched": True}
 
@@ -14,12 +22,14 @@ def _item_from_arxiv(a):
     return {"source": "arxiv", "journal": a.get("journal", "arXiv"),
             "title_en": a.get("title", ""), "title_zh": a.get("title_zh", ""),
             "summary": a.get("summary", ""), "category": a.get("category", "其他"),
-            "link": a.get("link", ""), "image": a.get("image"),
+            "link": normalize_link(a.get("link", "")), "image": a.get("image"),
             "poster_elements": None, "deep_analysis": "", "enriched": bool(a.get("image"))}
 
 def build_feed(aps_items, arxiv_items, date):
     items = [_item_from_aps(a) for a in (aps_items or [])] + \
             [_item_from_arxiv(a) for a in (arxiv_items or [])]
+    for it in items:
+        it["daily_url"] = f"daily/{date}.html"
     return {"date": date, "items": items}
 
 def prune_window(feeds, today=None, window_days=60):
