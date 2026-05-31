@@ -31,62 +31,59 @@
     img.alt = item.title_zh || item.title_en || '';
     img.setAttribute('onerror', "this.style.display='none'");
     fig.appendChild(img);
-
-    if (item.poster_elements && typeof item.poster_elements === 'object') {
-      const overlay = el('div', 'poster-overlay');
-      let rows = 0;
-      POSTER_ROWS.forEach(function (key) {
-        const val = item.poster_elements[key];
-        if (val == null || val === '') return;
-        const row = el('div', 'poster-row',
-          '<b>' + esc(key) + '</b>' + esc(val));
-        overlay.appendChild(row);
-        rows++;
-      });
-      if (rows > 0) fig.appendChild(overlay);
-    }
     return fig;
+  }
+
+  function buildElementsBlock(item) {
+    if (!item.poster_elements || typeof item.poster_elements !== 'object') return null;
+    const box = el('div', 'poster-elements');
+    let rows = 0;
+    POSTER_ROWS.forEach(function (key) {
+      const val = item.poster_elements[key];
+      if (val == null || val === '') return;
+      box.appendChild(el('div', 'poster-row', '<b>' + esc(key) + '</b>' + esc(val)));
+      rows++;
+    });
+    return rows > 0 ? box : null;
   }
 
   function buildCard(item) {
     const card = el('article', 'feed-card');
     card.dataset.bookmarkKey = item.link || '';
     card.dataset.category = item.category || '';
+    if (item.doc_id) card.dataset.doc = item.doc_id;
+    if (item.date) card.dataset.date = item.date;
 
-    if (item.category) {
-      card.appendChild(el('span', 'cat-tag', esc(item.category)));
-    }
+    if (item.category) card.appendChild(el('span', 'cat-tag', esc(item.category)));
 
     const h = el('h2', 'feed-title-zh');
-    h.textContent = item.title_zh || item.title_en || '';
+    h.textContent = item.title_zh || item.title_en || '(无标题)';
     card.appendChild(h);
 
-    if (item.summary) {
-      card.appendChild(el('p', 'summary', esc(item.summary)));
-    }
+    const sumText = item.summary || (item.abstract ? String(item.abstract).slice(0, 180) + '…' : '');
+    if (sumText) card.appendChild(el('p', 'summary', esc(sumText)));
 
-    if (item.image) {
-      card.appendChild(buildPosterFigure(item));
-    }
+    if (item.image) card.appendChild(buildPosterFigure(item));
+    const eb = buildElementsBlock(item);
+    if (eb) card.appendChild(eb);
 
+    const linkRow = el('div', 'card-links');
     if (item.link) {
-      const a = el('a', 'src-link');
-      a.href = item.link;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.textContent = '查看原文 ↗';
-      card.appendChild(a);
+      const a = el('a', 'src-link'); a.href = item.link; a.target = '_blank';
+      a.rel = 'noopener noreferrer'; a.textContent = '查看原文 ↗'; linkRow.appendChild(a);
     }
+    if (item.daily_url) {
+      const d = el('a', 'daily-link'); d.href = item.daily_url;
+      d.textContent = '当日日报 ↗'; linkRow.appendChild(d);
+    }
+    card.appendChild(linkRow);
 
-    if (item.source === 'APS' && item.deep_analysis) {
+    if (item.deep_analysis) {
       const details = el('details', 'deep-details');
       details.appendChild(el('summary', null, '展开精读'));
-      const body = el('div', 'deep-body');
-      body.textContent = item.deep_analysis;
-      details.appendChild(body);
-      card.appendChild(details);
+      const body = el('div', 'deep-body'); body.textContent = item.deep_analysis;
+      details.appendChild(body); card.appendChild(details);
     }
-
     return card;
   }
 
@@ -145,6 +142,19 @@
     });
   }
 
+  function applyDeepLink(params) {
+    if (!params || (!params.doc && !params.date)) return;
+    const cards = document.querySelectorAll('.feed-card');
+    for (const c of cards) {
+      if ((params.doc && c.dataset.doc === params.doc) ||
+          (!params.doc && params.date && c.dataset.date === params.date)) {
+        c.classList.add('feed-target');
+        if (c.scrollIntoView) c.scrollIntoView();
+        break;
+      }
+    }
+  }
+
   function loadFeed() {
     const main = document.getElementById('feed');
     const bar = document.getElementById('cat-bar');
@@ -162,6 +172,8 @@
         }
         renderFeed(items, main);
         buildCatBar(items, bar);
+        const sp = new URLSearchParams(location.search);
+        applyDeepLink({ doc: sp.get('doc'), date: sp.get('date') });
       })
       .catch(function (err) {
         console.warn('[feed] load failed:', err);
@@ -173,6 +185,7 @@
     renderFeed: renderFeed,
     buildCatBar: buildCatBar,
     filterByCategory: filterByCategory,
+    applyDeepLink: applyDeepLink,
     loadFeed: loadFeed,
   };
 

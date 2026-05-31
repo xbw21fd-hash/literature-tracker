@@ -17,30 +17,16 @@ try { localStorage.removeItem('literature_bookmarks'); localStorage.removeItem('
 
 const mockItems = [
   {
-    source: 'APS', journal: 'PRL', title_en: 'Quantum Foo', title_zh: '量子 Foo',
-    summary: 'APS 第一篇摘要。', category: 'AI×物理',
-    link: 'https://ex.com/aps1', doc_id: 'd1', image: 'images/posters/d1.webp',
-    poster_elements: { '研究问题': '如何理解量子 Foo?', '创新方法': '新方法', '工作流程': '流程', '关键结果': '结果', '应用价值': '价值' },
-    deep_analysis: '这是一段深度精读。\n第二行。', enriched: true, date: '2026-05-28'
+    source: 'APS', title_zh: '中文标题A', title_en: 'EN A', summary: '摘要A',
+    category: 'AI×物理', link: 'https://doi.org/10.1/a', doc_id: 'd1',
+    date: '2026-05-28', image: 'images/posters/d1.webp',
+    poster_elements: { '研究问题': 'q', '创新方法': 'm', '工作流程': 'f', '关键结果': 'r', '应用价值': 'v' },
+    deep_analysis: 'DEEP', daily_url: 'daily/2026-05-28.html'
   },
   {
-    source: 'APS', journal: 'PRX', title_en: 'Topological Bar', title_zh: '拓扑 Bar',
-    summary: 'APS 第二篇摘要。', category: '凝聚态',
-    link: 'https://ex.com/aps2', doc_id: 'd2', image: 'images/posters/d2.webp',
-    poster_elements: { '研究问题': 'Bar 的拓扑性质?', '关键结果': '部分结果' },
-    deep_analysis: '', enriched: true, date: '2026-05-27'
-  },
-  {
-    source: 'arxiv', journal: 'arXiv', title_en: 'Diffusion Models', title_zh: '扩散模型',
-    summary: 'arXiv 有图的一篇。', category: 'AI×物理',
-    link: 'https://arxiv.org/abs/2605.00001', doc_id: 'd3', image: 'images/cores/d3.webp',
-    poster_elements: null, deep_analysis: '', enriched: false, date: '2026-05-26'
-  },
-  {
-    source: 'arxiv', journal: 'arXiv', title_en: 'No Image Paper', title_zh: '',
-    summary: 'arXiv 无图的一篇。', category: '凝聚态',
-    link: 'https://arxiv.org/abs/2605.00002', doc_id: 'd4', image: null,
-    poster_elements: null, deep_analysis: '', enriched: false, date: '2026-05-25'
+    source: 'arxiv', title_en: 'EN B', abstract: 'english abstract fallback text',
+    category: '其他', link: 'http://arxiv.org/abs/1', date: '2026-05-28',
+    daily_url: 'daily/2026-05-28.html'
   }
 ];
 
@@ -48,23 +34,50 @@ log('--- FeedUI present ---');
 assert(window.FeedUI && typeof window.FeedUI.renderFeed === 'function', 'FeedUI.renderFeed exists');
 assert(typeof window.FeedUI.buildCatBar === 'function', 'FeedUI.buildCatBar exists');
 assert(typeof window.FeedUI.filterByCategory === 'function', 'FeedUI.filterByCategory exists');
+assert(typeof window.FeedUI.applyDeepLink === 'function', 'FeedUI.applyDeepLink exists');
 
 log('--- renderFeed ---');
 const container = document.createElement('main');
+container.id = 'feed';
 document.body.appendChild(container);
 let threw = false;
 try { window.FeedUI.renderFeed(mockItems, container); } catch (e) { threw = true; log('  render threw:', e.message); }
 assert(!threw, 'renderFeed does not throw');
 
 const cards = container.querySelectorAll('.feed-card');
-assert(cards.length === 4, 'one .feed-card per item (4 cards) — got ' + cards.length);
+assert(cards.length === 2, 'one .feed-card per item (2 cards) — got ' + cards.length);
+const card1 = cards[0], card2 = cards[1];
 
-log('--- APS poster overlay ---');
-const aps1 = container.querySelector('[data-bookmark-key="https://ex.com/aps1"]');
-assert(!!aps1, 'aps1 card present');
-const overlay = aps1 && aps1.querySelector('.poster-overlay');
-assert(!!overlay, 'APS card has .poster-overlay');
-assert(overlay && /如何理解量子 Foo\?/.test(overlay.textContent), 'overlay contains 研究问题 text');
+log('--- Chinese title + English fallback ---');
+const t1 = card1 && card1.querySelector('.feed-title-zh');
+const t2 = card2 && card2.querySelector('.feed-title-zh');
+assert(t1 && t1.textContent === '中文标题A', 'card1 .feed-title-zh === 中文标题A — got ' + (t1 && t1.textContent));
+assert(t2 && t2.textContent === 'EN B', 'card2 .feed-title-zh === EN B (English fallback) — got ' + (t2 && t2.textContent));
+
+log('--- overlay removed ---');
+assert(!container.querySelector('.poster-overlay'), 'NO .poster-overlay anywhere (overlay removed)');
+
+log('--- image / elements separation ---');
+const fig1 = card1 && card1.querySelector('.poster-figure');
+assert(!!fig1, 'card1 has .poster-figure');
+const img1 = fig1 && fig1.querySelector('img');
+assert(img1 && /images\/posters\/d1\.webp/.test(img1.getAttribute('src') || ''), 'card1 .poster-figure img src contains images/posters/d1.webp');
+const eb1 = card1 && card1.querySelector('.poster-elements');
+assert(!!eb1, 'card1 has separate .poster-elements block');
+assert(eb1 && !eb1.closest('.poster-figure'), '.poster-elements is NOT inside .poster-figure');
+assert(eb1 && eb1.querySelectorAll('.poster-row').length === 5, 'card1 .poster-elements has 5 .poster-row — got ' + (eb1 && eb1.querySelectorAll('.poster-row').length));
+
+log('--- card2 no image + abstract fallback ---');
+assert(card2 && !card2.querySelector('.poster-figure'), 'card2 (no image) has NO .poster-figure');
+assert(card2 && !card2.querySelector('img'), 'card2 renders WITHOUT <img>');
+const sum2 = card2 && card2.querySelector('.summary');
+assert(sum2 && /english abstract fallback/.test(sum2.textContent), 'card2 .summary contains abstract fallback text');
+
+log('--- links ---');
+const srcLink = card1 && card1.querySelector('.src-link');
+assert(srcLink && /^http/.test(srcLink.getAttribute('href') || ''), 'card1 .src-link href starts with http — got ' + (srcLink && srcLink.getAttribute('href')));
+const dailyLink = card1 && card1.querySelector('.daily-link');
+assert(dailyLink && dailyLink.getAttribute('href') === 'daily/2026-05-28.html', 'card1 .daily-link href === daily/2026-05-28.html');
 
 log('--- bookmark keys ---');
 mockItems.forEach(it => {
@@ -72,14 +85,15 @@ mockItems.forEach(it => {
   assert(!!c, 'card has data-bookmark-key = ' + it.link);
 });
 
-log('--- text-only (image:null) ---');
-const noImg = container.querySelector('[data-bookmark-key="https://arxiv.org/abs/2605.00002"]');
-assert(!!noImg, 'no-image card present');
-assert(noImg && !noImg.querySelector('img'), 'no-image card renders WITHOUT <img>');
-
 log('--- hooks attached ---');
-assert(!!aps1.querySelector('.bookmark-btn'), 'BookmarkUI star button attached');
-assert(!!aps1.querySelector('.like-btn'), 'LikeUI heart button attached');
+assert(!!card1.querySelector('.bookmark-btn'), 'BookmarkUI star button attached');
+assert(!!card1.querySelector('.like-btn'), 'LikeUI heart button attached');
+
+log('--- applyDeepLink ---');
+let dlThrew = false;
+try { window.FeedUI.applyDeepLink({ doc: 'd1' }); } catch (e) { dlThrew = true; log('  applyDeepLink threw:', e.message); }
+assert(!dlThrew, 'applyDeepLink does not throw');
+assert(card1.classList.contains('feed-target'), 'applyDeepLink adds feed-target to card1 (doc=d1)');
 
 log('--- buildCatBar ---');
 const bar = document.createElement('nav');
@@ -89,23 +103,23 @@ const chips = bar.querySelectorAll('.chip');
 const chipText = Array.from(chips).map(c => c.textContent);
 assert(chips.length >= 3, 'cat bar has chips for distinct categories + all — got ' + chips.length);
 assert(chipText.some(t => /AI×物理/.test(t)), 'chip for AI×物理 present');
-assert(chipText.some(t => /凝聚态/.test(t)), 'chip for 凝聚态 present');
+assert(chipText.some(t => /其他/.test(t)), 'chip for 其他 present');
 assert(chipText.some(t => /全部/.test(t)), 'chip for 全部 (all) present');
 
 log('--- filterByCategory ---');
 function visible(card) { return !card.classList.contains('hidden') && card.style.display !== 'none'; }
 window.FeedUI.filterByCategory('AI×物理');
 const visAfter = Array.from(container.querySelectorAll('.feed-card')).filter(visible);
-assert(visAfter.length === 2, 'filter AI×物理 shows 2 cards — got ' + visAfter.length);
+assert(visAfter.length === 1, 'filter AI×物理 shows 1 card — got ' + visAfter.length);
 assert(visAfter.every(c => c.dataset.category === 'AI×物理'), 'all visible cards are AI×物理');
 
 window.FeedUI.filterByCategory('全部');
 const visAll = Array.from(container.querySelectorAll('.feed-card')).filter(visible);
-assert(visAll.length === 4, '全部 shows all 4 cards — got ' + visAll.length);
+assert(visAll.length === 2, '全部 shows all 2 cards — got ' + visAll.length);
 
 window.FeedUI.filterByCategory(null);
 const visNull = Array.from(container.querySelectorAll('.feed-card')).filter(visible);
-assert(visNull.length === 4, 'null shows all 4 cards — got ' + visNull.length);
+assert(visNull.length === 2, 'null shows all 2 cards — got ' + visNull.length);
 
 log('\n--- summary ---');
 log(`PASS: ${pass}  FAIL: ${fail}`);
