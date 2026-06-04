@@ -36,8 +36,8 @@ def main() -> int:
     assert 'application/rss+xml' in html
     assert '2026-03-15.xml' in html
     assert "今日摘要" in html
-    assert "交叉重点" in html
-    assert "完整速览" in html
+    assert "今日文献" in html
+    assert "测试中文标题" in html
     assert '<div class="daily-hero">' in html
     assert '<header class="daily-hero">' not in html
     assert 'body::before { content: none !important; }' in html
@@ -57,7 +57,7 @@ def main() -> int:
     html2 = render_daily_html(date_str, summary_summaries_only)
     assert "Test2 EN" in html2
     assert "测试2中文" in html2
-    assert "完整速览" in html2
+    assert "今日文献" in html2
 
     # ----- Core-focus section -----
     from generate_daily_pages import render_daily_html as _rdh
@@ -91,51 +91,31 @@ def main() -> int:
     return 0
 
 
-def test_daily_renders_deep_read_section():
-    from generate_daily_pages import render_deep_section
-    aps = [{"title": "T", "title_zh": "标题", "category": "AI×物理",
-            "deep_analysis": "## 第一部分：核心概览\n内容",
-            "poster": {"image": "images/posters/d1.webp",
-                       "elements": {"研究问题": "q", "创新方法": "m",
-                                    "工作流程": "f", "关键结果": "r", "应用价值": "v"}},
-            "link": "http://x", "doc_id": "d1"}]
-    html = render_deep_section(aps)
-    assert "今日精读" in html
-    # daily pages live at docs/daily/<date>.html → sibling assets need ../ prefix
-    assert 'src="../images/posters/d1.webp"' in html
-    # image/text separated: 5 elements live in a dedicated block, not overlaid on image
+def test_daily_html_unified_list_includes_enriched():
+    import json, os, tempfile
+    from generate_daily_pages import render_daily_html
+    d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, "data"))
+    with open(os.path.join(d, "data", "arxiv_core_2026-06-01.json"), "w", encoding="utf-8") as f:
+        json.dump([{"link": "http://arxiv.org/abs/x", "deep_analysis": "## 深",
+                    "image": "images/posters/x.webp",
+                    "poster": {"elements": {"研究问题": "q"}},
+                    "category": "AI×物理", "title_zh": "交叉中文"}], f, ensure_ascii=False)
+    summary = {"overview": "ov", "trends": "tr", "full_list": [
+        {"title_en": "X", "title_zh": "交叉中文", "summary": "亮点",
+         "link": "http://arxiv.org/abs/x", "journal": "arXiv"},
+        {"title_en": "Plain", "summary": "普通", "link": "http://y", "journal": "arXiv"}]}
+    cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        html = render_daily_html("2026-06-01", summary)
+    finally:
+        os.chdir(cwd)
+    assert "今日文献" in html
+    assert "enrich-badge" in html and "<details" in html
+    assert "../images/posters/x.webp" in html
     assert "poster-overlay" not in html
-    assert "daily-deep-elements" in html
-    assert "AI×物理" in html
-    assert 'data-bookmark-key="http://x"' in html
-
-
-def test_render_deep_section_empty_returns_empty():
-    from generate_daily_pages import render_deep_section
-    assert render_deep_section([]) == ""
-
-
-def test_deep_section_has_feed_link_and_no_overlay():
-    from generate_daily_pages import render_deep_section
-    aps = [{"title": "T", "title_zh": "标题", "category": "AI×物理",
-            "deep_analysis": "x",
-            "poster": {"image": "images/posters/d1.webp",
-                       "elements": {"研究问题": "q", "创新方法": "m", "工作流程": "f",
-                                    "关键结果": "r", "应用价值": "v"}},
-            "link": "10.1103/abc", "doc_id": "d1"}]
-    html = render_deep_section(aps, date="2026-05-28")
-    assert "feed.html" in html and "在 Feed" in html
-    # image/text separated: elements live in a non-overlay block, image still present
-    assert "poster-overlay" not in html
-    assert "daily-deep-elements" in html
-    assert "../images/posters/d1.webp" in html
-    # bare DOI normalized to a real URL somewhere in the card
-    assert "doi.org/10.1103/abc" in html
-
-
-def test_deep_section_empty_still_empty():
-    from generate_daily_pages import render_deep_section
-    assert render_deep_section([], date="2026-05-28") == ""
+    # 交叉重点/完整速览 sections removed
+    assert "完整速览" not in html and "交叉重点" not in html
 
 
 def test_build_core_export_has_category_and_link():
@@ -162,6 +142,114 @@ def test_build_tier2_candidates_picks_ai_cross():
     links = [c["link"] for c in cand]
     assert "http://x" in links and "http://y" not in links
     assert cand and cand[0]["category"]
+
+
+def test_load_enrichment_keys_by_link_and_skips_plain():
+    import json, os, tempfile
+    from generate_daily_pages import load_enrichment
+    d = tempfile.mkdtemp()
+    os.makedirs(os.path.join(d, "data"), exist_ok=True)
+    rows = [
+        {"link": "http://arxiv.org/abs/1", "deep_analysis": "## 深析",
+         "image": "images/posters/a.webp",
+         "poster": {"elements": {"研究问题": "q", "创新方法": "m"}},
+         "category": "AI×物理", "title_zh": "中文一"},
+        {"link": "10.1103/xyz", "deep_analysis": "## 二",
+         "poster": {"image": "images/posters/b.webp", "elements": {"关键结果": "r"}},
+         "category": "AI×化学·材料", "title_zh": "中文二"},
+        {"link": "http://arxiv.org/abs/3", "summary": "no enrichment"},  # plain → skipped
+    ]
+    with open(os.path.join(d, "data", "arxiv_core_2026-06-01.json"), "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False)
+    cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        m = load_enrichment("2026-06-01")
+    finally:
+        os.chdir(cwd)
+    assert "http://arxiv.org/abs/1" in m
+    assert m["http://arxiv.org/abs/1"]["image"] == "images/posters/a.webp"
+    assert m["http://arxiv.org/abs/1"]["elements"]["研究问题"] == "q"
+    # bare DOI normalized as key
+    assert "https://doi.org/10.1103/xyz" in m
+    assert m["https://doi.org/10.1103/xyz"]["image"] == "images/posters/b.webp"
+    # plain row (no deep, no image) skipped
+    assert "http://arxiv.org/abs/3" not in m
+
+
+def test_load_enrichment_missing_file_returns_empty():
+    from generate_daily_pages import load_enrichment
+    assert load_enrichment("1999-01-01") == {}
+
+
+def test_build_unified_items_merges_and_sorts():
+    from generate_daily_pages import build_unified_items
+    full_list = [
+        {"title": "Plain paper", "title_en": "Plain paper", "summary": "x",
+         "link": "http://arxiv.org/abs/plain"},
+        {"title": "AI cross arxiv", "title_en": "AI cross arxiv", "title_zh": "交叉",
+         "summary": "y", "link": "http://arxiv.org/abs/cross"},
+    ]
+    enrich_map = {
+        "http://arxiv.org/abs/cross": {"deep_analysis": "## d", "image": "images/posters/c.webp",
+                                       "elements": {"研究问题": "q"}, "category": "AI×物理",
+                                       "title_zh": "交叉"},
+    }
+    aps_items = [
+        {"title": "APS fulltext", "title_zh": None, "doi": "10.1103/abc", "category": "软物质",
+         "deep_analysis": "## aps", "poster": {"image": "images/posters/aps.webp",
+                                               "elements": {"创新方法": "m"}}},
+        {"title": "APS plain", "doi": "10.1103/plain", "poster": {}},  # no enrichment → skipped
+    ]
+    out = build_unified_items(full_list, enrich_map, aps_items)
+    tiers = [it["_tier"] for it in out]
+    assert tiers == sorted(tiers)
+    assert out[0]["_tier"] == 0 and out[0]["_enrich"]["image"] == "images/posters/aps.webp"
+    assert out[0]["link"] == "https://doi.org/10.1103/abc"  # bare DOI normalized
+    cross = next(it for it in out if it["link"] == "http://arxiv.org/abs/cross")
+    assert cross["_tier"] == 1 and cross["_enrich"]["category"] == "AI×物理"
+    plain = next(it for it in out if it["link"] == "http://arxiv.org/abs/plain")
+    assert plain["_tier"] == 2 and plain["_enrich"] is None
+    assert all("APS plain" != it.get("title") for it in out)
+
+
+def test_build_unified_items_dedups_aps_already_in_full_list():
+    from generate_daily_pages import build_unified_items
+    full_list = [{"title": "Dup", "link": "https://doi.org/10.1103/dup", "summary": "s"}]
+    aps_items = [{"title": "Dup", "doi": "10.1103/dup", "deep_analysis": "d",
+                  "poster": {"image": "p.webp"}}]
+    out = build_unified_items(full_list, {}, aps_items)
+    assert len(out) == 1 and out[0]["_tier"] == 0
+
+
+def test_render_unified_item_enriched_has_details_and_image():
+    from generate_daily_pages import render_unified_item
+    item = {"title": "Cross", "title_en": "Cross", "title_zh": "交叉标题",
+            "summary": "一句话亮点", "link": "http://arxiv.org/abs/cross", "journal": "arXiv",
+            "_tier": 1, "_enrich": {"deep_analysis": "## 深析正文", "image": "images/posters/c.webp",
+                                    "elements": {"研究问题": "q", "创新方法": "m", "工作流程": "f",
+                                                 "关键结果": "r", "应用价值": "v"},
+                                    "category": "AI×物理", "title_zh": "交叉标题"}}
+    html = render_unified_item(item, 1)
+    assert "交叉标题" in html
+    assert "enrich-badge" in html and "含图深析" in html
+    assert "<details" in html
+    assert 'src="../images/posters/c.webp"' in html
+    assert "daily-deep-elements" in html and "研究问题" in html
+    assert "深析正文" in html
+    assert 'data-bookmark-key="http://arxiv.org/abs/cross"' in html
+    assert "poster-overlay" not in html
+
+
+def test_render_unified_item_plain_has_no_details():
+    from generate_daily_pages import render_unified_item
+    item = {"title": "Plain", "title_en": "Plain", "summary": "brief",
+            "link": "http://x", "journal": "arXiv", "_tier": 2, "_enrich": None}
+    html = render_unified_item(item, 2)
+    assert "<details" not in html
+    assert "enrich-badge" not in html
+    assert "brief" in html
+    assert 'data-bookmark-key="http://x"' in html
 
 
 if __name__ == "__main__":
