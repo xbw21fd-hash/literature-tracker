@@ -202,6 +202,46 @@ def test_load_enrichment_missing_file_returns_empty():
     assert load_enrichment("1999-01-01") == {}
 
 
+def test_build_unified_items_merges_and_sorts():
+    from generate_daily_pages import build_unified_items
+    full_list = [
+        {"title": "Plain paper", "title_en": "Plain paper", "summary": "x",
+         "link": "http://arxiv.org/abs/plain"},
+        {"title": "AI cross arxiv", "title_en": "AI cross arxiv", "title_zh": "交叉",
+         "summary": "y", "link": "http://arxiv.org/abs/cross"},
+    ]
+    enrich_map = {
+        "http://arxiv.org/abs/cross": {"deep_analysis": "## d", "image": "images/posters/c.webp",
+                                       "elements": {"研究问题": "q"}, "category": "AI×物理",
+                                       "title_zh": "交叉"},
+    }
+    aps_items = [
+        {"title": "APS fulltext", "title_zh": None, "doi": "10.1103/abc", "category": "软物质",
+         "deep_analysis": "## aps", "poster": {"image": "images/posters/aps.webp",
+                                               "elements": {"创新方法": "m"}}},
+        {"title": "APS plain", "doi": "10.1103/plain", "poster": {}},  # no enrichment → skipped
+    ]
+    out = build_unified_items(full_list, enrich_map, aps_items)
+    tiers = [it["_tier"] for it in out]
+    assert tiers == sorted(tiers)
+    assert out[0]["_tier"] == 0 and out[0]["_enrich"]["image"] == "images/posters/aps.webp"
+    assert out[0]["link"] == "https://doi.org/10.1103/abc"  # bare DOI normalized
+    cross = next(it for it in out if it["link"] == "http://arxiv.org/abs/cross")
+    assert cross["_tier"] == 1 and cross["_enrich"]["category"] == "AI×物理"
+    plain = next(it for it in out if it["link"] == "http://arxiv.org/abs/plain")
+    assert plain["_tier"] == 2 and plain["_enrich"] is None
+    assert all("APS plain" != it.get("title") for it in out)
+
+
+def test_build_unified_items_dedups_aps_already_in_full_list():
+    from generate_daily_pages import build_unified_items
+    full_list = [{"title": "Dup", "link": "https://doi.org/10.1103/dup", "summary": "s"}]
+    aps_items = [{"title": "Dup", "doi": "10.1103/dup", "deep_analysis": "d",
+                  "poster": {"image": "p.webp"}}]
+    out = build_unified_items(full_list, {}, aps_items)
+    assert len(out) == 1 and out[0]["_tier"] == 0
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
 

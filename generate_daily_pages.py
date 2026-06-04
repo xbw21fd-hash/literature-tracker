@@ -375,6 +375,46 @@ def load_enrichment(date_str: str) -> Dict[str, Dict]:
     return out
 
 
+def build_unified_items(full_list, enrich_map, aps_items):
+    """合并 APS 全文(tier0) + full_list(tier1 富化 / tier2 普通) 成一个扁平列表，
+    按 (tier, focus_priority) 排序。每项注入 _tier 与 _enrich(dict|None)。"""
+    items: List[Dict] = []
+    seen = set()
+    for a in (aps_items or []):
+        link = normalize_link((a.get("link") or a.get("doi") or "").strip())
+        poster = a.get("poster") or {}
+        image = poster.get("image") or a.get("image")
+        deep = a.get("deep_analysis") or ""
+        if not (deep or image):
+            continue  # APS 无富化 → 跳过（APS 不在 full_list，不会丢可展示内容）
+        it = dict(a)
+        it["link"] = link or it.get("link") or ""
+        it["_tier"] = 0
+        it["_enrich"] = {
+            "deep_analysis": deep, "image": image,
+            "elements": poster.get("elements") or {},
+            "category": a.get("category") or "",
+            "title_zh": a.get("title_zh") or poster.get("title_zh") or "",
+        }
+        items.append(it)
+        if link:
+            seen.add(link)
+    for it0 in (full_list or []):
+        link = normalize_link((it0.get("link") or "").strip())
+        if link and link in seen:
+            continue
+        it = dict(it0)
+        it["link"] = link or it0.get("link") or ""
+        en = enrich_map.get(link) if link else None
+        it["_tier"] = 1 if en else 2
+        it["_enrich"] = en
+        items.append(it)
+        if link:
+            seen.add(link)
+    items.sort(key=lambda x: (x.get("_tier", 2), focus_priority(x)))
+    return items
+
+
 def render_deep_section(aps_items, date=""):
     if not aps_items:
         return ""
