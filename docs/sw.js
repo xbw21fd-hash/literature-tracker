@@ -3,7 +3,7 @@
  * 实现离线缓存和PWA支持
  */
 
-const CACHE_NAME = 'literature-tracker-v3';
+const CACHE_NAME = 'literature-tracker-v4';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -14,15 +14,10 @@ const STATIC_ASSETS = [
     '/manifest.json',
     '/bookmarks.js',
     '/bookmarks.css',
-    '/exports.js',
-    '/feed.html',
-    '/feed.css',
-    '/feed.js',
-    '/likes.js',
-    '/data/feed.json'
+    '/exports.js'
 ];
 
-const DATA_CACHE_NAME = 'literature-data-v3';
+const DATA_CACHE_NAME = 'literature-data-v4';
 
 // 安装事件 - 缓存静态资源
 self.addEventListener('install', event => {

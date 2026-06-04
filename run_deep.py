@@ -1,4 +1,4 @@
-"""编排：拉 APS → 精读 → 海报 → 分类 → 写 feed.json。所有步骤失败静默降级。
+"""编排：拉 APS → 精读 → 海报 → 分类 → 写 arxiv_core/aps 富化。所有步骤失败静默降级。
 
 幂等：已在 data/aps_<date>.json 里带 deep_analysis 的论文直接复用，不重复调用 gpt-5.5。
 默认只处理最近 1 天（DEEP_WINDOW_DAYS=1），手动 dispatch 可传更大窗口做增量回填。

@@ -609,10 +609,8 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
   <title>{date_str} 文献日报 - 文献追踪系统</title>
   <link rel="stylesheet" href="../style.css" />
   <link rel="stylesheet" href="../bookmarks.css" />
-  <link rel="stylesheet" href="../likes.css" />
   <script defer src="../exports.js"></script>
   <script defer src="../bookmarks.js"></script>
-  <script defer src="../likes.js"></script>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="文献追踪" />

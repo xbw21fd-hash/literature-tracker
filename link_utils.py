@@ -1,6 +1,6 @@
 """链接归一化工具：裸 DOI → https://doi.org/...；http(s) 链接原样返回。
 
-从 feed_builder 迁出，作为单一来源被 generate_daily_pages / feed_builder 复用。
+单一来源，被 generate_daily_pages 等模块复用（join APS doi 与 arxiv link）。
 """
 
 
