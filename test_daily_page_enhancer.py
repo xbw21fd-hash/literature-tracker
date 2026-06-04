@@ -73,8 +73,9 @@ def main() -> int:
         assert "单页目录" in enhanced_24
         assert "页内定位" in enhanced_24
         assert "daily-toc-card" in enhanced_24
-        assert "#highlight-1" in enhanced_24
+        # unified single-list layout: papers live directly under #papers (交叉重点 highlights removed)
         assert "#paper-1" in enhanced_24
+        assert "daily-outline-link" in enhanced_24   # unified 今日文献 outline built
         assert "# #" not in enhanced_24
 
     print("[OK] daily page enhancer sanity checks passed")

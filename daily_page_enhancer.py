@@ -407,8 +407,7 @@ def _build_nav_block(soup: BeautifulSoup, date_str: str, nav: Dict[str, Optional
     append_link("站点RSS", "../feed.xml")
     append_link("主页", "../index.html")
     append_link("今日摘要", "#summary")
-    append_link("交叉重点", "#highlights")
-    append_link("完整速览", "#papers")
+    append_link("今日文献", "#papers")
     return wrapper
 
 
@@ -559,6 +558,29 @@ def enhance_daily_html_file(
             title = _title_plain_text(card.select_one(".daily-paper-title-zh")) or _title_plain_text(card.select_one(".daily-paper-title-en")) or _safe_text(card.get_text(" ", strip=True))
             links.append({"title": title, "href": f"#{card_id}", "meta": (card.select_one(".daily-paper-number") or card).get_text(" ", strip=True)})
         topic_sections.append({"title": group_title, "href": f"#{group_id}", "links": links})
+
+    # Unified single-list layout (current): paper cards live directly under #papers,
+    # NOT inside a .daily-topic-group. Process them into one "今日文献" outline group.
+    # (Old archived pages still use .daily-topic-group above and are handled there.)
+    unified_links = []
+    papers_section = soup.select_one("#papers")
+    if papers_section is not None:
+        for card in papers_section.select(".daily-paper-card"):
+            if card.find_parent(class_="daily-topic-group") is not None:
+                continue  # already handled by the topic loop (legacy layout)
+            card_id = card.get("id") or ""
+            if article_lookup:
+                _apply_article_title_fallback(card, article_lookup, is_paper=True)
+            source_link = card.select_one(".daily-news-link")
+            href = source_link.get("href") if source_link is not None and source_link.get("href") else "#"
+            _replace_title_with_link(soup, card.select_one(".daily-paper-title-zh"), href, card_id)
+            _replace_title_with_link(soup, card.select_one(".daily-paper-title-en"), href, card_id)
+            _ensure_inline_links(soup, card, card_id)
+            title = _title_plain_text(card.select_one(".daily-paper-title-zh")) or _title_plain_text(card.select_one(".daily-paper-title-en")) or _safe_text(card.get_text(" ", strip=True))
+            unified_links.append({"title": title, "href": f"#{card_id}",
+                                  "meta": (card.select_one(".daily-paper-number") or card).get_text(" ", strip=True)})
+    if unified_links:
+        topic_sections.append({"title": "今日文献", "href": "#papers", "links": unified_links})
 
     outline_block = soup.new_tag("div", id=OUTLINE_ID, **{"class": "daily-sidebar-block"})
     outline_title = soup.new_tag("div", **{"class": "daily-sidebar-title"})

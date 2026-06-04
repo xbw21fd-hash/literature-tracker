@@ -481,9 +481,9 @@ def render_unified_item(item: Dict, index: int) -> str:
         <span class="daily-paper-number">{index:02d}</span>
         <div class="daily-paper-body">
             <div class="daily-paper-head"><div class="daily-paper-titles">
-                <div class="daily-paper-title-zh">{disp_zh}{badge}</div>
+                <div class="daily-paper-title-zh">{disp_zh}</div>
                 {title_en_block}
-            </div></div>
+            </div>{badge}</div>
             <div class="daily-paper-meta">{meta_html}</div>
             {hl_html}
             {details}
