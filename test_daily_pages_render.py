@@ -36,8 +36,8 @@ def main() -> int:
     assert 'application/rss+xml' in html
     assert '2026-03-15.xml' in html
     assert "今日摘要" in html
-    assert "交叉重点" in html
-    assert "完整速览" in html
+    assert "今日文献" in html
+    assert "测试中文标题" in html
     assert '<div class="daily-hero">' in html
     assert '<header class="daily-hero">' not in html
     assert 'body::before { content: none !important; }' in html
@@ -57,7 +57,7 @@ def main() -> int:
     html2 = render_daily_html(date_str, summary_summaries_only)
     assert "Test2 EN" in html2
     assert "测试2中文" in html2
-    assert "完整速览" in html2
+    assert "今日文献" in html2
 
     # ----- Core-focus section -----
     from generate_daily_pages import render_daily_html as _rdh
@@ -91,51 +91,31 @@ def main() -> int:
     return 0
 
 
-def test_daily_renders_deep_read_section():
-    from generate_daily_pages import render_deep_section
-    aps = [{"title": "T", "title_zh": "标题", "category": "AI×物理",
-            "deep_analysis": "## 第一部分：核心概览\n内容",
-            "poster": {"image": "images/posters/d1.webp",
-                       "elements": {"研究问题": "q", "创新方法": "m",
-                                    "工作流程": "f", "关键结果": "r", "应用价值": "v"}},
-            "link": "http://x", "doc_id": "d1"}]
-    html = render_deep_section(aps)
-    assert "今日精读" in html
-    # daily pages live at docs/daily/<date>.html → sibling assets need ../ prefix
-    assert 'src="../images/posters/d1.webp"' in html
-    # image/text separated: 5 elements live in a dedicated block, not overlaid on image
+def test_daily_html_unified_list_includes_enriched():
+    import json, os, tempfile
+    from generate_daily_pages import render_daily_html
+    d = tempfile.mkdtemp(); os.makedirs(os.path.join(d, "data"))
+    with open(os.path.join(d, "data", "arxiv_core_2026-06-01.json"), "w", encoding="utf-8") as f:
+        json.dump([{"link": "http://arxiv.org/abs/x", "deep_analysis": "## 深",
+                    "image": "images/posters/x.webp",
+                    "poster": {"elements": {"研究问题": "q"}},
+                    "category": "AI×物理", "title_zh": "交叉中文"}], f, ensure_ascii=False)
+    summary = {"overview": "ov", "trends": "tr", "full_list": [
+        {"title_en": "X", "title_zh": "交叉中文", "summary": "亮点",
+         "link": "http://arxiv.org/abs/x", "journal": "arXiv"},
+        {"title_en": "Plain", "summary": "普通", "link": "http://y", "journal": "arXiv"}]}
+    cwd = os.getcwd()
+    try:
+        os.chdir(d)
+        html = render_daily_html("2026-06-01", summary)
+    finally:
+        os.chdir(cwd)
+    assert "今日文献" in html
+    assert "enrich-badge" in html and "<details" in html
+    assert "../images/posters/x.webp" in html
     assert "poster-overlay" not in html
-    assert "daily-deep-elements" in html
-    assert "AI×物理" in html
-    assert 'data-bookmark-key="http://x"' in html
-
-
-def test_render_deep_section_empty_returns_empty():
-    from generate_daily_pages import render_deep_section
-    assert render_deep_section([]) == ""
-
-
-def test_deep_section_has_feed_link_and_no_overlay():
-    from generate_daily_pages import render_deep_section
-    aps = [{"title": "T", "title_zh": "标题", "category": "AI×物理",
-            "deep_analysis": "x",
-            "poster": {"image": "images/posters/d1.webp",
-                       "elements": {"研究问题": "q", "创新方法": "m", "工作流程": "f",
-                                    "关键结果": "r", "应用价值": "v"}},
-            "link": "10.1103/abc", "doc_id": "d1"}]
-    html = render_deep_section(aps, date="2026-05-28")
-    assert "feed.html" in html and "在 Feed" in html
-    # image/text separated: elements live in a non-overlay block, image still present
-    assert "poster-overlay" not in html
-    assert "daily-deep-elements" in html
-    assert "../images/posters/d1.webp" in html
-    # bare DOI normalized to a real URL somewhere in the card
-    assert "doi.org/10.1103/abc" in html
-
-
-def test_deep_section_empty_still_empty():
-    from generate_daily_pages import render_deep_section
-    assert render_deep_section([], date="2026-05-28") == ""
+    # 交叉重点/完整速览 sections removed
+    assert "完整速览" not in html and "交叉重点" not in html
 
 
 def test_build_core_export_has_category_and_link():

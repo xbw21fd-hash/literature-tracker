@@ -542,11 +542,11 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
                 aps_items = loaded
     except Exception:
         aps_items = []
-    deep_section_html = render_deep_section(aps_items, date=date_str)
+    enrich_map = load_enrichment(date_str)
 
     items = summary.get("full_list") or summary.get("summaries") or []
-    items = sorted(items, key=focus_priority)
-    highlight_items = sorted(collect_focus_highlights(summary, items, limit=6), key=focus_priority)
+    unified = build_unified_items(items, enrich_map, aps_items)
+    enriched_count = sum(1 for it in unified if it.get("_enrich"))
     tag_list = build_daily_tags(items)
     display_date = format_date_display(date_str)
     journal_count = count_unique_journals(items)
@@ -555,114 +555,19 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     raw_total = int(summary.get("raw_total") or (len(items) + excluded_count))
     focused_total = int(summary.get("focused_total") or len(items))
 
-    def safe_summary_text(item: Dict) -> str:
-        """返回文章的摘要信息：优先显示AI生成的摘要翻译，其次是一句话总结"""
-        abstract_zh = (item.get('abstract_zh') or '').strip()
-        # 兼容老字段名：解析器写入的是 `summary`，历史数据可能是 `one_sentence_summary`
-        one_sentence = (item.get('summary') or item.get('one_sentence_summary') or '').strip()
-
-        parts = []
-        if abstract_zh:
-            parts.append(f"<p class='daily-paper-abstract'><strong>📄 摘要：</strong>{safe_text(abstract_zh)}</p>")
-        if one_sentence:
-            parts.append(f"<p class='daily-paper-highlight'><strong>💡 亮点：</strong>{safe_text(one_sentence)}</p>")
-
-        return "".join(parts) if parts else "<p class='daily-paper-abstract daily-paper-empty'>—</p>"
-
-    def item_key(item: Dict) -> str:
-        return str(item.get('link') or item.get('title_en') or item.get('title') or item.get('title_zh') or '')
-
-    def render_focus_item(item: Dict, index: int) -> str:
-        title_zh = (item.get('title_zh') or '').strip()
-        title_en = (item.get('title_en') or item.get('title') or '').strip()
-        show_zh = bool(title_zh) and title_zh.casefold() != title_en.casefold()
-        title_zh_html = safe_text(title_zh if show_zh else title_en)
-        title_en_html = safe_text(title_en) if show_zh else ""
-        meta_html = render_meta_chips(item)
-        reason = safe_text(build_highlight_reason(item))
-
-        title_en_block = f'<div class="daily-news-title-en">{title_en_html}</div>' if title_en_html else ''
-        return f"""
-        <li class="daily-news-item" data-bookmark-key="{safe_url(item.get('link') or '')}">
-            <div class="daily-news-index">{index:02d}</div>
-            <div class="daily-news-body">
-                <div class="daily-news-title-zh">{title_zh_html}</div>
-                {title_en_block}
-                <div class="daily-news-meta">{meta_html}</div>
-                {safe_summary_text(item)}
-                <p class="daily-news-reason"><strong>关注理由：</strong>{reason}</p>
-                <a class="daily-news-link" href="{safe_url(item.get('link',''))}" target="_blank" rel="noopener noreferrer">查看原文 ↗</a>
-            </div>
-        </li>
-        """
-
-    def render_item(item: Dict, index: int) -> str:
-        title_zh = (item.get('title_zh') or '').strip()
-        title_en = (item.get('title_en') or item.get('title') or '').strip()
-        # 若中文标题缺失或与英文相同，只渲染英文标题一行，不显示重复
-        show_zh = bool(title_zh) and title_zh.casefold() != title_en.casefold()
-        title_zh_html = safe_text(title_zh if show_zh else title_en)
-        title_en_html = safe_text(title_en) if show_zh else ""
-        meta_html = render_meta_chips(item)
-        
-        return f"""
-        <li class="daily-paper-card" id="paper-{index}" data-bookmark-key="{safe_url(item.get('link') or '')}">
-            <span class="daily-paper-number">{index:02d}</span>
-            <div class="daily-paper-body">
-                <div class="daily-paper-head">
-                    <div class="daily-paper-titles">
-                        <div class="daily-paper-title-zh">{title_zh_html}</div>
-                        {('<div class="daily-paper-title-en">' + title_en_html + '</div>') if title_en_html else ''}
-                    </div>
-                </div>
-                <div class="daily-paper-meta">{meta_html}</div>
-                <div class="daily-paper-summary">{safe_summary_text(item)}</div>
-                <div class="daily-paper-actions">
-                    <a class="daily-news-link" href="{safe_url(item.get('link',''))}" target="_blank" rel="noopener noreferrer">阅读原文 ↗</a>
-                </div>
-            </div>
-        </li>
-        """
-
-    def render_group(group: Dict, start_index: int) -> str:
-        cards = "".join(render_item(item, start_index + idx) for idx, item in enumerate(group["items"]))
-        return f"""
-        <section class="daily-topic-group">
-            <div class="daily-topic-head">
-                <div>
-                    <h3 class="daily-topic-title">{safe_text(group['title'])}</h3>
-                    <p class="daily-topic-desc">{safe_text(group['description'])}</p>
-                </div>
-                <div class="daily-topic-count">{len(group['items'])} 篇</div>
-            </div>
-            <ol class="daily-paper-list">{cards}</ol>
-        </section>
-        """
-
-    focus_html = "".join(render_focus_item(item, idx) for idx, item in enumerate(highlight_items, 1))
-    focus_section_html = f'<ol class="daily-news-list">{focus_html}</ol>' if focus_html else '<div class="daily-summary-card"><p>今日暂无可优先推荐的交叉重点。</p></div>'
-
-    highlight_keys = {item_key(item) for item in highlight_items if item_key(item)}
-    grouped_source_items = [item for item in items if item_key(item) not in highlight_keys]
-    grouped_items = group_daily_items(grouped_source_items)
-
-    group_blocks = []
-    running_index = 1
-    for group in grouped_items:
-        group_blocks.append(render_group(group, running_index))
-        running_index += len(group["items"])
-    paper_section_html = "".join(group_blocks) if group_blocks else '<div class="daily-summary-card"><p>今日无目标方向文献。</p></div>'
+    unified_html = "".join(render_unified_item(it, i) for i, it in enumerate(unified, 1)) \
+        or '<li class="daily-summary-card"><p>今日无目标方向文献。</p></li>'
 
     overview = safe_text(summary.get('overview', ''))
     trends = safe_text(summary.get('trends', ''))
     tags_html = "".join(f"<span class='daily-tag'>{safe_text(tag)}</span>" for tag in tag_list)
     tagline = " | ".join(safe_text(tag) for tag in tag_list)
 
-    bucket_stats = {group['title']: len(group['items']) for group in grouped_items}
-    sidebar_stats = ''.join(
-        f"<div class='daily-sidebar-fact'><span>{safe_text(name)}</span><strong>{count}</strong></div>"
-        for name, count in bucket_stats.items()
-    ) or "<div class='daily-sidebar-fact'><span>相关文献</span><strong>0</strong></div>"
+    sidebar_stats = (
+        f"<div class='daily-sidebar-fact'><span>文献总数</span><strong>{len(unified)}</strong></div>"
+        f"<div class='daily-sidebar-fact'><span>含图深析</span><strong>{enriched_count}</strong></div>"
+        f"<div class='daily-sidebar-fact'><span>期刊数</span><strong>{journal_count}</strong></div>"
+    )
 
     filtered_note = ''
     if excluded_count > 0 or focused_total > len(items):
@@ -749,6 +654,11 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     .poster-figure img{{width:100%;border-radius:10px;display:block;}}
     .daily-deep-elements{{margin:8px 0;display:flex;flex-direction:column;gap:5px;font-size:14px;line-height:1.6;}}
     .daily-deep-elements .poster-row b{{color:#1456b8;margin-right:6px;}}
+    .enrich-badge{{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;background:#e8f1ff;color:#1456b8;font-size:12px;font-weight:600;vertical-align:middle;}}
+    .enrich-details{{margin:8px 0;border-top:1px dashed #e3e8f0;padding-top:8px;}}
+    .enrich-details > summary{{cursor:pointer;color:#1456b8;font-weight:600;list-style:none;}}
+    .enrich-details > summary::-webkit-details-marker{{display:none;}}
+    .enrich-details .poster-figure img{{width:100%;border-radius:10px;margin:8px 0;}}
     .poster-row b{{color:#1456b8;margin-right:6px;}}
     .deep-details{{margin-top:8px;}} .deep-body{{white-space:pre-wrap;font-size:14px;line-height:1.6;}}
     .src-link{{display:inline-block;margin-top:8px;color:#1456b8;}}
@@ -878,8 +788,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     <nav class="daily-toc-sticky" aria-label="移动目录">
       <a href="#summary">摘要</a>
       {('<a href="#core-focus">核心关注</a>' if summary.get('core_items') else '')}
-      <a href="#highlights">交叉重点</a>
-      <a href="#papers">完整速览</a>
+      <a href="#papers">今日文献</a>
     </nav>
     <div class="daily-layout">
       <article class="daily-article">
@@ -910,7 +819,6 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
           {filtered_note}
         </div>
 
-        {deep_section_html}
         {render_core_section(summary.get('core_items', []) or [], summary.get('core_direction_note') or '')}
         <section id="summary" class="daily-section">
           <div class="daily-section-head">
@@ -923,20 +831,13 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
           </div>
         </section>
 
-        <section id="highlights" class="daily-section">
-          <div class="daily-section-head">
-            <span class="daily-section-index">02</span>
-            <h2 class="daily-section-title">交叉重点</h2>
-          </div>
-          {focus_section_html}
-        </section>
-
         <section id="papers" class="daily-section">
           <div class="daily-section-head">
-            <span class="daily-section-index">03</span>
-            <h2 class="daily-section-title">完整速览</h2>
+            <span class="daily-section-index">📚</span>
+            <h2 class="daily-section-title">今日文献</h2>
+            <span class="daily-core-count">{len(unified)} 篇 · {enriched_count} 含图深析</span>
           </div>
-          {paper_section_html}
+          <ol class="daily-paper-list">{unified_html}</ol>
         </section>
 
         {date_nav_bottom}
@@ -951,8 +852,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
           <div class="daily-toc-title">目录</div>
           {'<a href="#core-focus"><span>🎯 核心关注</span><span>00</span></a>' if summary.get('core_items') else ''}
           <a href="#summary"><span>今日摘要</span><span>01</span></a>
-          <a href="#highlights"><span>交叉重点</span><span>02</span></a>
-          <a href="#papers"><span>完整速览</span><span>03</span></a>
+          <a href="#papers"><span>今日文献</span><span>📚</span></a>
 
           <div class="daily-sidebar-block">
             <div class="daily-sidebar-title">专题分布</div>
@@ -962,7 +862,7 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
           <div class="daily-sidebar-block">
             <div class="daily-sidebar-title">阅读建议</div>
             <ul class="insight-note-list">
-              <li class="insight-note-item">先看交叉重点，再按物理、化学、材料与方法分区深读。</li>
+              <li class="insight-note-item">含「📊 含图深析」徽标的条目可点开看信息图、中文要素与深度分析。</li>
               <li class="insight-note-item">明显偏离主线的医学、教育等内容已自动剔除。</li>
               <li class="insight-note-item">若需回看历史日报，可从日报索引页按日期倒序进入。</li>
             </ul>
