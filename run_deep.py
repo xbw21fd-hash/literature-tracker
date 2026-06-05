@@ -25,6 +25,25 @@ def _deep_complete_abstract(text):
     return bool(text) and ("创新" in text) and len(text) >= 120
 
 
+def _tier2_complete(rec):
+    """tier-2 富化完成判定（支持全文升级 + attempts 封顶防无限重处理）。
+    - 全文模式(html/pdf) 且含"创新" 且 ≥3000 字 → 完成（拿到真正全文苏格拉底）。
+    - 否则继续尝试升级全文；attempts≥3 → **无条件**定稿（HTML-less / provider 持续失败的论文
+      在 3 次后停手，避免空/无关键词的记录每轮重处理、耗尽预算）。
+    - 旧缓存(无 mode/attempts, attempts=0) → 未完成(待升级)。"""
+    if not rec:
+        return False
+    text = rec.get("deep_analysis") or ""
+    attempts = int(rec.get("ft_attempts") or 0)
+    mode = rec.get("analysis_mode") or "abstract"
+    if mode in ("html", "pdf") and ("创新" in text) and len(text) >= 3000:
+        return True
+    # 硬封顶：尝试 3 次后接受现状（即便分析为空/缺关键词），杜绝无限重处理拖垮预算
+    if attempts >= 3:
+        return True
+    return False
+
+
 def _enrich_one(meta, client, provider, out_dir, cached=None):
     # 幂等复用：只有已生成完整深读(含第五部分创新评估)的论文才算完成、直接复用
     if cached and _deep_complete(cached.get("deep_analysis")):
@@ -68,18 +87,31 @@ def process_date(date, client, provider, out_dir="docs/images/posters", max_work
 
 
 def _enrich_arxiv_tier2_one(cand, provider, out_dir, cached=None):
-    if cached and _deep_complete_abstract(cached.get("deep_analysis")):
+    if cached and _tier2_complete(cached):
         return cached
     import hashlib
-    abs_txt = cand.get("abstract") or cand.get("summary") or ""
+    from arxiv_fulltext import fetch_fulltext
     rec = dict(cand)
     rec["source"] = "arxiv"
     rec["category"] = cand.get("category") or classify(cand, provider=provider)
-    rec["deep_analysis"] = abstract_read(cand, abs_txt, provider=provider) if abs_txt else ""
     doc_id = "ax" + hashlib.sha1((cand.get("link") or cand.get("title", "")).encode("utf-8")).hexdigest()[:14]
-    meta = {"title": cand.get("title", ""), "doc_id": doc_id}
+    meta = {"title": cand.get("title", ""), "authors": cand.get("authors"),
+            "year": cand.get("year"), "doc_id": doc_id}
+    # 抓全文(HTML 优先/PDF 兜底) → 苏格拉底深读；拿不到 → 退回摘要解析
+    fulltext, mode = fetch_fulltext(cand.get("link") or "")
+    prev_attempts = int((cached or {}).get("ft_attempts") or 0)
+    if fulltext:
+        rec["deep_analysis"] = deep_read(meta, fulltext, provider=provider)
+        rec["analysis_mode"] = mode
+        poster_src = fulltext
+    else:
+        abs_txt = cand.get("abstract") or cand.get("summary") or ""
+        rec["deep_analysis"] = abstract_read(cand, abs_txt, provider=provider) if abs_txt else ""
+        rec["analysis_mode"] = "abstract"
+        poster_src = abs_txt
+    rec["ft_attempts"] = prev_attempts + 1
     poster = (cached or {}).get("poster") or (
-        generate_poster(meta, abs_txt, provider=provider, out_dir=out_dir) if abs_txt else None)
+        generate_poster(meta, poster_src, provider=provider, out_dir=out_dir) if poster_src else None)
     rec["poster"] = poster
     rec["image"] = (poster or {}).get("image")
     rec["poster_elements"] = (poster or {}).get("elements")
@@ -96,7 +128,7 @@ def process_arxiv_tier2(date, candidates, provider, out_dir="docs/images/posters
     for c in cands:
         key = c.get("link") or c.get("title")
         prev = cache.get(key)
-        (cached if (prev and _deep_complete_abstract(prev.get("deep_analysis"))) else fresh).append((c, prev))
+        (cached if (prev and _tier2_complete(prev)) else fresh).append((c, prev))
     overflow = []
     if max_new is not None and len(fresh) > max_new:
         overflow = fresh[max_new:]
