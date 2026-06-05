@@ -55,38 +55,56 @@ def test_html_to_text_empty():
     assert html_to_text("<body></body>").strip() == ""
 
 
-def test_fetch_fulltext_html_hit():
+import contextlib
+
+
+@contextlib.contextmanager
+def _patched(**overrides):
+    """Patch arxiv_fulltext network/PDF globals and ALWAYS restore them,
+    so monkeypatching can never leak into other tests."""
     import arxiv_fulltext as af
+    names = ("_get_text", "_get_bytes", "extract_pdf_text")
+    saved = {n: getattr(af, n) for n in names}
+    try:
+        for n, fn in overrides.items():
+            setattr(af, n, fn)
+        yield af
+    finally:
+        for n, fn in saved.items():
+            setattr(af, n, fn)
+
+
+def _boom(*_a, **_k):
+    raise AssertionError("PDF must not be fetched when HTML suffices")
+
+
+def test_fetch_fulltext_html_hit():
     long_body = "正文内容 " * 1000  # >4000 chars
-    af._get_text = lambda url: f"<body><p>{long_body}</p></body>" if "html" in url else None
-    af._get_bytes = lambda url: (_ for _ in ()).throw(AssertionError("PDF must not be fetched when HTML suffices"))
-    text, mode = af.fetch_fulltext("https://arxiv.org/abs/2406.04520")
+    with _patched(_get_text=lambda url: f"<body><p>{long_body}</p></body>" if "html" in url else None,
+                  _get_bytes=_boom) as af:
+        text, mode = af.fetch_fulltext("https://arxiv.org/abs/2406.04520")
     assert mode == "html"
     assert "正文内容" in text
 
 
 def test_fetch_fulltext_html_too_short_falls_to_pdf():
-    import arxiv_fulltext as af
-    af._get_text = lambda url: "<body><p>太短的摘要占位</p></body>"  # < min_chars
-    af._get_bytes = lambda url: b"%PDF-FAKE"
-    af.extract_pdf_text = lambda b: "PDF 提取的全文 " * 1000  # >4000
-    text, mode = af.fetch_fulltext("https://arxiv.org/abs/2606.04803")
+    with _patched(_get_text=lambda url: "<body><p>太短的摘要占位</p></body>",  # < min_chars
+                  _get_bytes=lambda url: b"%PDF-FAKE",
+                  extract_pdf_text=lambda b: "PDF 提取的全文 " * 1000) as af:  # >4000
+        text, mode = af.fetch_fulltext("https://arxiv.org/abs/2606.04803")
     assert mode == "pdf"
     assert "PDF 提取的全文" in text
 
 
 def test_fetch_fulltext_all_fail_returns_empty():
-    import arxiv_fulltext as af
-    af._get_text = lambda url: None
-    af._get_bytes = lambda url: None
-    assert af.fetch_fulltext("https://arxiv.org/abs/2606.04803") == ("", "")
+    with _patched(_get_text=lambda url: None, _get_bytes=lambda url: None) as af:
+        assert af.fetch_fulltext("https://arxiv.org/abs/2606.04803") == ("", "")
 
 
 def test_fetch_fulltext_truncates_to_max_chars():
-    import arxiv_fulltext as af
-    af._get_text = lambda url: "<body><p>" + ("a" * 100000) + "</p></body>"
-    af._get_bytes = lambda url: None
-    text, mode = af.fetch_fulltext("https://arxiv.org/abs/2406.04520", max_chars=5000)
+    with _patched(_get_text=lambda url: "<body><p>" + ("a" * 100000) + "</p></body>",
+                  _get_bytes=lambda url: None) as af:
+        text, mode = af.fetch_fulltext("https://arxiv.org/abs/2406.04520", max_chars=5000)
     assert mode == "html" and len(text) <= 5000
 
 
@@ -95,13 +113,11 @@ def test_fetch_fulltext_non_arxiv_returns_empty():
     assert af.fetch_fulltext("https://doi.org/10.1/x") == ("", "")
 
 
-
 def test_fetch_fulltext_short_pdf_also_rejected():
-    import arxiv_fulltext as af
-    af._get_text = lambda url: "<body><p>太短占位</p></body>"  # HTML below gate
-    af._get_bytes = lambda url: b"%PDF"
-    af.extract_pdf_text = lambda b: "短"  # PDF extraction also below min_chars
-    assert af.fetch_fulltext("https://arxiv.org/abs/2606.04803") == ("", "")
+    with _patched(_get_text=lambda url: "<body><p>太短占位</p></body>",  # HTML below gate
+                  _get_bytes=lambda url: b"%PDF",
+                  extract_pdf_text=lambda b: "短") as af:  # PDF extraction also below min_chars
+        assert af.fetch_fulltext("https://arxiv.org/abs/2606.04803") == ("", "")
 
 
 if __name__ == "__main__":
