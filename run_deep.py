@@ -25,6 +25,25 @@ def _deep_complete_abstract(text):
     return bool(text) and ("创新" in text) and len(text) >= 120
 
 
+def _tier2_complete(rec):
+    """tier-2 富化完成判定（支持全文升级 + attempts 封顶防无限重处理）。
+    - 全文模式(html/pdf) 且含"创新" 且 ≥3000 字 → 完成。
+    - 否则继续尝试升级全文；attempts≥3 且含"创新" 且 ≥120 字 → 接受(摘要)定稿。
+    - 旧缓存(无 mode/attempts) → 未完成(待升级)。"""
+    if not rec:
+        return False
+    text = rec.get("deep_analysis") or ""
+    if not text:
+        return False
+    attempts = int(rec.get("ft_attempts") or 0)
+    mode = rec.get("analysis_mode") or "abstract"
+    if mode in ("html", "pdf") and ("创新" in text) and len(text) >= 3000:
+        return True
+    if attempts >= 3 and ("创新" in text) and len(text) >= 120:
+        return True
+    return False
+
+
 def _enrich_one(meta, client, provider, out_dir, cached=None):
     # 幂等复用：只有已生成完整深读(含第五部分创新评估)的论文才算完成、直接复用
     if cached and _deep_complete(cached.get("deep_analysis")):

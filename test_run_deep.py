@@ -186,3 +186,41 @@ def test_tier2_short_abstract_analysis_is_complete_not_reprocessed():
                                                  out_dir=tempfile.mkdtemp(), cache=cache)
     assert used == 0
     assert out[0]["deep_analysis"] == short
+
+
+def test_tier2_complete_fulltext_done():
+    import run_deep
+    rec = {"deep_analysis": "## 深析\n第五部分：创新评估 " + "x" * 3500,
+           "analysis_mode": "html", "ft_attempts": 1}
+    assert run_deep._tier2_complete(rec) is True
+
+
+def test_tier2_complete_pdf_done():
+    import run_deep
+    rec = {"deep_analysis": "创新评估 " + "y" * 3500, "analysis_mode": "pdf", "ft_attempts": 1}
+    assert run_deep._tier2_complete(rec) is True
+
+
+def test_tier2_complete_abstract_not_done_until_attempts_cap():
+    import run_deep
+    short = "## 概览\n创新性判断：" + "z" * 200  # 有"创新", >120, <3000
+    assert run_deep._tier2_complete({"deep_analysis": short, "analysis_mode": "abstract", "ft_attempts": 1}) is False
+    assert run_deep._tier2_complete({"deep_analysis": short, "analysis_mode": "abstract", "ft_attempts": 3}) is True
+
+
+def test_tier2_complete_legacy_record_not_done():
+    import run_deep
+    legacy = {"deep_analysis": "## 概览\n创新性判断：" + "z" * 200}
+    assert run_deep._tier2_complete(legacy) is False
+
+
+def test_tier2_complete_empty_or_none():
+    import run_deep
+    assert run_deep._tier2_complete(None) is False
+    assert run_deep._tier2_complete({"deep_analysis": ""}) is False
+
+
+def test_tier2_complete_fulltext_too_short_not_done():
+    import run_deep
+    rec = {"deep_analysis": "创新 " + "x" * 100, "analysis_mode": "html", "ft_attempts": 1}
+    assert run_deep._tier2_complete(rec) is False
