@@ -444,6 +444,51 @@ def render_meta_chips(item: Dict) -> str:
     return "".join(meta_parts)
 
 
+def md_to_html(text):
+    """把苏格拉底深析的轻量 markdown 渲染成安全 HTML。
+    支持 #/##/### 标题、**粗体**、- / 数字. 列表、空行分段；
+    先对每行 safe_text 转义，再套白名单标签，杜绝注入。"""
+    if not text:
+        return ""
+    import re as _re
+    lines = str(text).split("\n")
+    out = []
+    in_list = [False]
+
+    def close_list():
+        if in_list[0]:
+            out.append("</ul>")
+            in_list[0] = False
+
+    def inline(s):
+        s = safe_text(s)  # 先转义
+        s = _re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', s)  # 在转义后的文本上加粗
+        return s
+
+    for raw in lines:
+        line = raw.rstrip()
+        if not line.strip():
+            close_list()
+            continue
+        m = _re.match(r'^(#{1,3})\s+(.*)$', line)
+        if m:
+            close_list()
+            level = min(len(m.group(1)) + 1, 4)  # # → h2, ## → h3, ### → h4
+            out.append(f"<h{level} class='deep-h'>{inline(m.group(2))}</h{level}>")
+            continue
+        m = _re.match(r'^\s*(?:[-*]|\d+\.)\s+(.*)$', line)
+        if m:
+            if not in_list[0]:
+                out.append("<ul class='deep-ul'>")
+                in_list[0] = True
+            out.append(f"<li>{inline(m.group(1))}</li>")
+            continue
+        close_list()
+        out.append(f"<p>{inline(line)}</p>")
+    close_list()
+    return "".join(out)
+
+
 def render_unified_item(item: Dict, index: int) -> str:
     """单列表条目：列表态 = 中文标题 + 一句话亮点 + 标签(+含图深析徽标)；
     富化时 <details> 展开 = 信息图 + 中文5要素 + 深析正文。"""
@@ -472,8 +517,8 @@ def render_unified_item(item: Dict, index: int) -> str:
             f'<div class="poster-row"><b>{safe_text(k)}</b>{safe_text(el.get(k, ""))}</div>'
             for k in ["研究问题", "创新方法", "工作流程", "关键结果", "应用价值"] if el.get(k))
         elems = f'<div class="daily-deep-elements">{rows}</div>' if rows else ""
-        deep = safe_text(en.get("deep_analysis") or "")
-        deep_html = f'<div class="deep-body">{deep}</div>' if deep else ""
+        deep = en.get("deep_analysis") or ""
+        deep_html = f'<div class="deep-body">{md_to_html(deep)}</div>' if deep else ""
         details = (f'<details class="enrich-details"><summary>📖 展开分析 + 配图</summary>'
                    f'{figure}{elems}{deep_html}</details>')
     return f"""
@@ -621,7 +666,9 @@ def render_daily_html(date_str: str, summary: Dict) -> str:
     .enrich-details > summary::-webkit-details-marker{{display:none;}}
     .enrich-details .poster-figure img{{width:100%;border-radius:10px;margin:8px 0;}}
     .poster-row b{{color:#1456b8;margin-right:6px;}}
-    .deep-body{{white-space:pre-wrap;font-size:14px;line-height:1.6;}}
+    .deep-body{{font-size:14px;line-height:1.7;}}
+    .deep-body .deep-h{{font-size:15px;margin:10px 0 4px;color:#1456b8;}}
+    .deep-body .deep-ul{{margin:4px 0 4px 18px;}} .deep-body p{{margin:6px 0;}}
     .daily-shell {{ max-width: 1260px; margin: 0 auto; padding: 28px 20px 48px; }}
     .daily-topbar {{ display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }}
     .daily-topbar-left, .daily-topbar-right {{ display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }}

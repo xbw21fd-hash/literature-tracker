@@ -144,6 +144,39 @@ def test_build_tier2_candidates_picks_ai_cross():
     assert cand and cand[0]["category"]
 
 
+def test_md_to_html_headers_bold_lists_and_escapes():
+    from generate_daily_pages import md_to_html
+    md = ("## 第一部分：核心概览\n"
+          "这是 **关键** 贡献。\n"
+          "- 要点一\n- 要点二\n"
+          "### 小节\n普通段落 <script>alert(1)</script>")
+    html = md_to_html(md)
+    # markdown headers are shifted down one level to avoid h1 (page title): ## → h3, ### → h4
+    assert "<h3" in html and "第一部分：核心概览" in html
+    assert "<h4" in html and "小节" in html
+    assert "<strong>关键</strong>" in html
+    assert "<li>要点一</li>" in html and "<li>要点二</li>" in html
+    assert "<script>alert(1)" not in html
+    assert "&lt;script&gt;" in html
+
+
+def test_md_to_html_empty():
+    from generate_daily_pages import md_to_html
+    assert md_to_html("") == ""
+    assert md_to_html(None) == ""
+
+
+def test_render_unified_item_deep_body_is_structured_html():
+    from generate_daily_pages import render_unified_item
+    item = {"title_en": "E", "title_zh": "标题", "summary": "亮点", "link": "http://x",
+            "journal": "arXiv", "_tier": 1,
+            "_enrich": {"deep_analysis": "## 核心概览\n**粗体**要点", "image": "images/posters/x.webp",
+                        "elements": {"研究问题": "q"}, "category": "AI×物理", "title_zh": "标题"}}
+    html = render_unified_item(item, 1)
+    assert "<h3" in html and "<strong>粗体</strong>" in html  # ## → h3
+    assert "## 核心概览" not in html
+
+
 def test_load_enrichment_keys_by_link_and_skips_plain():
     import json, os, tempfile
     from generate_daily_pages import load_enrichment
