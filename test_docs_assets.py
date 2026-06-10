@@ -49,7 +49,46 @@ def test_analytics_html_assets_exist():
     _assert_exists(refs, "analytics.html")
 
 
+def _read(name):
+    with open(os.path.join(DOCS, name), encoding="utf-8") as f:
+        return f.read()
+
+
+def test_sw_precache_relative_and_existing():
+    """站点挂在 GitHub Pages 项目子路径下:预缓存绝对路径(/x)必 404 → install 失败。"""
+    sw = _read("sw.js")
+    m = re.search(r"STATIC_ASSETS\s*=\s*\[(.*?)\]", sw, re.DOTALL)
+    assert m, "sw.js 应定义 STATIC_ASSETS"
+    entries = re.findall(r"['\"]([^'\"]+)['\"]", m.group(1))
+    assert entries, "STATIC_ASSETS 不应为空"
+    bad_abs = [e for e in entries if not e.startswith("./")]
+    assert not bad_abs, f"预缓存必须用 ./ 相对路径: {bad_abs}"
+    missing = [e for e in entries if e != "./" and not os.path.isfile(os.path.join(DOCS, e[2:]))]
+    assert not missing, f"预缓存引用了不存在的文件(install 必失败): {missing}"
+
+
+def test_sw_registration_paths_relative():
+    """register('/sw.js') 与 scope:'/' 在项目子路径下分别 404/抛异常。"""
+    for name in ("app.js", "performance-optimization.js"):
+        src = _read(name)
+        assert "register('/sw.js'" not in src and 'register("/sw.js"' not in src, \
+            f"{name} 不得用绝对路径注册 sw"
+        for call in re.findall(r"serviceWorker\.register\([^)]*\)", src):
+            assert "scope" not in call, f"{name} 注册不应显式指定 scope(子路径下 '/' 非法): {call}"
+
+
+def test_index_main_scripts_deferred_and_preconnect():
+    html = _read("index.html")
+    assert re.search(r'rel="preconnect"\s+href="https://cdn\.jsdelivr\.net"', html), \
+        "index.html 应预连接 cdn.jsdelivr.net(KaTeX css 为渲染阻塞资源)"
+    for script in ("performance-optimization.js", "advanced-features.js", "app.js"):
+        tag = re.search(r"<script[^>]*src=\"%s[^\"]*\"[^>]*>" % re.escape(script), html)
+        assert tag, f"index.html 应引用 {script}"
+        assert "defer" in tag.group(0), f"{script} 应当 defer(内联脚本已验证无同步依赖)"
+
+
 if __name__ == "__main__":
-    test_index_html_assets_exist()
-    test_analytics_html_assets_exist()
+    for _fn in sorted(k for k in dir() if k.startswith("test_")):
+        globals()[_fn]()
+        print(f"✓ {_fn}")
     print("OK")

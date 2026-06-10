@@ -1,62 +1,65 @@
 /**
- * 文献追踪系统 - Service Worker
- * 实现离线缓存和PWA支持
+ * 文献追踪系统 - Service Worker(离线缓存 / PWA)
+ *
+ * 约束:站点部署在 GitHub Pages 项目子路径(/<repo>/)下,
+ * 预缓存与注册必须用 ./ 相对路径——绝对路径(/index.html)会指向
+ * user.github.io 根而 404,导致 install 整体失败。
+ *
+ * 策略:
+ * - 数据(*.json、*.xml、/data/)与生成页(/daily/、/weekly/ 的 html)
+ *   network-first:日更内容,缓存仅作离线兜底,避免用户被锁在旧数据上
+ * - 其余同源静态资源 cache-first(带 ?v= 版本号的请求天然绕过旧缓存)
+ * - 跨域(CDN)请求不拦截
  */
 
-const CACHE_NAME = 'literature-tracker-v4';
+const CACHE_NAME = 'literature-tracker-v5';
+const DATA_CACHE_NAME = 'literature-data-v5';
+
 const STATIC_ASSETS = [
-    '/',
-    '/index.html',
-    '/analytics.html',
-    '/style.css',
-    '/app.js',
-    '/analytics.js',
-    '/manifest.json',
-    '/bookmarks.js',
-    '/bookmarks.css',
-    '/exports.js'
+    './',
+    './index.html',
+    './analytics.html',
+    './style.css',
+    './app.js',
+    './analytics.js',
+    './manifest.json',
+    './bookmarks.js',
+    './bookmarks.css',
+    './exports.js',
+    './performance-optimization.js',
+    './advanced-features.js'
 ];
 
-const DATA_CACHE_NAME = 'literature-data-v4';
-
-// 安装事件 - 缓存静态资源
 self.addEventListener('install', event => {
-    console.log('[SW] 安装中...');
     event.waitUntil(
         caches.open(CACHE_NAME)
-            .then(cache => {
-                console.log('[SW] 缓存静态资源');
-                return cache.addAll(STATIC_ASSETS);
-            })
+            .then(cache => cache.addAll(STATIC_ASSETS))
             .then(() => self.skipWaiting())
     );
 });
 
-// 激活事件 - 清理旧缓存
 self.addEventListener('activate', event => {
-    console.log('[SW] 激活中...');
     event.waitUntil(
-        caches.keys().then(cacheNames => {
-            return Promise.all(
-                cacheNames
-                    .filter(name => name !== CACHE_NAME && name !== DATA_CACHE_NAME)
-                    .map(name => {
-                        console.log('[SW] 删除旧缓存:', name);
-                        return caches.delete(name);
-                    })
-            );
-        }).then(() => self.clients.claim())
+        caches.keys().then(names => Promise.all(
+            names
+                .filter(name => name !== CACHE_NAME && name !== DATA_CACHE_NAME)
+                .map(name => caches.delete(name))
+        )).then(() => self.clients.claim())
     );
 });
 
-self.addEventListener('fetch', event => {
-    const url = new URL(event.request.url);
-    const isDailyOrWeekly =
-        (url.pathname.startsWith('/daily/') || url.pathname.startsWith('/weekly/')) &&
-        url.pathname.endsWith('.html');
+function isNetworkFirst(url) {
+    const p = url.pathname;
+    if (p.endsWith('.json') || p.endsWith('.xml') || p.includes('/data/')) return true;
+    return (p.includes('/daily/') || p.includes('/weekly/')) && p.endsWith('.html');
+}
 
-    if (isDailyOrWeekly) {
-        // network-first with cache fallback for daily/weekly HTML
+self.addEventListener('fetch', event => {
+    if (event.request.method !== 'GET') return;
+    const url = new URL(event.request.url);
+    if (url.origin !== self.location.origin) return;
+
+    if (isNetworkFirst(url)) {
         event.respondWith(
             fetch(event.request).then(resp => {
                 if (resp && resp.ok) {
@@ -64,98 +67,22 @@ self.addEventListener('fetch', event => {
                     caches.open(DATA_CACHE_NAME).then(c => c.put(event.request, copy));
                 }
                 return resp;
-            }).catch(() => caches.match(event.request).then(r => r || Response.error()))
+            }).catch(() =>
+                caches.match(event.request).then(r => r || Response.error())
+            )
         );
         return;
     }
 
-    // default: cache-first for static assets, fall back to network
     event.respondWith(
-        caches.match(event.request).then(cached => {
-            return cached || fetch(event.request).then(resp => {
-                if (resp && resp.ok && event.request.method === 'GET') {
+        caches.match(event.request).then(cached =>
+            cached || fetch(event.request).then(resp => {
+                if (resp && resp.ok) {
                     const copy = resp.clone();
-                    caches.open(DATA_CACHE_NAME).then(c => c.put(event.request, copy));
+                    caches.open(CACHE_NAME).then(c => c.put(event.request, copy));
                 }
                 return resp;
-            }).catch(() => caches.match(event.request));
-        })
+            })
+        )
     );
-});
-
-// Cache First 策略
-async function cacheFirst(request) {
-    const cached = await caches.match(request);
-    if (cached) {
-        return cached;
-    }
-
-    try {
-        const response = await fetch(request);
-        if (response.ok) {
-            const cache = await caches.open(CACHE_NAME);
-            cache.put(request, response.clone());
-        }
-        return response;
-    } catch (error) {
-        console.log('[SW] 网络请求失败:', error);
-        // 返回离线页面或默认响应
-        return new Response('离线模式 - 无法加载资源', {
-            status: 503,
-            statusText: 'Service Unavailable'
-        });
-    }
-}
-
-// Network First 策略
-async function networkFirst(request, cacheName) {
-    try {
-        const response = await fetch(request);
-        if (response.ok) {
-            const cache = await caches.open(cacheName);
-            cache.put(request, response.clone());
-        }
-        return response;
-    } catch (error) {
-        console.log('[SW] 网络请求失败，使用缓存:', error);
-        const cached = await caches.match(request);
-        if (cached) {
-            return cached;
-        }
-        return new Response(JSON.stringify({ error: '离线模式' }), {
-            status: 503,
-            headers: { 'Content-Type': 'application/json' }
-        });
-    }
-}
-
-// 后台同步
-self.addEventListener('sync', event => {
-    if (event.tag === 'sync-data') {
-        event.waitUntil(syncData());
-    }
-});
-
-async function syncData() {
-    try {
-        const response = await fetch('/data/index.json');
-        if (response.ok) {
-            const cache = await caches.open(DATA_CACHE_NAME);
-            await cache.put('/data/index.json', response);
-            console.log('[SW] 数据同步完成');
-        }
-    } catch (error) {
-        console.log('[SW] 数据同步失败:', error);
-    }
-}
-
-// 推送通知（可选）
-self.addEventListener('push', event => {
-    if (event.data) {
-        const data = event.data.json();
-        self.registration.showNotification(data.title, {
-            body: data.body,
-            icon: '/icon-192.png'
-        });
-    }
 });

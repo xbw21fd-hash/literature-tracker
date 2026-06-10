@@ -1115,9 +1115,8 @@ class ServiceWorkerManager {
         }
 
         try {
-            this.registration = await navigator.serviceWorker.register('sw.js', {
-                scope: '/'
-            });
+            // 不显式指定 scope:项目子路径下 '/' 越界会抛异常,默认作用域即 sw.js 所在目录
+            this.registration = await navigator.serviceWorker.register('sw.js');
 
             console.log('✅ Service Worker 注册成功:', this.registration.scope);
 
@@ -1278,15 +1277,6 @@ async function initPerformanceOptimization() {
     // 初始化 DOM 节点池
     domNodePool = new DOMNodePool('div', 'article-card', 20);
 
-    // 初始化 Worker 池 (如果支持)
-    if (typeof Worker !== 'undefined') {
-        try {
-            // workerPool = new WorkerPool('search-worker.js');
-            // console.log('✅ Worker 池初始化完成');
-        } catch (error) {
-            console.warn('⚠️ Worker 池初始化失败:', error);
-        }
-    }
 
     advancedPerformanceMonitor.end('初始化');
 

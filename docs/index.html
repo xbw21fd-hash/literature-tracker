@@ -18,6 +18,7 @@
     <link rel="manifest" href="manifest.json">
     <link rel="alternate" type="application/rss+xml" title="文献追踪系统 RSS" href="feed.xml">
     <!-- KaTeX for LaTeX rendering -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
@@ -272,9 +273,10 @@
         </footer>
     </div>
 
-    <script src="performance-optimization.js?v=1"></script>
-    <script src="advanced-features.js?v=2"></script>
-    <script src="app.js?v=18"></script>
+    <!-- defer:三者按序在 DOMContentLoaded 前执行;下方内联脚本自洽且仅注册 DOMContentLoaded 回调 -->
+    <script defer src="performance-optimization.js?v=2"></script>
+    <script defer src="advanced-features.js?v=2"></script>
+    <script defer src="app.js?v=19"></script>
     <script>
         function escapeHtml(value) {
             return String(value ?? '')

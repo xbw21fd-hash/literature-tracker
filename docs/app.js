@@ -1950,7 +1950,8 @@ function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
             try {
-                const registration = await navigator.serviceWorker.register('/sw.js');
+                // 相对路径:站点在 GitHub Pages 项目子路径下,/sw.js 会 404
+                const registration = await navigator.serviceWorker.register('sw.js');
                 console.log('[SW] Service Worker 注册成功:', registration.scope);
 
                 // 监听更新
