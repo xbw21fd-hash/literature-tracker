@@ -2435,7 +2435,7 @@ def generate_weekly_summary(week_start: str = None, api_key: str = None) -> Opti
     """
     # 加载文献数据
     try:
-        with open('docs/data/index.json', 'r', encoding='utf-8') as f:
+        with open('data/index.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
         articles = data.get('articles', [])
         normalize_articles_inplace(articles)

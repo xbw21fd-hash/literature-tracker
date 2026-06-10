@@ -60,13 +60,6 @@ jobs:
             python generate_daily_pages.py --days "${{ inputs.days }}"
           fi
 
-      - name: Copy data to docs
-        run: |
-          mkdir -p docs/data
-          if [ -d "data" ]; then
-            cp -r data/* docs/data/
-          fi
-
       - name: Commit and push
         run: |
           git config --local user.email "action@github.com"

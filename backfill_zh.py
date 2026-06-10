@@ -2,7 +2,8 @@
 """
 One-shot full backfill for Chinese fields:
 - Fill `title_zh` and `abstract_zh` for ALL articles in `data/index.json`.
-- Write the updated file to both `data/index.json` and `docs/data/index.json`.
+- Write the updated file to `data/index.json`(docs/data 由 deploy job 部署期复制,
+  如需额外副本可设 BACKFILL_DOCS_PATH)。
 
 Run in GitHub Actions (recommended) with secrets:
   AI_PROVIDER=openrouter
@@ -181,7 +182,8 @@ def _sync_site_outputs(articles: List[Dict[str, Any]]) -> None:
 
 def main() -> int:
     index_path = os.environ.get("BACKFILL_INDEX_PATH") or "data/index.json"
-    out_docs_path = os.environ.get("BACKFILL_DOCS_PATH") or "docs/data/index.json"
+    # docs/data 为部署期产物(deploy job 从 data/ 复制),默认不再写副本;需要时设 BACKFILL_DOCS_PATH
+    out_docs_path = os.environ.get("BACKFILL_DOCS_PATH") or ""
     scope = (os.environ.get("BACKFILL_SCOPE") or "all_missing").strip()
 
     data = load_index(index_path)
@@ -234,8 +236,9 @@ def main() -> int:
 
     # Persist
     save_index(index_path, articles)
-    save_index(out_docs_path, articles)
-    print(f"[backfill] wrote {index_path} and {out_docs_path}")
+    if out_docs_path:
+        save_index(out_docs_path, articles)
+    print(f"[backfill] wrote {index_path}" + (f" and {out_docs_path}" if out_docs_path else ""))
     _sync_site_outputs(articles)
 
     # Non-zero exit if still missing (so Actions can alert)

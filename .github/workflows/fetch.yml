@@ -79,13 +79,6 @@ jobs:
           # 需要更长窗口的回填请手动 dispatch backfill-daily.yml（接受 days/force 参数）
           python generate_daily_pages.py --days 2
 
-      - name: 复制数据到docs目录
-        run: |
-          mkdir -p docs/data
-          if [ -d "data" ]; then
-            cp -r data/* docs/data/
-          fi
-
       - name: 提交更改
         run: |
           git config --local user.email "action@github.com"
@@ -118,6 +111,12 @@ jobs:
           ref: main
       - name: 拉取最新代码
         run: git pull origin main
+      - name: 准备docs数据(docs/data 不入库,部署期从 data/ 复制)
+        run: |
+          mkdir -p docs/data
+          if [ -d "data" ]; then
+            cp -r data/* docs/data/
+          fi
       - name: 设置Pages
         uses: actions/configure-pages@v4
       - name: 上传artifact

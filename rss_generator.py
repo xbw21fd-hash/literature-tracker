@@ -190,7 +190,7 @@ if __name__ == '__main__':
     import json
 
     try:
-        with open('docs/data/index.json', 'r', encoding='utf-8') as f:
+        with open('data/index.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
         articles = data.get('articles', [])
         generate_rss_feed(articles)
