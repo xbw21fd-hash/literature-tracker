@@ -20,6 +20,7 @@ const STATIC_ASSETS = [
     './index.html',
     './analytics.html',
     './style.css',
+    './daily-common.css',
     './app.js',
     './analytics.js',
     './manifest.json',

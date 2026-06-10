@@ -29,6 +29,19 @@ jobs:
         run: |
           git ls-files '*.py' | xargs python -m py_compile
 
-      - name: Run full test suite
+      - name: Run full test suite (top-level test_* functions)
         run: |
           python run_tests.py
+
+      # 这批历史测试文件的断言在 main() 里(脚本式),run_tests.py 不会执行,
+      # 必须保持独立进程运行;新测试请写成顶层 test_* 函数(见 run_tests.py 文档)
+      - name: Run script-style test mains
+        run: |
+          set -e
+          for t in test_ai_summarizer_json_repair test_text_normalizer \
+                   test_daily_pages_render test_focus_filter test_daily_page_enhancer \
+                   test_weekly_pages_render test_weekly_page_enhancer \
+                   test_entry_navigation_docs test_rss_generation; do
+            echo "=== $t ==="
+            python "$t.py"
+          done

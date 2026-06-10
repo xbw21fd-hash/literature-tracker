@@ -40,7 +40,10 @@ def main() -> int:
     assert "测试中文标题" in html
     assert '<div class="daily-hero">' in html
     assert '<header class="daily-hero">' not in html
-    assert 'body::before { content: none !important; }' in html
+    # 2026-06 起公共样式外提:页面引用 daily-common.css,防全局 header/body 串样式的
+    # 规则(body::before 等)在该文件中(见 docs/daily-common.css)
+    assert '<link rel="stylesheet" href="../daily-common.css" />' in html
+    assert "<style" not in html.split("daily-enhancement-style")[0], "恒定 CSS 不应再内联"
 
     summary_summaries_only = {
         "overview": "总览测试2",
