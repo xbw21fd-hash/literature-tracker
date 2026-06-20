@@ -4,115 +4,59 @@
 
 # RSS订阅源列表
 RSS_FEEDS = [
-    "http://feeds.aps.org/rss/allsuggestions.xml",
-    "http://feeds.aps.org/rss/recent/prl.xml",
-    "http://feeds.aps.org/rss/recent/prx.xml",
-    "http://feeds.aps.org/rss/recent/physics.xml",
-    "http://feeds.aps.org/rss/recent/rmp.xml",
-    "https://phys.org/rss-feed/physics-news/",
+    # 通用顶刊
+    "https://www.nature.com/nature.rss",
     "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science",
     "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=sciadv",
-    "https://www.nature.com/nature.rss",
-    "https://www.nature.com/natcomputsci.rss",
-    "https://www.nature.com/nchem.rss",
-    "https://www.nature.com/natmachintell.rss",
-    "https://www.nature.com/natrevmats.rss",
-    "https://www.nature.com/nphys.rss",
-    "https://www.nature.com/natrevchem.rss",
-    "https://www.nature.com/natelectron.rss",
-    "https://www.nature.com/nnano.rss",
-    "https://www.nature.com/nphoton.rss",
-    "https://www.nature.com/natrevphys.rss",
-    "https://www.nature.com/ncomms.rss",
-    "https://www.nature.com/npjcompumats.rss",
-    "https://academic.oup.com/rss/site_5332/3198.xml",
-    "https://rss.sciencedirect.com/publication/science/20959273",
-    "http://feeds.feedburner.com/acs/jacsat",
-    "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=ancac3",
-    "https://onlinelibrary.wiley.com/action/showFeed?jc=15213773&type=etoc&feed=rss",
-    "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=nalefd",
-    "https://www.annualreviews.org/action/showFeed?ui=45mu4&mi=3fndc3&ai=68t8&jc=conmatphys&type=etoc&feed=atom",
-    "https://www.annualreviews.org/action/showFeed?ui=45mu4&mi=3fndc3&ai=sy&jc=physchem&type=etoc&feed=atom",
-    "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jpclcd",
     "https://www.pnas.org/rss/Physics.xml",
-    "https://www.pnas.org/rss/Applied_Physical_Sciences.xml",
-    "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=jctcce",
-    "https://aip.scitation.org/action/showFeed?type=etoc&feed=rss&jc=jcp",
-    "http://aip.scitation.org/action/showFeed?type=etoc&feed=rss&jc=apl",
-    "https://pubs.aip.org/rss/site_1000043/1000024.xml",
-    "http://feeds.aps.org/rss/recent/prxenergy.xml",
-    "http://feeds.aps.org/rss/recent/prmaterials.xml",
-    "http://feeds.aps.org/rss/recent/prresearch.xml",
+    # APS
+    "http://feeds.aps.org/rss/recent/prl.xml",
+    "http://feeds.aps.org/rss/recent/prx.xml",
+    "http://feeds.aps.org/rss/recent/rmp.xml",
+    "http://feeds.aps.org/rss/recent/pra.xml",
     "http://feeds.aps.org/rss/recent/prb.xml",
-    "https://pubs.acs.org/action/showFeed?type=axatoc&feed=rss&jc=chreay",
-    "http://feeds.feedburner.com/acs/nalefd",
-    "http://feeds.feedburner.com/acs/achre4",
-    "http://feeds.feedburner.com/physicstodaynews",
-    "https://iopscience.iop.org/journal/rss/2632-2153",
-    "https://onlinelibrary.wiley.com/action/showFeed?jc=15214095&type=etoc&feed=rss",
-    "https://onlinelibrary.wiley.com/action/showFeed?jc=16163028&type=etoc&feed=rss",
-    "https://onlinelibrary.wiley.com/action/showFeed?jc=21983844&type=etoc&feed=rss",
+    "http://feeds.aps.org/rss/recent/prresearch.xml",
+    # 量子信息核心期刊
+    "http://feeds.aps.org/rss/recent/prxquantum.xml",
+    "https://quantum-journal.org/rss/",
+    "https://www.nature.com/npjqi.rss",
+    "https://iopscience.iop.org/journal/rss/2058-9565",
+    # arXiv
+    "https://rss.arxiv.org/rss/quant-ph",
     "https://rss.arxiv.org/rss/cond-mat",
-    "https://rss.arxiv.org/rss/physics",
-    # AI 相关 arXiv 分类（用于 AI×材料/物理/化学交叉，提升召回）
-    "https://rss.arxiv.org/rss/cs.LG",
-    "https://rss.arxiv.org/rss/stat.ML",
-    "https://rss.arxiv.org/rss/cs.AI",
-    "https://chemrxiv.org/engage/rss/chemrxiv",
-    "https://www.researchsquare.com/rss.xml",
-    "https://rss.arxiv.org/rss/cond-mat.supr-con+cond-mat.mtrl-sci+cond-mat.str-el+physics.comp-ph+physics.chem-ph",
-    "https://feeds.rsc.org/rss/dd",  # Digital Discovery (RSC - AI for chemistry)
-    "https://rss.sciencedirect.com/publication/science/09270256",  # Computational Materials Science
-    "https://rss.sciencedirect.com/publication/science/00104655",  # Computer Physics Communications
-    "https://www.nature.com/npjquantmats.rss",  # npj Quantum Materials
-    "https://rss.sciencedirect.com/publication/science/13697021",  # Materials Today
-    "https://www.nature.com/npj2dmaterials.rss",  # npj 2D Materials and Applications
-    "http://feeds.aps.org/rss/recent/prapplied.xml",  # Physical Review Applied
-    # ========== 2区期刊（仅保留指定）==========
-    "https://aip.scitation.org/action/showFeed?type=etoc&feed=rss&jc=jap",  # Journal of Applied Physics (JAP)
-    "https://rss.sciencedirect.com/publication/science/00092614",  # Chemical Physics Letters (CPL)
+    "https://rss.arxiv.org/rss/cond-mat.quant-gas",
+    "https://rss.arxiv.org/rss/cs.IT",
 ]
 
 # 多用户关键词配置
 # 每个用户可以定义自己的关键词列表，用于在网页上筛选相关文献
 USER_KEYWORDS = {
-    "于宏宇": [
-        "ferro",
-        "machine",
-        "learn",
-        "magne",
-        "neural",
-        "network",
-        "potential",
-        "hamiltonian",
-    ],
-    "朱海燕": [
-        "twist",
-        "magne",
-        "moire",
-        "multiferroics",
-        "magnetoelectric coupling",
-        "CrSBr",
-        "altermagnet",
-        "ferro",
-        "CrTe",
-        "magnetic nanotube",
-        "topological curvature",
-        "curvature-driven",
-    ],
-    "戴智浩": [
-        "symmetry",
-        "group theory",
-        "altermagnet",
-        "ferromagnetoelectric",
-        "multiferroics",
-        "compensated magnet",
-        "unconventional magnet",
+    "我的订阅": [
+        "quantum information",
+        "quantum error correct",
+        "quantum entanglement",
+        "quantum cryptograph",
+        "quantum communication",
+        "quantum teleport",
+        "quantum many-body",
+        "many-body",
+        "quantum phase transition",
+        "topological",
+        "tensor network",
+        "quantum simulation",
+        "quantum metrology",
+        "quantum sensing",
+        "quantum Fisher",
+        "Heisenberg limit",
+        "quantum advantage",
+        "Preskill",
+        "Sisi Zhou",
+        "Senrui Chen",
+        "Hsin-Yuan Huang",
     ],
 }
 
-# 关键词列表（保持向后兼容，使用于宏宇的关键词）
-KEYWORDS = USER_KEYWORDS.get("于宏宇", [])
+KEYWORDS = USER_KEYWORDS.get("我的订阅", [])
 
 import os
 
