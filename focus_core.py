@@ -1,88 +1,120 @@
 #!/usr/bin/env python3
-"""Core-focus classifier: ML × ferro/凝聚态 方向判定，纯函数，无外部依赖。"""
+"""Core-focus classifier: 量子信息/量子多体/量子计量 方向判定，纯函数，无外部依赖。"""
 
 from typing import Any, Dict, Mapping, Optional, Tuple
 
-# —— 方法侧（AI/ML/势函数/哈密顿量）——
+# —— 量子信息/计算侧 ——
 CORE_METHOD_TERMS: Tuple[str, ...] = (
-    # 机器学习主流术语
-    "machine learning", "deep learning", "neural network", "neural networks",
-    "graph neural", "gnn", "transformer", "diffusion model", "generative model",
-    "foundation model", "large language model", "llm", "reinforcement learning",
-    "active learning", "surrogate model", "data-driven", "ai-driven",
-    "artificial intelligence", "message passing", "equivariant neural",
-    "equivariant gnn", "equivariant network",
-    # 势函数 / Hamiltonian
-    "ml potential", "mlip", "interatomic potential", "neural network potential",
-    "nnp", "ml hamiltonian", "learnable hamiltonian",
-    "equivariant force field", "mace", "nequip", "allegro", "schnet",
-    # 中文
-    "机器学习", "深度学习", "神经网络", "大语言模型", "人工智能",
-    "神经网络势", "机器学习势",
+    "quantum information", "quantum computing", "quantum computation",
+    "quantum error correction", "quantum error correcting",
+    "quantum channel", "quantum circuit", "quantum algorithm",
+    "fault tolerant", "fault-tolerant", "qubit", "qubits",
+    "quantum gate", "quantum communication", "quantum cryptography",
+    "quantum key distribution", "qkd", "quantum teleportation",
+    "quantum network", "quantum memory", "quantum repeater",
+    "stabilizer code", "surface code", "toric code", "ldpc",
+    "quantum advantage", "quantum supremacy",
+    "量子信息", "量子计算", "量子纠错", "量子通信", "量子密码",
+    "量子线路", "量子算法", "量子优势", "容错量子",
 )
 
-# —— ferro/磁/凝聚态侧 ——
+# —— 量子多体/计量侧 ——
 CORE_FERRO_TERMS: Tuple[str, ...] = (
-    "ferroelectric", "ferromagnet", "ferromagnetic", "antiferromagnet",
-    "antiferromagnetic", "altermagnet", "altermagnetic", "multiferroic",
-    "piezoelectric", "magnetoelectric", "skyrmion", "magnon", "spin hall",
-    "moire magnet", "moiré magnet", "spintronic", "spintronics",
-    "spin current", "topological magnon", "spin wave", "spin texture",
-    "magnetic order", "magnetic anisotropy", "exchange interaction",
-    # 中文
-    "铁电", "铁磁", "反铁磁", "交错磁", "多铁", "压电", "磁电",
-    "斯格明子", "磁振子", "自旋霍尔", "自旋流", "磁性", "拓扑磁",
-    "自旋波", "磁各向异性", "交换相互作用",
+    "quantum many-body", "many-body", "quantum phase transition",
+    "quantum simulation", "quantum simulator",
+    "entanglement", "entangled", "quantum entanglement",
+    "tensor network", "matrix product state", "mps", "dmrg",
+    "topological order", "topological phase", "anyons", "anyon",
+    "quantum spin liquid", "frustrated magnet",
+    "quantum metrology", "quantum sensing", "quantum sensor",
+    "quantum fisher information", "heisenberg limit",
+    "quantum benchmark", "quantum tomography",
+    "open quantum system", "lindblad", "master equation",
+    "quantum optics", "cavity qed", "circuit qed",
+    "cold atoms", "ultracold", "optical lattice", "bose-einstein",
+    "量子多体", "量子相变", "量子模拟", "纠缠", "张量网络",
+    "拓扑序", "量子自旋液体", "量子计量", "量子传感",
+    "量子光学", "冷原子", "光晶格",
 )
 
-# ── Taxonomy: tiered research-focus categories ────────────────────────────────
+# ── Taxonomy ────────────────────────────────────────────────────────────────
 TAXONOMY: Dict[str, Dict[str, Any]] = {
-    "AI×物理": {
-        "terms": ["machine learning", "deep learning", "neural network", "graph neural",
-                  "transformer", "generative model", "diffusion model", "foundation model",
-                  "ml interatomic", "neural network potential", "ml potential",
-                  "physics-informed", "scientific machine learning"],
-        "domain": ["physics", "quantum", "phase transition", "hamiltonian", "spin",
-                   "lattice", "electronic structure", "dft"],
+    "量子纠错·容错": {
+        "terms": ["quantum error correction", "fault tolerant", "fault-tolerant",
+                  "stabilizer code", "surface code", "toric code", "ldpc",
+                  "quantum error", "logical qubit", "decoder"],
+        "domain": ["qubit", "quantum", "noise", "threshold", "syndrome"],
         "tier": 1,
     },
-    "AI×化学·材料": {
-        "terms": ["machine learning", "deep learning", "neural network", "graph neural",
-                  "generative model", "diffusion model", "foundation model",
-                  "ml interatomic", "neural network potential", "ml potential",
-                  "active learning", "bayesian optimization"],
-        "domain": ["material", "chemistry", "molecule", "catalyst", "crystal",
-                   "perovskite", "alloy", "polymer", "battery", "synthesis"],
+    "量子信息·通信": {
+        "terms": ["quantum information", "quantum communication", "quantum cryptography",
+                  "quantum key distribution", "qkd", "quantum teleportation",
+                  "quantum network", "quantum channel", "entanglement distillation"],
+        "domain": ["quantum", "entanglement", "fidelity", "protocol"],
         "tier": 1,
     },
-    "磁性·自旋电子学": {"terms": ["magnet", "magnetism", "spintronic", "antiferromagnet",
-                          "ferromagnet", "altermagnet", "spin current", "spin orbit",
-                          "magnon", "skyrmion"], "tier": 2},
-    "铁电·极化": {"terms": ["ferroelectric", "polarization", "piezoelectric",
-                       "multiferroic", "dielectric"], "tier": 2},
-    "拓扑·电子结构": {"terms": ["topological", "weyl", "dirac", "band structure",
-                         "berry phase", "chern", "quantum hall"], "tier": 2},
-    "超导": {"terms": ["superconduct", "cooper pair", "bcs", "meissner"], "tier": 2},
-    "量子信息·计算": {"terms": ["qubit", "quantum computing", "quantum information",
-                         "entanglement", "quantum error", "quantum circuit"], "tier": 2},
-    "软物质·流体·统计": {"terms": ["soft matter", "fluid", "turbulence", "statistical mechanics",
-                          "active matter", "colloid", "granular"], "tier": 3},
-    "其他凝聚态": {"terms": ["condensed matter", "phonon", "thermal transport",
-                       "2d material", "graphene"], "tier": 3},
+    "量子计算·算法": {
+        "terms": ["quantum computing", "quantum algorithm", "quantum circuit",
+                  "quantum gate", "quantum advantage", "quantum supremacy",
+                  "variational quantum", "vqe", "qaoa", "quantum machine learning"],
+        "domain": ["qubit", "quantum", "complexity", "speedup"],
+        "tier": 1,
+    },
+    "量子多体·拓扑": {
+        "terms": ["quantum many-body", "many-body", "quantum phase transition",
+                  "tensor network", "matrix product state", "dmrg",
+                  "topological order", "topological phase", "anyons",
+                  "quantum spin liquid", "entanglement entropy"],
+        "domain": ["quantum", "lattice", "hamiltonian", "ground state"],
+        "tier": 2,
+    },
+    "量子计量·传感": {
+        "terms": ["quantum metrology", "quantum sensing", "quantum sensor",
+                  "quantum fisher information", "heisenberg limit",
+                  "quantum benchmark", "quantum tomography",
+                  "parameter estimation", "quantum enhanced"],
+        "domain": ["quantum", "precision", "measurement", "noise"],
+        "tier": 2,
+    },
+    "量子模拟": {
+        "terms": ["quantum simulation", "quantum simulator", "cold atoms",
+                  "ultracold", "optical lattice", "bose-einstein", "hubbard model",
+                  "cavity qed", "circuit qed"],
+        "domain": ["quantum", "hamiltonian", "lattice", "many-body"],
+        "tier": 2,
+    },
+    "开放量子系统·量子光学": {
+        "terms": ["open quantum system", "lindblad", "master equation",
+                  "quantum optics", "quantum decoherence", "dissipative",
+                  "quantum noise", "quantum thermodynamics"],
+        "domain": ["quantum", "bath", "environment", "photon"],
+        "tier": 2,
+    },
+    "量子硬件·实验": {
+        "terms": ["superconducting qubit", "trapped ion", "photonic qubit",
+                  "spin qubit", "nitrogen vacancy", "nv center",
+                  "quantum hardware", "quantum processor", "coherence time"],
+        "tier": 3,
+    },
 }
 
 _TAXONOMY_TIER: Dict[str, int] = {cat: spec["tier"] for cat, spec in TAXONOMY.items()}
 
+_CURATED_HIGH_HINTS: Tuple[str, ...] = (
+    "nature", "science", "phys. rev. lett", "physical review letters",
+    "phys. rev. x", "physical review x", "prx quantum", "quantum",
+    "nature physics", "nature communications", "npj quantum",
+    "physical review a", "new journal of physics",
+)
+
 
 def _text(article: Any) -> str:
-    """Return lowercased concatenated text from title/summary/abstract fields."""
     if not article:
         return ""
     return " ".join(str(article.get(k, "") or "") for k in ("title", "summary", "abstract")).lower()
 
 
 def classify_taxonomy(article: Any) -> str:
-    """Return the best-matching TAXONOMY category, or '其他' if none matches."""
     txt = _text(article)
     if not txt.strip():
         return "其他"
@@ -94,15 +126,6 @@ def classify_taxonomy(article: Any) -> str:
         if terms_hit and domain_hit and spec["tier"] < best_tier:
             best, best_tier = cat, spec["tier"]
     return best or "其他"
-
-
-# —— 高分期刊（用于 score 加成，不是判定必要条件）——
-_CURATED_HIGH_HINTS: Tuple[str, ...] = (
-    "nature", "science", "phys. rev. lett", "physical review letters",
-    "phys. rev. x", "physical review x", "nature materials", "nature physics",
-    "nature communications", "npj comput", "npj quantum",
-    "j. am. chem. soc", "nano letters",
-)
 
 
 def _normalize(text: Any) -> str:
@@ -130,30 +153,18 @@ def _has_any(text: str, terms: Tuple[str, ...]) -> bool:
 
 
 def is_core_focus(item: Mapping[str, Any]) -> bool:
-    """核心关注 = 同时命中方法侧与 ferro/凝聚态侧，或命中 tier1/tier2 taxonomy。"""
+    """核心关注 = 命中量子信息/多体/计量方向。"""
     if not item:
         return False
     text = _item_fulltext(item)
-    # Original signal: ML method + ferro/condensed-matter
-    if _has_any(text, CORE_METHOD_TERMS) and _has_any(text, CORE_FERRO_TERMS):
+    if _has_any(text, CORE_METHOD_TERMS) or _has_any(text, CORE_FERRO_TERMS):
         return True
-    # Taxonomy signal: tier1 or tier2 category
     cat = classify_taxonomy(item)
     return cat != "其他" and _TAXONOMY_TIER.get(cat, 99) <= 2
 
 
 def core_score(item: Mapping[str, Any]) -> float:
-    """0.0 ~ 1.0；未命中核心关注时返回 0.0。
-
-    Scoring layers (additive):
-      - Base 0.5 for core-focus hit
-      - +0.15 if ML method term in title
-      - +0.15 if ferro/condensed-matter term in title
-      - +0.10 for Hamiltonian+磁/铁 combo in fulltext
-      - +0.05 for cond-mat arXiv source
-      - +0.05 for high-impact journal
-      - Taxonomy tier bonus: tier1 +0.10, tier2 +0.05, tier3 +0.01
-    """
+    """0.0 ~ 1.0；未命中核心关注时返回 0.0。"""
     if not item:
         return 0.0
     if not is_core_focus(item):
@@ -165,12 +176,13 @@ def core_score(item: Mapping[str, Any]) -> float:
     if _has_any(title, CORE_FERRO_TERMS):
         score += 0.15
     text = _item_fulltext(item)
-    # Hamiltonian + 磁/铁 组合加成
-    if _has_any(text, ("ml hamiltonian", "learnable hamiltonian", "neural network potential", "ml potential", "mlip")) and _has_any(text, ("ferro", "magnet", "铁", "磁")):
+    # 量子纠错 + 多体 组合加成
+    if _has_any(text, ("quantum error", "fault tolerant", "surface code")) and \
+       _has_any(text, ("many-body", "topological", "entanglement")):
         score += 0.10
-    # arXiv cond-mat 加成
+    # arXiv quant-ph 加成
     src = _normalize(item.get("source_url") or item.get("arxiv_category") or "")
-    if "cond-mat" in src:
+    if "quant-ph" in src:
         score += 0.05
     # 高分期刊加成
     journal = _normalize(item.get("journal") or "")
