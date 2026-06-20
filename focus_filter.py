@@ -1,114 +1,85 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Focus filtering for AI × physics / chemistry / materials literature.
-
-The goal is high recall for AI4Science / physical-science papers while aggressively
-removing clearly off-topic biomedical, clinical, education, and social-science
-content that may slip through broad keyword RSS feeds.
-"""
+"""Focus filtering for quantum information / many-body / metrology literature."""
 
 from __future__ import annotations
 
 import re
 from typing import Any, Dict, Iterable, List, Mapping, Sequence, Tuple
 
+# 量子信息/计算核心词
 AI_TERMS: Tuple[str, ...] = (
-    'machine learning', 'deep learning', 'neural network', 'neural networks', 'graph neural', 'gnn',
-    'transformer', 'diffusion model', 'generative model', 'foundation model', 'large language model',
-    'llm', 'reinforcement learning', 'active learning', 'surrogate model', 'data-driven', 'ai-driven',
-    'artificial intelligence', 'message passing', 'equivariant neural', 'ml potential', 'mlip',
-    '机器学习', '深度学习', '神经网络', '大语言模型', '人工智能',
+    'quantum information', 'quantum computing', 'quantum computation',
+    'quantum error correction', 'quantum error correcting', 'quantum error',
+    'quantum channel', 'quantum circuit', 'quantum algorithm', 'quantum gate',
+    'fault tolerant', 'fault-tolerant', 'qubit', 'qubits',
+    'quantum communication', 'quantum cryptography', 'quantum key distribution', 'qkd',
+    'quantum teleportation', 'quantum network', 'quantum memory', 'quantum repeater',
+    'stabilizer code', 'surface code', 'toric code', 'ldpc',
+    'quantum advantage', 'quantum supremacy', 'quantum machine learning',
+    'variational quantum', 'vqe', 'qaoa',
+    '量子信息', '量子计算', '量子纠错', '量子通信', '量子密码', '量子线路', '量子算法', '量子优势',
 )
 
+# 量子多体/计量/模拟核心词
 PHYSICS_TERMS: Tuple[str, ...] = (
-    'quantum', 'spin', 'magnetic', 'magnetism', 'ferroelectric', 'ferromagnet', 'antiferromagnet',
-    'multiferroic', 'condensed matter', 'superconduct', 'phonon', 'lattice', 'exciton', 'moire',
-    'moiré', 'topological', 'skyrmion', 'hall effect', 'electronic structure', 'band structure',
-    'weyl', 'josephson', 'magnon', 'altermagnet', 'quantum gas', 'plasma',
-    '凝聚态', '量子', '磁性', '铁电', '铁磁', '反铁磁', '多铁', '超导', '声子', '晶格', '拓扑',
+    'quantum many-body', 'many-body', 'quantum phase transition', 'quantum phase',
+    'quantum simulation', 'quantum simulator',
+    'entanglement', 'entangled', 'quantum entanglement', 'entanglement entropy',
+    'tensor network', 'matrix product state', 'mps', 'dmrg',
+    'topological order', 'topological phase', 'anyons', 'anyon',
+    'quantum spin liquid', 'frustrated magnet',
+    'quantum metrology', 'quantum sensing', 'quantum sensor',
+    'quantum fisher information', 'heisenberg limit',
+    'quantum benchmark', 'quantum tomography', 'quantum characterization',
+    'open quantum system', 'lindblad', 'master equation', 'quantum decoherence',
+    'quantum optics', 'cavity qed', 'circuit qed', 'quantum thermodynamics',
+    'cold atoms', 'ultracold', 'optical lattice', 'bose-einstein condensate',
+    'quantum hardware', 'superconducting qubit', 'trapped ion', 'photonic qubit',
+    'spin qubit', 'nitrogen vacancy', 'nv center',
+    'quantum', 'qubit',
+    '量子多体', '量子相变', '量子模拟', '纠缠', '张量网络', '拓扑序',
+    '量子自旋液体', '量子计量', '量子传感', '量子光学', '冷原子', '光晶格',
+    '开放量子系统', '量子退相干', '量子硬件', '超导量子比特',
 )
 
-PHYSICS_CORE_TERMS: Tuple[str, ...] = PHYSICS_TERMS + (
-    'quantum spin hall', 'magnetoresistance', 'magnetoelectric', 'spin hall', 'single-photon',
-    'van der waals heterostructure', 'moire potential',
-)
+PHYSICS_CORE_TERMS: Tuple[str, ...] = PHYSICS_TERMS
 
 DAILY_PHYSICS_TERMS: Tuple[str, ...] = (
-    'quantum', 'spin', 'magnetic', 'magnetism', 'ferroelectric', 'ferromagnet', 'antiferromagnet',
-    'multiferroic', 'superconduct', 'phonon', 'exciton', 'moire', 'moiré', 'electronic structure',
-    'band structure', 'hall effect', 'skyrmion', 'altermagnet', 'kagome', 'spintronic', 'spintronics',
-    'photonic crystal', 'electron tomography',
+    'quantum information', 'quantum computing', 'quantum error',
+    'entanglement', 'qubit', 'quantum circuit', 'quantum algorithm',
+    'quantum many-body', 'many-body', 'quantum phase',
+    'tensor network', 'topological', 'quantum metrology', 'quantum sensing',
+    'quantum simulation', 'quantum optics', 'open quantum',
 )
 
-CHEMISTRY_TERMS: Tuple[str, ...] = (
-    'chemical', 'chemistry', 'molecule', 'molecular', 'catalyst', 'catalysis', 'electrochem',
-    'reaction mechanism', 'reaction network', 'spectroscopy', 'photochemistry', 'surface chemistry',
-    'computational chemistry', 'molecular design', 'polymerization', 'solvation', 'adsorption',
-    '化学', '分子', '催化', '电化学', '反应机理', '光化学', '光谱',
-)
-
-CHEMISTRY_CORE_TERMS: Tuple[str, ...] = (
-    'catalyst', 'catalysis', 'electrochem', 'reaction mechanism', 'reaction network', 'spectroscopy',
-    'photochemistry', 'surface chemistry', 'computational chemistry', 'molecular design',
-    'polymerization', 'adsorption', 'solvation', 'chemical space', 'ligand design',
-    '催化', '电化学', '反应机理', '光化学', '光谱',
-)
-
-MATERIALS_TERMS: Tuple[str, ...] = (
-    'material', 'materials', 'crystal', 'crystalline', 'perovskite', 'semiconductor', 'electrode',
-    'battery', 'alloy', 'oxide', 'heterostructure', 'thin film', 'surface', 'interface', 'nanostructure',
-    '2d material', '2d materials', 'device', 'optoelectronic', 'materials discovery', 'solar cell',
-    'solid electrolyte', 'photovoltaic', 'memristor', 'dielectric', 'monolayer',
-    '固态', '材料', '晶体', '钙钛矿', '半导体', '电极', '电池', '合金', '氧化物', '异质结构',
-    '薄膜', '界面', '器件',
-)
-
-MATERIALS_CORE_TERMS: Tuple[str, ...] = (
-    'perovskite', 'semiconductor', 'electrode', 'battery', 'alloy', 'oxide', 'heterostructure',
-    'thin film', 'surface', 'interface', '2d material', '2d materials', 'materials discovery',
-    'solar cell', 'solid electrolyte', 'photovoltaic', 'memristor', 'dielectric', 'monolayer',
-    'crystal structure prediction', '晶体', '钙钛矿', '半导体', '电极', '电池', '合金', '氧化物',
-    '异质结构', '薄膜', '界面', '器件',
-)
+CHEMISTRY_TERMS: Tuple[str, ...] = ()
+CHEMISTRY_CORE_TERMS: Tuple[str, ...] = ()
+MATERIALS_TERMS: Tuple[str, ...] = ()
+MATERIALS_CORE_TERMS: Tuple[str, ...] = ()
 
 SIMULATION_TERMS: Tuple[str, ...] = (
-    'dft', 'density functional', 'ab initio', 'first-principles', 'first principles', 'molecular dynamics',
-    'monte carlo', 'phase field', 'finite element', 'atomistic simulation', 'electronic-structure',
-    'computational materials', 'physics-informed', 'simulation', 'interatomic potential',
-    'crystal structure prediction', '拟合势', '模拟', '第一性原理', '分子动力学', '相场', '有限元',
-    '原子模拟', '电子结构', '物理约束',
+    'quantum simulation', 'quantum simulator', 'tensor network', 'dmrg',
+    'matrix product state', 'quantum monte carlo', 'exact diagonalization',
+    'density matrix', 'path integral',
 )
 
-SIMULATION_CORE_TERMS: Tuple[str, ...] = (
-    'dft', 'density functional', 'ab initio', 'first-principles', 'first principles', 'molecular dynamics',
-    'monte carlo', 'phase field', 'finite element', 'atomistic simulation', 'electronic structure',
-    'electronic-structure', 'computational materials', 'physics-informed', 'interatomic potential',
-    'crystal structure prediction', 'materials discovery', '第一性原理', '分子动力学', '相场', '有限元',
-    '原子模拟', '电子结构', '物理约束',
-)
-
-DAILY_SIMULATION_TERMS: Tuple[str, ...] = tuple(term for term in SIMULATION_CORE_TERMS if term != 'physics-informed')
+SIMULATION_CORE_TERMS: Tuple[str, ...] = SIMULATION_TERMS
+DAILY_SIMULATION_TERMS: Tuple[str, ...] = SIMULATION_TERMS
 
 CURATED_JOURNAL_HINTS: Tuple[str, ...] = (
-    # ========== 1区期刊 ==========
-    'phys. rev. lett', 'phys. rev. x', 'phys. rev. b', 'phys. rev. materials', 'phys. rev. applied',
-    'physical review letters', 'physical review x', 'physical review b', 'physical review materials', 'physical review applied',
-    'j. am. chem. soc', 'journal of the american chemical society', 'jacs',
-    'nano lett', 'nano letters',
-    'j. phys. chem. lett', 'journal of physical chemistry letters', 'jpcl',
-    'j. chem. theory comput', 'journal of chemical theory and computation', 'jctc',
-    'advanced materials', 'advanced science', 'materials today',
-    'npj comput', 'npj quantum', 'nature materials', 'nature physics',
-    'nature chemistry', 'nature electronics', 'nature energy', 'science advances',
-    'computer physics communications', 'computational materials science', 'digital discovery',
-    'nature machine intelligence',
-    # ========== 2区期刊（仅保留指定）==========
-    'j. appl. phys', 'journal of applied physics',  # JAP
-    'chem. phys. lett', 'chemical physics letters',  # CPL
+    'phys. rev. lett', 'physical review letters',
+    'phys. rev. x', 'physical review x',
+    'phys. rev. a', 'physical review a',
+    'prx quantum', 'quantum',
+    'nature', 'science', 'science advances',
+    'nature physics', 'nature communications',
+    'npj quantum', 'quantum science and technology',
+    'new journal of physics', 'communications physics',
 )
 
 ALLOWED_ARXIV_PHYSICAL: Tuple[str, ...] = (
-    'cond-mat', 'physics.comp-ph', 'physics.chem-ph',
+    'quant-ph', 'cond-mat', 'cs.it',
 )
 
 ALLOWED_ARXIV_AI: Tuple[str, ...] = (
@@ -116,29 +87,25 @@ ALLOWED_ARXIV_AI: Tuple[str, ...] = (
 )
 
 NEGATIVE_CLINICAL_TERMS: Tuple[str, ...] = (
-    'patient', 'patients', 'clinical', 'clinic', 'biomedical', 'biomed', 'disease', 'diseases', 'cancer', 'tumor', 'tumour',
-    'therapy', 'therapeutic', 'diagnosis', 'diagnostic', 'hospital', 'healthcare', 'medical', 'medicine',
-    'drug', 'drugs', 'pharmac', 'pathology', 'radiology', 'epidemiology', 'histology', 'oncology',
-    'survival', 'prognostic', 'risk stratification', 'case report', 'sickle cell', 'stroke', 'dialysis',
-    'hemodialysis', 'glioblastoma', 'alzheimer', 'alzheimer\'s', 'parkinson', 'pancreatic', 'prostate cancer',
-    'breast cancer', 'colorectal cancer', 'kidney disease', 'uterine', 'fertility', 'clinical-grade',
-    '临床', '患者', '疾病', '癌', '肿瘤', '治疗', '诊断', '医院', '医学', '药物', '病理', '放射',
+    'patient', 'patients', 'clinical', 'biomedical', 'disease', 'cancer', 'tumor',
+    'therapy', 'therapeutic', 'diagnosis', 'hospital', 'healthcare', 'medical',
+    'drug', 'pharmac', 'pathology', 'radiology', 'epidemiology', 'oncology',
+    '临床', '患者', '疾病', '癌', '肿瘤', '治疗', '诊断', '医院', '医学', '药物',
 )
 
 NEGATIVE_LIFE_SCIENCE_TERMS: Tuple[str, ...] = (
-    'immune', 'immunology', 'immunotherapy', 'protein', 'proteins', 'peptide',
-    'dna', 'rna', 'genome', 'genomic', 'genomics', 'transcriptomic', 'proteomic', 'cell biology',
-    'single-cell', 'stem cell', 'cell line', 'mouse', 'mice', 'rat', 'rats', 'vaccine', 'virus', 'viral',
-    'bacteria', 'bacterial', 'fungal', 'microbiome', 'nuclease', 'adenocarcinoma', 'biopsy', 'in vivo',
-    'biochemical recurrence', 'follicular', 'ovarian', 'lung adenocarcinoma', 'prostate', 'breast',
-    '免疫', '蛋白', '肽', '基因组', '转录组', '蛋白质组', '单细胞', '小鼠', '疫苗', '病毒', '细菌',
+    'immune', 'immunology', 'protein', 'proteins', 'peptide',
+    'dna', 'rna', 'genome', 'genomic', 'cell biology',
+    'single-cell', 'stem cell', 'mouse', 'mice', 'vaccine', 'virus',
+    'bacteria', 'microbiome',
+    '免疫', '蛋白', '基因组', '单细胞', '小鼠', '疫苗', '病毒', '细菌',
 )
 
 NEGATIVE_SOCIAL_TERMS: Tuple[str, ...] = (
-    'education', 'educational', 'student', 'students', 'school', 'qualitative', 'cross-sectional',
-    'retrospective', 'survey', 'sociology', 'public health', 'teacher', 'curriculum', 'undergraduate',
-    'intervention', 'competency', 'learning experience', 'online class', '访谈', '教育', '学生', '横断面',
-    '回顾性', '调查', '公共卫生',
+    'education', 'educational', 'student', 'students', 'school',
+    'qualitative', 'cross-sectional', 'retrospective', 'survey',
+    'sociology', 'public health', 'curriculum',
+    '教育', '学生', '横断面', '回顾性', '调查', '公共卫生',
 )
 
 
@@ -191,14 +158,14 @@ def analyze_focus(item: Mapping[str, Any]) -> Dict[str, bool]:
 
     has_ai = _has_any(text, AI_TERMS)
     has_physics = _has_any(text, PHYSICS_TERMS)
-    has_chemistry = _has_any(text, CHEMISTRY_TERMS)
-    has_materials = _has_any(text, MATERIALS_TERMS)
+    has_chemistry = False
+    has_materials = False
     has_simulation = _has_any(text, SIMULATION_TERMS)
 
-    strong_physics = _has_any(text, PHYSICS_CORE_TERMS)
-    strong_chemistry = _has_any(text, CHEMISTRY_CORE_TERMS)
-    strong_materials = _has_any(text, MATERIALS_CORE_TERMS)
-    strong_simulation = _has_any(text, SIMULATION_CORE_TERMS)
+    strong_physics = has_physics
+    strong_chemistry = False
+    strong_materials = False
+    strong_simulation = has_simulation
 
     curated_journal = _has_any(journal, CURATED_JOURNAL_HINTS)
     arxiv_physical = _has_any(arxiv_category, ALLOWED_ARXIV_PHYSICAL)
@@ -208,12 +175,12 @@ def analyze_focus(item: Mapping[str, Any]) -> Dict[str, bool]:
     life_science = clinical_biomed or _has_any(text, NEGATIVE_LIFE_SCIENCE_TERMS, whole_term=True)
     social = _has_any(text, NEGATIVE_SOCIAL_TERMS, whole_term=True)
 
-    direct_science = strong_physics or strong_chemistry or strong_materials or strong_simulation or (arxiv_physical and (has_physics or has_chemistry or has_materials or strong_simulation))
-    journal_supported = curated_journal and (strong_physics or strong_chemistry or strong_materials or strong_simulation)
+    direct_science = has_physics or has_ai or has_simulation or (arxiv_physical and has_physics)
+    journal_supported = curated_journal and (has_physics or has_ai)
 
-    hard_offtopic = social or clinical_biomed or (life_science and not (strong_physics or strong_materials or strong_simulation))
-    target_domain = not hard_offtopic and (direct_science or journal_supported or (arxiv_ai and direct_science))
-    ai_science = not hard_offtopic and has_ai and (direct_science or journal_supported)
+    hard_offtopic = social or clinical_biomed or (life_science and not has_physics)
+    target_domain = not hard_offtopic and (direct_science or journal_supported)
+    ai_science = not hard_offtopic and has_ai and (has_physics or journal_supported)
 
     return {
         'has_ai': has_ai,
@@ -257,116 +224,67 @@ def filter_focus_items(items: Iterable[Mapping[str, Any]]) -> Tuple[List[Mapping
     return kept, dropped
 
 
-# 1区期刊列表（用于日报筛选）
 TIER1_JOURNAL_HINTS: Tuple[str, ...] = (
-    'phys. rev. lett', 'phys. rev. x', 'phys. rev. b', 'phys. rev. materials', 'phys. rev. applied',
-    'physical review letters', 'physical review x', 'physical review b', 'physical review materials', 'physical review applied',
-    'j. am. chem. soc', 'journal of the american chemical society', 'jacs',
-    'nano lett', 'nano letters',
-    'j. phys. chem. lett', 'journal of physical chemistry letters', 'jpcl',
-    'j. chem. theory comput', 'journal of chemical theory and computation', 'jctc',
-    'advanced materials', 'advanced science', 'materials today',
-    'npj comput', 'npj quantum', 'nature materials', 'nature physics',
-    'nature chemistry', 'nature electronics', 'nature energy', 'science advances',
-    'computer physics communications', 'computational materials science', 'digital discovery',
-    'nature machine intelligence', 'nature', 'science',
+    'phys. rev. lett', 'physical review letters',
+    'phys. rev. x', 'physical review x',
+    'phys. rev. a', 'physical review a',
+    'prx quantum', 'quantum',
+    'nature', 'science', 'science advances',
+    'nature physics', 'nature communications',
+    'npj quantum', 'quantum science and technology',
+    'new journal of physics',
 )
 
-# 2区期刊列表（仅保留指定）
 TIER2_JOURNAL_HINTS: Tuple[str, ...] = (
-    'j. appl. phys', 'journal of applied physics',  # JAP
-    'chem. phys. lett', 'chemical physics letters',  # CPL
+    'communications physics', 'annals of physics',
 )
 
-
-# ========== 日报第三层筛选：标题关键词匹配（精简版）==========
-
-# 日报标题AI关键词（用户指定）
 DAILY_TITLE_AI_TERMS: Tuple[str, ...] = (
-    'learning', 'neural', 'network',
+    'quantum error', 'quantum circuit', 'quantum algorithm',
+    'entanglement', 'qubit', 'quantum information', 'quantum computing',
 )
 
-# 日报标题物理关键词（用户指定）
 DAILY_TITLE_PHYSICS_TERMS: Tuple[str, ...] = (
-    'quantum', 'spin', 'magnetic', 'superconduct', 'moire', 'moiré', 
-    'altermagnet', 'ferro', 'magent',
+    'quantum', 'many-body', 'topological', 'tensor network',
+    'quantum metrology', 'quantum sensing', 'quantum simulation',
+    'open quantum', 'quantum optics',
 )
 
-# 日报标题化学关键词（暂不启用）
 DAILY_TITLE_CHEMISTRY_TERMS: Tuple[str, ...] = ()
-
-# 日报标题材料关键词（暂不启用）
 DAILY_TITLE_MATERIALS_TERMS: Tuple[str, ...] = ()
-
-# 日报标题模拟关键词（暂不启用）
 DAILY_TITLE_SIMULATION_TERMS: Tuple[str, ...] = ()
 
 
 def is_daily_focus(item: Mapping[str, Any]) -> bool:
-    """
-    日报精选过滤 - 第三层
-    必须同时满足：
-    1. 属于目标领域（通过第二层过滤）
-    2. 标题或摘要中包含关键词（learning, neural, network, quantum, spin, magnetic, superconduct, moire, altermagnet, ferro, magent）
-    """
     signals = analyze_focus(item)
-    
-    # 条件1: 必须属于目标领域
     if not signals['target_domain']:
         return False
-    
-    # 检查标题和摘要
     title_text = _item_title_focus_text(item)
     abstract_text = (item.get('abstract') or item.get('summary') or '').lower()
     combined_text = title_text + ' ' + abstract_text
-    
-    # 所有关键词（标题或摘要包含任一即可）
     all_keywords = (
-        'learning', 'neural', 'network',
-        'quantum', 'spin', 'magnetic', 'superconduct', 
-        'moire', 'moiré', 'altermagnet', 'ferro', 'magent'
+        'quantum', 'qubit', 'entanglement', 'many-body',
+        'topological', 'tensor network', 'quantum error',
+        'quantum metrology', 'quantum sensing', 'quantum simulation',
+        'quantum optics', 'open quantum', 'quantum information',
     )
-    
     return _has_any(combined_text, all_keywords)
 
 
 def daily_focus_priority(item: Mapping[str, Any]) -> tuple:
-    """
-    日报优先级排序
-    Band 0: 标题同时包含AI词+核心科学词（最强匹配）
-    Band 1: 标题仅含AI词
-    Band 2: 标题仅含物理/化学/材料词
-    Band 3: 标题仅含模拟词
-    Band 4: 其他符合条件的文章
-    """
     signals = analyze_focus(item)
     title_text = _item_title_focus_text(item)
-    
-    # 标题关键词检测
     title_has_ai = _has_any(title_text, DAILY_TITLE_AI_TERMS)
     title_has_physics = _has_any(title_text, DAILY_TITLE_PHYSICS_TERMS)
-    title_has_chemistry = _has_any(title_text, DAILY_TITLE_CHEMISTRY_TERMS)
-    title_has_materials = _has_any(title_text, DAILY_TITLE_MATERIALS_TERMS)
-    title_has_simulation = _has_any(title_text, DAILY_TITLE_SIMULATION_TERMS)
-    
-    title_core_science = title_has_physics or title_has_chemistry or title_has_materials or title_has_simulation
-    
-    # Band 0: 标题AI + 核心科学（最强匹配）
+    title_core_science = title_has_physics
     if title_has_ai and title_core_science:
         band = 0
-    # Band 1: 仅AI词
     elif title_has_ai:
         band = 1
-    # Band 2: 仅物理/化学/材料词
-    elif title_has_physics or title_has_chemistry or title_has_materials:
+    elif title_has_physics:
         band = 2
-    # Band 3: 仅模拟词
-    elif title_has_simulation:
-        band = 3
-    # Band 4: 其他
     else:
         band = 4
-    
     return (band,)
 
 
@@ -376,11 +294,7 @@ def filter_daily_focus_items(
     min_keep: int = 12,
     max_keep: int = 60,
 ) -> Tuple[List[Mapping[str, Any]], List[Mapping[str, Any]]]:
-    """筛选日报文献：只保留满足标题关键词组合的文章"""
-    # 使用is_daily_focus筛选符合条件的文章
     eligible = [item for item in items if is_daily_focus(item)]
-    
-    # 按优先级排序
     eligible = sorted(eligible, key=daily_focus_priority)
 
     def item_key(item: Mapping[str, Any]) -> str:
@@ -396,7 +310,6 @@ def filter_daily_focus_items(
         selected.append(item)
         selected_keys.add(key)
 
-    # eligible 已经通过 is_daily_focus 筛选，直接添加到 selected
     for item in eligible:
         add(item)
 
@@ -406,28 +319,25 @@ def filter_daily_focus_items(
 
 def topic_bucket(item: Mapping[str, Any]) -> str:
     signals = analyze_focus(item)
-    if signals['strong_physics'] or signals['has_physics']:
+    if signals['has_ai']:
+        return 'quantum_info'
+    if signals['has_physics']:
         return 'physics'
-    if signals['strong_chemistry'] or signals['has_chemistry']:
-        return 'chemistry'
-    if signals['strong_materials'] or signals['has_materials']:
-        return 'materials'
-    if signals['has_ai'] or signals['strong_simulation'] or signals['has_simulation']:
+    if signals['has_simulation']:
         return 'methods'
     return 'other'
 
 
 def focus_priority(item: Mapping[str, Any]) -> tuple:
-    from focus_core import core_score  # lazy import to avoid circular deps
+    from focus_core import core_score
     signals = analyze_focus(item)
     bucket = topic_bucket(item)
     bucket_rank = {
-        'physics': 0,
-        'chemistry': 1,
-        'materials': 2,
-        'methods': 3,
-        'other': 4,
-    }.get(bucket, 5)
+        'quantum_info': 0,
+        'physics': 1,
+        'methods': 2,
+        'other': 3,
+    }.get(bucket, 4)
     try:
         ai_score = float(item.get('ai_score') or 0)
     except Exception:
@@ -435,10 +345,10 @@ def focus_priority(item: Mapping[str, Any]) -> tuple:
     journal = _normalize_text(item.get('journal') or '')
     is_arxiv = journal == 'arxiv'
     direct_bonus = 0 if signals['direct_science'] else 1
-    cscore = core_score(item)  # 0.0 iff not core — derive flag from score, avoids 2× full-text scan
+    cscore = core_score(item)
     return (
-        0 if cscore > 0.0 else 1,  # 核心关注永远置顶
-        -cscore,                    # 核心分数高者靠前
+        0 if cscore > 0.0 else 1,
+        -cscore,
         0 if signals['ai_science'] else 1,
         direct_bonus,
         bucket_rank,
