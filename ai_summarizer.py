@@ -27,7 +27,6 @@ except ImportError:
 
 
 def _clamp_text(text: str, max_chars: int) -> str:
-    """Clamp text to max_chars (character count, not bytes). Empty input → empty output."""
     if not text:
         return ""
     text = str(text).strip()
@@ -37,7 +36,6 @@ def _clamp_text(text: str, max_chars: int) -> str:
 
 
 def _cjk_ratio(text: str) -> float:
-    """Return fraction of CJK characters among letter-like characters (ignores whitespace/punctuation)."""
     if not text:
         return 0.0
     letters = 0
@@ -51,16 +49,13 @@ def _cjk_ratio(text: str) -> float:
 
 
 def _looks_untranslated_title(candidate: str, english_title: str) -> bool:
-    """True if AI returned the English title (or near-copy) as `title_zh`."""
     if not candidate:
         return False
     c = candidate.strip()
     if not c:
         return False
-    # No Chinese at all → untranslated
     if _cjk_ratio(c) < 0.3:
         return True
-    # Direct copy of English (case/whitespace-insensitive, first 60 chars)
     def norm(s): return "".join((s or "").lower().split())[:60]
     if norm(c) == norm(english_title):
         return True
@@ -68,22 +63,18 @@ def _looks_untranslated_title(candidate: str, english_title: str) -> bool:
 
 
 class AIProvider(ABC):
-    """AI提供商基类"""
-    
     @abstractmethod
     def call_api(self, prompt: str) -> str:
         pass
 
 
 class GeminiProvider(AIProvider):
-    """Google Gemini API"""
-    
     def __init__(self, api_key: str, model: str = None):
         self.api_key = api_key
-        self.model = model or os.environ.get('GEMINI_MODEL', 'gemini-3-flash-preview')
+        self.model = model or os.environ.get('GEMINI_MODEL', 'gemini-2.0-flash')
         self.base_url = "https://generativelanguage.googleapis.com/v1beta/models"
         self.max_retries = 3
-    
+
     def call_api(self, prompt: str) -> str:
         wait_max_seconds = int(os.environ.get("AI_WAIT_MAX_SECONDS", "0") or "0")
         wait_base_seconds = float(os.environ.get("AI_WAIT_BASE_SECONDS", "10") or "10")
@@ -93,7 +84,7 @@ class GeminiProvider(AIProvider):
         data = {
             "contents": [{"role": "user", "parts": [{"text": prompt}]}],
             "generationConfig": {
-                "temperature": 0.2, # 降低随机性，减少幻觉
+                "temperature": 0.2,
                 "maxOutputTokens": 8192,
                 "topP": 0.95,
                 "topK": 40,
@@ -106,7 +97,7 @@ class GeminiProvider(AIProvider):
                 {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"}
             ]
         }
-        
+
         url = f"{self.base_url}/{self.model}:generateContent?key={self.api_key}"
 
         start = time.monotonic()
@@ -122,8 +113,6 @@ class GeminiProvider(AIProvider):
                     if 'candidates' not in result or not result['candidates']:
                         raise Exception("Gemini API返回空响应")
                     return result['candidates'][0]['content']['parts'][0]['text']
-
-                # Retryable
                 if response.status_code in (429, 500, 502, 503, 504):
                     last_err = Exception(f"Gemini API错误 ({response.status_code}): {response.text}")
                 else:
@@ -140,15 +129,10 @@ class GeminiProvider(AIProvider):
                     raise last_err or Exception("Gemini API failed")
 
             sleep_s = min(wait_base_seconds * (2 ** max(0, attempt - 1)), wait_max_sleep_seconds)
-            # Keep a bit of jitterless wait to reduce flakiness in CI.
             time.sleep(min(sleep_s, max(1.0, (wait_max_seconds - elapsed) if wait_max_seconds > 0 else sleep_s)))
 
+
 class KimiClaudeCodeProvider(AIProvider):
-    """Kimi-for-Coding endpoint (Anthropic Messages protocol, Claude Code client spoofing).
-
-    Base URL defaults to https://api.kimi.com/coding; endpoint is {base_url}/v1/messages.
-    """
-
     DEFAULT_BASE_URL = "https://api.kimi.com/coding"
     DEFAULT_MODEL = "kimi-k2-turbo-preview"
 
@@ -165,7 +149,6 @@ class KimiClaudeCodeProvider(AIProvider):
             or os.environ.get("AI_BASE_URL")
             or self.DEFAULT_BASE_URL
         ).rstrip("/")
-        # Accept both ".../coding" and ".../coding/v1/messages"
         if base.endswith("/v1/messages"):
             self.endpoint = base
         elif base.endswith("/v1"):
@@ -176,8 +159,6 @@ class KimiClaudeCodeProvider(AIProvider):
         self.max_retries = int(os.environ.get("AI_MAX_RETRIES", "3"))
 
     def _headers(self) -> Dict[str, str]:
-        # Header recipe verified against api.kimi.com/coding on 2026-04-15.
-        # Spoofs a Claude Code CLI client (required by the endpoint).
         return {
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
@@ -199,7 +180,7 @@ class KimiClaudeCodeProvider(AIProvider):
         wait_max_sleep_seconds = float(os.environ.get("AI_WAIT_MAX_SLEEP_SECONDS", "300") or "300")
 
         system_prompt = (
-            "你是一位资深的凝聚态物理/计算材料科学研究员，擅长把英文学术文献压缩为"
+            "你是一位资深的量子信息/量子多体/量子计量方向研究员，擅长把英文学术文献压缩为"
             "精准、信息密度高、无套话的中文要点；严格按要求输出 JSON。"
         )
         payload: Dict[str, Any] = {
@@ -229,11 +210,8 @@ class KimiClaudeCodeProvider(AIProvider):
                     if not text:
                         raise Exception(f"Kimi API 返回空文本: {data}")
                     return text
-
                 if response.status_code in (401, 403):
-                    # Fatal: don't waste retry budget on auth failure.
                     raise Exception(f"Kimi API 鉴权失败 ({response.status_code}): {response.text}")
-
                 if response.status_code in (429, 500, 502, 503, 504):
                     last_err = Exception(f"Kimi API错误 ({response.status_code}): {response.text}")
                 else:
@@ -268,12 +246,6 @@ class KimiClaudeCodeProvider(AIProvider):
 
 
 class OpenRouterProvider(AIProvider):
-    """
-    OpenAI-compatible chat completions API.
-
-    Docs: https://openrouter.ai/docs
-    """
-
     def __init__(self, api_key: str, model: str = None):
         self.api_key = (api_key or "").strip()
         self.model = (
@@ -298,13 +270,11 @@ class OpenRouterProvider(AIProvider):
             "Content-Type": "application/json",
             "Authorization": f"Bearer {self.api_key}",
         }
-        # Optional attribution headers; keep configurable.
         def _sanitize(v: Optional[str]) -> str:
             v = (v or "").strip()
             if "\r" in v or "\n" in v:
                 return ""
             return v
-
         http_referer = _sanitize(os.environ.get("OPENROUTER_HTTP_REFERER") or os.environ.get("HTTP_REFERER"))
         x_title = _sanitize(os.environ.get("OPENROUTER_X_TITLE") or os.environ.get("X_TITLE"))
         if http_referer:
@@ -336,7 +306,6 @@ class OpenRouterProvider(AIProvider):
                     "temperature": 0.2,
                     "max_tokens": int(os.environ.get("AI_MAX_TOKENS", "4096")),
                 }
-                # Optional JSON mode. Some models do not support `response_format`.
                 if json_mode_enabled:
                     payload["response_format"] = {"type": "json_object"}
 
@@ -368,7 +337,6 @@ class OpenRouterProvider(AIProvider):
                     attempt -= 1
                     continue
 
-                # Retryable server / rate limit errors
                 if response.status_code in (429, 500, 502, 503, 504):
                     last_err = Exception(f"OpenRouter API错误 ({response.status_code}): {response.text}")
                 else:
@@ -396,7 +364,6 @@ class OpenRouterProvider(AIProvider):
             sleep_s = min(wait_base_seconds * (2 ** max(0, attempt - 1)), wait_max_sleep_seconds)
             if retry_after > 0:
                 sleep_s = max(sleep_s, retry_after)
-
             if wait_max_seconds > 0:
                 remaining = max(0.0, wait_max_seconds - elapsed)
                 sleep_s = min(sleep_s, max(1.0, remaining))
@@ -404,19 +371,13 @@ class OpenRouterProvider(AIProvider):
 
 
 def normalize_chat_completions_url(raw_url: Optional[str]) -> str:
-    """
-    Accept either a root OpenAI-compatible base URL (e.g. https://host/v1)
-    or a full chat-completions endpoint, and normalize to the latter.
-    """
     default_url = "https://openrouter.ai/api/v1/chat/completions"
     candidate = (raw_url or "").strip()
     if not candidate:
         return default_url
-
     parsed = urlsplit(candidate)
     if not parsed.scheme or not parsed.netloc:
         return default_url
-
     normalized_path = parsed.path.rstrip("/")
     if not normalized_path:
         normalized_path = "/chat/completions"
@@ -425,12 +386,10 @@ def normalize_chat_completions_url(raw_url: Optional[str]) -> str:
         or normalized_path.endswith("/completions")
     ):
         normalized_path = f"{normalized_path}/chat/completions"
-
     return urlunsplit((parsed.scheme, parsed.netloc, normalized_path, parsed.query, parsed.fragment))
 
 
 def build_provider(api_provider: str, api_key: str, model: str = None) -> AIProvider:
-    """Factory for AI providers."""
     name = (api_provider or "").strip().lower()
     if name in ("kimi", "kimi-coding", "moonshot-coding", "kimi-claude"):
         return KimiClaudeCodeProvider(api_key=api_key, model=model)
@@ -438,14 +397,11 @@ def build_provider(api_provider: str, api_key: str, model: str = None) -> AIProv
         return OpenRouterProvider(api_key=api_key, model=model)
     if name in ("aigw", "gpt5", "openai-gateway", "sota"):
         return OpenRouterProvider(api_key=api_key, model=model)
-    # default: gemini
     gemini_model = model if model and "/" not in model else None
     return GeminiProvider(api_key=api_key, model=gemini_model)
 
 
 class AISummarizer:
-    """AI摘要生成器"""
-    
     def __init__(self, api_provider: str, api_key: str, model: str = None):
         model = (
             model
@@ -454,7 +410,7 @@ class AISummarizer:
         )
         self.provider = build_provider(api_provider, api_key, model=model)
         self.provider_name = (api_provider or "gemini").strip().lower()
-    
+
     def generate_daily_summary(self, articles: List[Dict], date: str) -> Dict:
         if not articles:
             return self.fallback_summary(articles, date)
@@ -476,12 +432,10 @@ class AISummarizer:
                     prompt = self._build_prompt(articles, date)
                     response = self.provider.call_api(prompt)
                     summary = self._parse_response(response, articles, date)
-                    # compat alias (some callers expect `summaries`)
                     if "summaries" not in summary:
                         summary["summaries"] = summary.get("full_list", [])
                     return summary
 
-                # Chunking to avoid context overflow and missing items.
                 chunks = [articles[i:i + max_per_call] for i in range(0, len(articles), max_per_call)]
                 merged_full_list: List[Dict] = []
                 merged_ml: List[Dict] = []
@@ -495,7 +449,6 @@ class AISummarizer:
                     merged_ml.extend(part.get("ml_highlights", []))
                     merged_ferro.extend(part.get("ferro_highlights", []))
 
-                # Dedup highlights across chunks by article link.
                 def _dedup_by_link(items: List[Dict]) -> List[Dict]:
                     seen: set = set()
                     out: List[Dict] = []
@@ -509,8 +462,6 @@ class AISummarizer:
 
                 merged_ml = _dedup_by_link(merged_ml)
                 merged_ferro = _dedup_by_link(merged_ferro)
-
-                # Overview/trends: second-pass with titles only (cheap prompt).
                 overview, trends = self._build_overview_trends(articles, date)
 
                 summary = {
@@ -530,7 +481,6 @@ class AISummarizer:
                 last_err = e
                 print(f"❌ AI 摘要生成失败 (attempt={attempt}): {e}")
 
-                # Fatal errors: waiting won't help (e.g., missing/invalid API key).
                 msg_lower = str(e).lower()
                 is_fatal = (
                     isinstance(e, ValueError)
@@ -553,28 +503,29 @@ class AISummarizer:
 
                 if no_fallback:
                     raise last_err
-
                 return self.fallback_summary(articles, date)
 
     def _build_overview_trends(self, articles: List[Dict], date: str) -> Tuple[str, str]:
         titles = []
-        for i, a in enumerate(articles[:200], 1):  # cap to keep prompt bounded
+        for i, a in enumerate(articles[:200], 1):
             t = a.get("title") or "Unknown Title"
             titles.append(f"[{i}] {t}")
         titles_str = "\n".join(titles)
 
         prompt = (
-            f"你是一位资深凝聚态物理/计算材料科学研究员。请基于 {date} 的以下标题列表，"
+            f"你是一位资深量子信息/量子多体/量子计量方向研究员。请基于 {date} 的以下标题列表，"
             "输出今日文献的高信息密度总览与热点分析，面向同行读者。\n\n"
             f"标题列表：\n{titles_str}\n\n"
             "严格要求：\n"
-            "- overview 2-3 句，必须包含具体的材料体系/方法/现象名称（如 BaTiO3、Moire 超晶格、DFT+U、MACE），"
+            "- overview 2-3 句，必须包含具体的方法/体系/现象名称（如 surface code、tensor network、"
+            "quantum Fisher information、trapped ion、superconducting qubit），"
             "不得使用 '本研究/具有重要意义/取得进展/为…提供新思路' 之类套话。\n"
             "- trends 3-5 句，列出 2-3 个真正的研究热点，每个热点写清 '方向 → 具体做法/现象 → 体现它的典型工作'。\n"
             "- 全中文，不输出任何英文。\n\n"
             "仅输出如下 JSON，禁止任何额外文字：\n"
             '{"overview": "...", "trends": "..."}'
         )
+
         wait_max_seconds = int(os.environ.get("AI_DAILY_WAIT_MAX_SECONDS") or os.environ.get("AI_WAIT_MAX_SECONDS", "0") or "0")
         wait_base_seconds = float(os.environ.get("AI_DAILY_WAIT_BASE_SECONDS") or os.environ.get("AI_WAIT_BASE_SECONDS", "10") or "10")
         wait_max_sleep_seconds = float(os.environ.get("AI_DAILY_WAIT_MAX_SLEEP_SECONDS") or os.environ.get("AI_WAIT_MAX_SLEEP_SECONDS", "300") or "300")
@@ -599,10 +550,8 @@ class AISummarizer:
                 sleep_s = min(wait_base_seconds * (2 ** max(0, attempt - 1)), wait_max_sleep_seconds)
                 remaining = max(0.0, wait_max_seconds - elapsed)
                 time.sleep(min(sleep_s, max(1.0, remaining)))
-    
+
     def _build_prompt(self, articles: List[Dict], date: str) -> str:
-        """构建提示词，增加序列号锚点防止链接错位"""
-        
         articles_text = []
         for i, article in enumerate(articles, 1):
             title = article.get('title', 'Unknown Title')
@@ -612,44 +561,41 @@ class AISummarizer:
                 authors = ", ".join([str(a) for a in authors[:6]]) + (" 等" if len(authors) > 6 else "")
             else:
                 authors = str(authors or "")
-
             abstract = (article.get('abstract', ''))[:300]
-            # 不在提示词里给链接，防止 AI 试图复述链接导致出错
-            # 仅给序号、标题、期刊、作者、摘要
             articles_text.append(
                 f"[{i}] Title: {title}\nJournal: {journal}\nAuthors: {authors}\nAbstract: {abstract}\n"
             )
-        
+
         articles_str = '\n'.join(articles_text)
-        
+
         example_block = (
             "示例（仅示范风格，不要直接复制）：\n"
-            "输入: [X] Title: Room-temperature ferroelectricity in two-dimensional van der Waals NbOI2\n"
-            "      Abstract: We report robust out-of-plane ferroelectric switching ...\n"
+            "输入: [X] Title: Fault-tolerant quantum computation with surface codes\n"
+            "      Abstract: We demonstrate logical qubit encoding with below-threshold error rates ...\n"
             "输出: {\n"
             '  "index": X,\n'
-            '  "title_zh": "二维范德华 NbOI2 中的室温铁电性",\n'
-            '  "abstract_zh": "在二维 NbOI2 薄层中观测到稳定的面外铁电翻转，矫顽场约 0.3 V/nm，"\n'
-            '                "室温保持时间 > 10^4 s，为低维非易失存储提供候选体系。",\n'
-            '  "one_sentence_summary": "首次在二维 NbOI2 中实现室温稳定的面外铁电翻转。"\n'
+            '  "title_zh": "基于表面码的容错量子计算",\n'
+            '  "abstract_zh": "实现低于阈值错误率的逻辑量子比特编码，物理错误率 0.1%，"'
+            '"逻辑错误率 10^-6，为大规模容错量子计算奠定基础。",\n'
+            '  "one_sentence_summary": "首次在实验中实现低于阈值的表面码逻辑量子比特。"\n'
             "}\n"
         )
 
         return (
-            f"你将分析 {date} 的 {len(articles)} 篇学术文献（凝聚态物理 / 计算材料科学 / AI for science 方向），"
+            f"你将分析 {date} 的 {len(articles)} 篇学术文献（量子信息 / 量子多体 / 量子计量 / 量子计算方向），"
             "生成一份面向同行研究者的高信息密度中文日报。\n\n"
             f"【文献列表】（格式: [序号] Title / Journal / Authors / Abstract）\n{articles_str}\n\n"
             "【写作硬性要求】\n"
-            "1. title_zh：**必须**把英文标题翻成中文，不超过 40 字。只有**化学式/材料符号/缩写**"
-            "（如 BaTiO3、MoS2、GaN/AlN、DFT、GNN、MBQC）可原样保留，其他英文词一律译成中文。"
-            "**禁止**把 title_zh 填成英文原标题或英文多数词；若检测到输出的 title_zh 里中文字符占比 < 50%，视为违反要求。\n"
+            "1. title_zh：**必须**把英文标题翻成中文，不超过 40 字。只有**化学式/专有名词/缩写**"
+            "（如 qubit、surface code、DMRG、VQE、QAOA）可原样保留，其他英文词一律译成中文。"
+            "**禁止**把 title_zh 填成英文原标题；若检测到输出的 title_zh 里中文字符占比 < 50%，视为违反要求。\n"
             "2. abstract_zh：用中文把摘要压缩成 ≤120 字的研究要点，必须写出：体系/方法/关键数值或结论，至少一项。"
-            "禁止任何套话：'本研究/取得进展/具有重要意义/为…提供新思路/点击查看' 等一律不允许。\n"
+            "禁止任何套话：'本研究/取得进展/具有重要意义/为…提供新思路' 等一律不允许。\n"
             "3. one_sentence_summary：一句话 ≤40 字，只写最有信息量的那一点（创新点或最强结论），不得空泛。\n"
-            "4. 全部用中文；不输出链接（程序按序号自动补全）；不得编造原文没有的数据。\n"
+            "4. 全部用中文；不输出链接；不得编造原文没有的数据。\n"
             "5. summaries 必须覆盖所有输入序号，index 严格一致。\n"
-            "6. highlights：仅挑选 ≤3 篇**真正**最突出的工作（创新点、方法论或关键结论）。"
-            "reason ≤25 字，必须落到具体材料/现象/方法，不得写 '重要进展/意义重大' 之流。\n\n"
+            "6. highlights：仅挑选 ≤3 篇**真正**最突出的工作。"
+            "reason ≤25 字，必须落到具体方法/现象/结论，不得写 '重要进展/意义重大' 之流。\n\n"
             f"{example_block}\n"
             "【输出格式】只输出以下 JSON，不要任何额外文字、不要 markdown 代码块标记：\n"
             "{\n"
@@ -668,7 +614,6 @@ class AISummarizer:
     def _build_missing_summaries_prompt(self, original_articles: List[Dict], missing_indices: List[int], date: str) -> str:
         articles_text = []
         for idx in missing_indices:
-            # 边界检查：防止索引越界
             if idx < 1 or idx > len(original_articles):
                 print(f"⚠️ 跳过无效索引 {idx} (有效范围: 1-{len(original_articles)})")
                 continue
@@ -686,7 +631,7 @@ class AISummarizer:
             )
 
         articles_str = "\n".join(articles_text)
-        return f"""你是一位专业的计算材料科学文献分析助手。请只补全以下 {date} 缺失的文献条目。
+        return f"""你是一位专业的量子信息/量子多体/量子计量文献分析助手。请只补全以下 {date} 缺失的文献条目。
 
 文献列表:
 {articles_str}
@@ -727,11 +672,9 @@ class AISummarizer:
         start = value.find("{")
         if start < 0:
             raise ValueError("No JSON object found in model response")
-
         depth = 0
         in_string = False
         escape = False
-
         for idx in range(start, len(value)):
             ch = value[idx]
             if in_string:
@@ -742,7 +685,6 @@ class AISummarizer:
                 elif ch == '"':
                     in_string = False
                 continue
-
             if ch == '"':
                 in_string = True
             elif ch == "{":
@@ -751,7 +693,6 @@ class AISummarizer:
                 depth -= 1
                 if depth == 0:
                     return value[start:idx + 1]
-
         return value[start:].strip()
 
     @classmethod
@@ -763,7 +704,6 @@ class AISummarizer:
             candidates.append(cls._extract_json_object(stripped))
         except Exception:
             pass
-
         normalized_candidates: List[str] = []
         seen = set()
         for candidate in candidates:
@@ -779,10 +719,10 @@ class AISummarizer:
         return (
             (raw or "")
             .replace("\ufeff", "")
-            .replace("“", '"')
-            .replace("”", '"')
-            .replace("‘", "'")
-            .replace("’", "'")
+            .replace("\u201c", '"')
+            .replace("\u201d", '"')
+            .replace("\u2018", "'")
+            .replace("\u2019", "'")
         )
 
     @classmethod
@@ -798,20 +738,17 @@ class AISummarizer:
                     return json.loads(attempt_text)
                 except Exception as exc:
                     last_error = exc
-
             if repair_json is not None:
                 try:
                     return repair_json(candidate, return_objects=True)
                 except Exception as exc:
                     last_error = exc
-
         raise ValueError(f"{context}: failed to parse model JSON ({last_error})")
 
     @staticmethod
     def _summary_fields_missing(item: Optional[Dict[str, Any]]) -> bool:
         if not isinstance(item, dict):
             return True
-        # 检查关键字段：中文标题、摘要翻译、一句话总结
         has_title_zh = bool(str(item.get("title_zh") or "").strip())
         has_abstract_zh = bool(str(item.get("abstract_zh") or "").strip())
         has_summary = bool(str(item.get("one_sentence_summary") or "").strip())
@@ -830,13 +767,9 @@ class AISummarizer:
         ]
         if not missing_indices:
             return summaries_map
-
         preview = missing_indices[:15]
         more = "" if len(missing_indices) <= 15 else f" ...+{len(missing_indices) - 15}"
-        print(
-            f"⚠️ AI summaries incomplete for {len(missing_indices)} article(s) "
-            f"(indices: {preview}{more}); requesting targeted refill"
-        )
+        print(f"⚠️ AI summaries incomplete for {len(missing_indices)} article(s) (indices: {preview}{more}); requesting targeted refill")
         try:
             prompt = self._build_missing_summaries_prompt(original_articles, missing_indices, date)
             response = self.provider.call_api(prompt)
@@ -860,15 +793,11 @@ class AISummarizer:
         return summaries_map
 
     def _parse_response(self, response: str, original_articles: List[Dict], date: str) -> Dict:
-        """解析响应并与原始文章精准合并链接"""
         try:
             data = self._load_json_lenient(response, context="daily summary")
             if not isinstance(data, dict):
                 raise ValueError("Invalid JSON response: root is not an object")
-            
-            # 建立序号到原始文章的映射 (1-based index)
-            # original_articles 是按顺序传入的
-            
+
             full_list = []
             summaries_map = {}
             for item in data.get("summaries", []) or []:
@@ -890,7 +819,7 @@ class AISummarizer:
                 raw_title_zh = ai_info.get('title_zh') or article.get('title_zh') or ""
                 if _looks_untranslated_title(raw_title_zh, article.get('title') or ""):
                     untranslated_title_count += 1
-                    raw_title_zh = ""  # blank → renderer falls back to English once
+                    raw_title_zh = ""
                 title_zh = _clamp_text(raw_title_zh, 80)
                 abstract_zh_raw = ai_info.get('abstract_zh') or ""
                 abstract_zh = _clamp_text(abstract_zh_raw, 240)
@@ -906,11 +835,9 @@ class AISummarizer:
                     )
                 ):
                     truncated_count += 1
-                # lazy import to avoid circular deps at module top
                 from focus_core import is_core_focus as _icf, core_score as _cs
                 full_list.append({
                     "title_en": article.get('title'),
-                    # Empty-on-failure (front-end shows "—"), never leak "标题翻译失败" style placeholders.
                     "title_zh": title_zh,
                     "abstract_zh": abstract_zh,
                     "summary": one_sentence,
@@ -927,13 +854,10 @@ class AISummarizer:
             if truncated_count:
                 print(f"ℹ️ _parse_response: clamped {truncated_count} over-long field(s)")
             if missing_summary_count:
-                print(f"⚠️ _parse_response: {missing_summary_count}/{len(original_articles)} 文章 AI 总结为空（将显示 '—'）")
+                print(f"⚠️ _parse_response: {missing_summary_count}/{len(original_articles)} 文章 AI 总结为空")
             if untranslated_title_count:
-                print(
-                    f"⚠️ _parse_response: {untranslated_title_count}/{len(original_articles)} 条 title_zh 未翻译（已清空，将回退显示英文原标题）"
-                )
-            
-            # 处理 highlights
+                print(f"⚠️ _parse_response: {untranslated_title_count}/{len(original_articles)} 条 title_zh 未翻译")
+
             ml_highlights = []
             ferro_highlights = []
             seen_highlight_idx: set = set()
@@ -962,10 +886,11 @@ class AISummarizer:
                         "source_url": art.get("source_url", ""),
                         "arxiv_category": art.get("arxiv_category", ""),
                     }
-                    # 简单分类（也可以让 AI 返回分类）
-                    if self._is_ml_related(art): ml_highlights.append(h_item)
-                    elif self._is_ferro_related(art): ferro_highlights.append(h_item)
-            
+                    if self._is_ml_related(art):
+                        ml_highlights.append(h_item)
+                    elif self._is_ferro_related(art):
+                        ferro_highlights.append(h_item)
+
             return {
                 'date': date,
                 'total': len(original_articles),
@@ -977,28 +902,28 @@ class AISummarizer:
                 'generated_by': self.provider_name
             }
         except Exception as e:
-            print(f"解析响应并映射链接失败: {e}")
+            print(f"解析响应失败: {e}")
             raise
 
     def _is_ml_related(self, article: Dict) -> bool:
         text = (article.get('title', '') + article.get('abstract', '')).lower()
-        return any(kw in text for kw in ['machine learn', 'deep learn', 'neural network', 'gnn', 'mlip', 'ml potential'])
+        return any(kw in text for kw in [
+            'quantum error', 'quantum circuit', 'quantum algorithm',
+            'fault tolerant', 'qubit', 'quantum information', 'quantum computing',
+        ])
 
     def _is_ferro_related(self, article: Dict) -> bool:
         text = (article.get('title', '') + article.get('abstract', '')).lower()
-        return any(kw in text for kw in ['ferroelectric', 'ferromagnet', 'multiferroic', 'piezoelectric', 'antiferromagnet'])
+        return any(kw in text for kw in [
+            'quantum many-body', 'many-body', 'topological',
+            'tensor network', 'quantum metrology', 'quantum sensing',
+        ])
 
     def generate_core_deep_fields(
         self,
         core_items: List[Dict],
         date: str,
     ) -> Tuple[Dict[str, Dict[str, str]], str]:
-        """对核心关注论文批量生成 3 深度字段 + 方向点评。
-
-        Returns: (deep_fields_by_link, direction_note)
-          deep_fields_by_link: {link: {method_point, related_work, implication}}
-          direction_note: 3-4 句中文段落，失败时返回空串
-        """
         if not core_items:
             return {}, ""
 
@@ -1014,17 +939,17 @@ class AISummarizer:
         articles_str = "\n".join(lines)
 
         prompt = (
-            f"你是深耕 ML × 铁电/磁性/凝聚态方向的资深研究员。以下是 {date} 当日的 "
-            f"{len(core_items)} 篇核心关注论文（均已判定为 ML × ferro/凝聚态方向）。\n\n"
+            f"你是深耕量子信息/量子多体/量子计量方向的资深研究员。以下是 {date} 当日的 "
+            f"{len(core_items)} 篇核心关注论文（均已判定为量子信息/多体/计量方向）。\n\n"
             f"【文献列表】\n{articles_str}\n\n"
             "请给出两部分输出：\n"
-            "A. direction_note（3-4 句中文）：概括本日 ML × ferro/凝聚态方向的**实质进展**，"
-            "必须点名具体材料（如 NbOI2、CrI3、CrSBr、BaTiO3）与具体方法（如 equivariant GNN、"
-            "MACE、NEP、DFT+U），禁止 '整体来看 / 值得关注 / 有望 / 为…提供新思路' 之类套话。\n"
+            "A. direction_note（3-4 句中文）：概括本日量子信息/多体/计量方向的**实质进展**，"
+            "必须点名具体方法/体系（如 surface code、tensor network、quantum Fisher information、"
+            "trapped ion、superconducting qubit），禁止 '整体来看 / 值得关注 / 有望 / 为…提供新思路' 之类套话。\n"
             "B. items：对每篇文章输出三条线索（全中文、信息密度高）：\n"
             "   1) method_point（≤60 字）：核心技术/方法/模型，一针见血；\n"
             "   2) related_work（≤70 字）：与哪些已知方法/体系/方向呼应，只写方向名不编造文献；\n"
-            "   3) implication（≤70 字）：对 ML × ferro/凝聚态研究者的具体启发。\n\n"
+            "   3) implication（≤70 字）：对量子信息/多体/计量研究者的具体启发。\n\n"
             "【输出格式】只输出 JSON，无 markdown、无额外文字：\n"
             "{\n"
             '  "direction_note": "...",\n'
@@ -1106,12 +1031,6 @@ def generate_daily_summary(
     api_key: str,
     model: str = None,
 ) -> Dict:
-    """
-    Backward-compatible wrapper for legacy callers (e.g. `main.py`).
-
-    Note: this function only returns the JSON summary. Rendering HTML pages is handled by
-    `generate_daily_pages.py` in the current GitHub Pages pipeline.
-    """
     day_articles = [a for a in articles if (a.get("pub_date") or "").startswith(date)]
     summarizer = AISummarizer(api_provider, api_key, model=model)
     return summarizer.generate_daily_summary(day_articles, date)
