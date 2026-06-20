@@ -669,3 +669,368 @@ class AISummarizer:
     @classmethod
     def _extract_json_object(cls, text: str) -> str:
         value = cls._strip_code_fence(text)
+        start = value.find("{")
+        if start < 0:
+            raise ValueError("No JSON object found in model response")
+        depth = 0
+        in_string = False
+        escape = False
+        for idx in range(start, len(value)):
+            ch = value[idx]
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+            if ch == '"':
+                in_string = True
+            elif ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    return value[start:idx + 1]
+        return value[start:].strip()
+
+    @classmethod
+    def _candidate_json_strings(cls, response: str) -> List[str]:
+        raw = response or ""
+        stripped = raw.strip()
+        candidates = [raw, stripped, cls._strip_code_fence(stripped)]
+        try:
+            candidates.append(cls._extract_json_object(stripped))
+        except Exception:
+            pass
+        normalized_candidates: List[str] = []
+        seen = set()
+        for candidate in candidates:
+            candidate = (candidate or "").strip()
+            if not candidate or candidate in seen:
+                continue
+            normalized_candidates.append(candidate)
+            seen.add(candidate)
+        return normalized_candidates
+
+    @staticmethod
+    def _normalize_json_string(raw: str) -> str:
+        return (
+            (raw or "")
+            .replace("\ufeff", "")
+            .replace("\u201c", '"')
+            .replace("\u201d", '"')
+            .replace("\u2018", "'")
+            .replace("\u2019", "'")
+        )
+
+    @classmethod
+    def _load_json_lenient(cls, response: str, *, context: str = "response") -> Any:
+        last_error: Optional[Exception] = None
+        for candidate in cls._candidate_json_strings(response):
+            for attempt_text in (
+                candidate,
+                cls._normalize_json_string(candidate),
+                re.sub(r",\s*([}\]])", r"\1", cls._normalize_json_string(candidate)),
+            ):
+                try:
+                    return json.loads(attempt_text)
+                except Exception as exc:
+                    last_error = exc
+            if repair_json is not None:
+                try:
+                    return repair_json(candidate, return_objects=True)
+                except Exception as exc:
+                    last_error = exc
+        raise ValueError(f"{context}: failed to parse model JSON ({last_error})")
+
+    @staticmethod
+    def _summary_fields_missing(item: Optional[Dict[str, Any]]) -> bool:
+        if not isinstance(item, dict):
+            return True
+        has_title_zh = bool(str(item.get("title_zh") or "").strip())
+        has_abstract_zh = bool(str(item.get("abstract_zh") or "").strip())
+        has_summary = bool(str(item.get("one_sentence_summary") or "").strip())
+        return not (has_title_zh and has_abstract_zh and has_summary)
+
+    def _fill_missing_summaries(
+        self,
+        summaries_map: Dict[int, Dict[str, Any]],
+        original_articles: List[Dict],
+        date: str,
+    ) -> Dict[int, Dict[str, Any]]:
+        missing_indices = [
+            idx
+            for idx in range(1, len(original_articles) + 1)
+            if self._summary_fields_missing(summaries_map.get(idx))
+        ]
+        if not missing_indices:
+            return summaries_map
+        preview = missing_indices[:15]
+        more = "" if len(missing_indices) <= 15 else f" ...+{len(missing_indices) - 15}"
+        print(f"⚠️ AI summaries incomplete for {len(missing_indices)} article(s) (indices: {preview}{more}); requesting targeted refill")
+        try:
+            prompt = self._build_missing_summaries_prompt(original_articles, missing_indices, date)
+            response = self.provider.call_api(prompt)
+            data = self._load_json_lenient(response, context="missing summaries")
+            if not isinstance(data, dict):
+                return summaries_map
+            for item in data.get("summaries", []) or []:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    idx = int(item.get("index"))
+                except Exception:
+                    continue
+                if idx not in missing_indices:
+                    continue
+                current = dict(summaries_map.get(idx) or {})
+                current.update(item)
+                summaries_map[idx] = current
+        except Exception as exc:
+            print(f"⚠️ Failed to refill missing summaries: {exc}")
+        return summaries_map
+
+    def _parse_response(self, response: str, original_articles: List[Dict], date: str) -> Dict:
+        try:
+            data = self._load_json_lenient(response, context="daily summary")
+            if not isinstance(data, dict):
+                raise ValueError("Invalid JSON response: root is not an object")
+
+            full_list = []
+            summaries_map = {}
+            for item in data.get("summaries", []) or []:
+                if not isinstance(item, dict):
+                    continue
+                try:
+                    idx = int(item.get("index"))
+                except Exception:
+                    continue
+                summaries_map[idx] = item
+
+            summaries_map = self._fill_missing_summaries(summaries_map, original_articles, date)
+
+            truncated_count = 0
+            missing_summary_count = 0
+            untranslated_title_count = 0
+            for i, article in enumerate(original_articles, 1):
+                ai_info = summaries_map.get(i, {})
+                raw_title_zh = ai_info.get('title_zh') or article.get('title_zh') or ""
+                if _looks_untranslated_title(raw_title_zh, article.get('title') or ""):
+                    untranslated_title_count += 1
+                    raw_title_zh = ""
+                title_zh = _clamp_text(raw_title_zh, 80)
+                abstract_zh_raw = ai_info.get('abstract_zh') or ""
+                abstract_zh = _clamp_text(abstract_zh_raw, 240)
+                one_sentence = _clamp_text(ai_info.get('one_sentence_summary') or "", 80)
+                if not (title_zh or abstract_zh or one_sentence):
+                    missing_summary_count += 1
+                if any(
+                    len(x or "") < len(raw or "")
+                    for x, raw in (
+                        (title_zh, ai_info.get('title_zh') or article.get('title_zh') or ""),
+                        (abstract_zh, abstract_zh_raw),
+                        (one_sentence, ai_info.get('one_sentence_summary') or ""),
+                    )
+                ):
+                    truncated_count += 1
+                from focus_core import is_core_focus as _icf, core_score as _cs
+                full_list.append({
+                    "title_en": article.get('title'),
+                    "title_zh": title_zh,
+                    "abstract_zh": abstract_zh,
+                    "summary": one_sentence,
+                    "link": article.get('link'),
+                    "journal": article.get("journal", ""),
+                    "authors": article.get("authors", []),
+                    "pub_date": article.get("pub_date", ""),
+                    "ai_score": article.get("ai_score"),
+                    "source_url": article.get("source_url", ""),
+                    "arxiv_category": article.get("arxiv_category", ""),
+                    "is_core_focus": _icf(article),
+                    "core_score": _cs(article),
+                })
+            if truncated_count:
+                print(f"ℹ️ _parse_response: clamped {truncated_count} over-long field(s)")
+            if missing_summary_count:
+                print(f"⚠️ _parse_response: {missing_summary_count}/{len(original_articles)} 文章 AI 总结为空")
+            if untranslated_title_count:
+                print(f"⚠️ _parse_response: {untranslated_title_count}/{len(original_articles)} 条 title_zh 未翻译")
+
+            ml_highlights = []
+            ferro_highlights = []
+            seen_highlight_idx: set = set()
+            for h in data.get('highlights', []) or []:
+                try:
+                    idx = int(h.get('index'))
+                except Exception:
+                    continue
+                if idx in seen_highlight_idx:
+                    continue
+                seen_highlight_idx.add(idx)
+                if idx and 1 <= idx <= len(original_articles):
+                    art = original_articles[idx-1]
+                    info = summaries_map.get(idx, {})
+                    h_item = {
+                        "title_en": art.get('title'),
+                        "title_zh": _clamp_text(info.get('title_zh') or "", 80),
+                        "abstract_zh": _clamp_text(info.get('abstract_zh') or "", 240),
+                        "link": art.get('link'),
+                        "summary": _clamp_text(info.get('one_sentence_summary') or "", 80),
+                        "reason": _clamp_text(h.get('reason') or "", 50),
+                        "journal": art.get("journal", ""),
+                        "authors": art.get("authors", []),
+                        "pub_date": art.get("pub_date", ""),
+                        "ai_score": art.get("ai_score"),
+                        "source_url": art.get("source_url", ""),
+                        "arxiv_category": art.get("arxiv_category", ""),
+                    }
+                    if self._is_ml_related(art):
+                        ml_highlights.append(h_item)
+                    elif self._is_ferro_related(art):
+                        ferro_highlights.append(h_item)
+
+            return {
+                'date': date,
+                'total': len(original_articles),
+                'overview': data.get('overview', ''),
+                'trends': data.get('trends', ''),
+                'full_list': full_list,
+                'ml_highlights': ml_highlights,
+                'ferro_highlights': ferro_highlights,
+                'generated_by': self.provider_name
+            }
+        except Exception as e:
+            print(f"解析响应失败: {e}")
+            raise
+
+    def _is_ml_related(self, article: Dict) -> bool:
+        text = (article.get('title', '') + article.get('abstract', '')).lower()
+        return any(kw in text for kw in [
+            'quantum error', 'quantum circuit', 'quantum algorithm',
+            'fault tolerant', 'qubit', 'quantum information', 'quantum computing',
+        ])
+
+    def _is_ferro_related(self, article: Dict) -> bool:
+        text = (article.get('title', '') + article.get('abstract', '')).lower()
+        return any(kw in text for kw in [
+            'quantum many-body', 'many-body', 'topological',
+            'tensor network', 'quantum metrology', 'quantum sensing',
+        ])
+
+    def generate_core_deep_fields(
+        self,
+        core_items: List[Dict],
+        date: str,
+    ) -> Tuple[Dict[str, Dict[str, str]], str]:
+        if not core_items:
+            return {}, ""
+
+        lines = []
+        for i, it in enumerate(core_items, 1):
+            title = it.get('title_en') or it.get('title') or ''
+            title_zh = it.get('title_zh') or ''
+            abstract = (it.get('abstract_zh') or it.get('abstract') or '')[:400]
+            journal = it.get('journal', '')
+            lines.append(
+                f"[{i}] 中文标题: {title_zh}\n    EN: {title}\n    期刊: {journal}\n    摘要: {abstract}"
+            )
+        articles_str = "\n".join(lines)
+
+        prompt = (
+            f"你是深耕量子信息/量子多体/量子计量方向的资深研究员。以下是 {date} 当日的 "
+            f"{len(core_items)} 篇核心关注论文（均已判定为量子信息/多体/计量方向）。\n\n"
+            f"【文献列表】\n{articles_str}\n\n"
+            "请给出两部分输出：\n"
+            "A. direction_note（3-4 句中文）：概括本日量子信息/多体/计量方向的**实质进展**，"
+            "必须点名具体方法/体系（如 surface code、tensor network、quantum Fisher information、"
+            "trapped ion、superconducting qubit），禁止 '整体来看 / 值得关注 / 有望 / 为…提供新思路' 之类套话。\n"
+            "B. items：对每篇文章输出三条线索（全中文、信息密度高）：\n"
+            "   1) method_point（≤60 字）：核心技术/方法/模型，一针见血；\n"
+            "   2) related_work（≤70 字）：与哪些已知方法/体系/方向呼应，只写方向名不编造文献；\n"
+            "   3) implication（≤70 字）：对量子信息/多体/计量研究者的具体启发。\n\n"
+            "【输出格式】只输出 JSON，无 markdown、无额外文字：\n"
+            "{\n"
+            '  "direction_note": "...",\n'
+            '  "items": [\n'
+            '    {"index": 1, "method_point": "...", "related_work": "...", "implication": "..."},\n'
+            "    ...\n"
+            "  ]\n"
+            "}\n"
+        )
+
+        try:
+            response = self.provider.call_api(prompt)
+            data = self._load_json_lenient(response, context="core deep fields")
+        except Exception as e:
+            print(f"⚠️ generate_core_deep_fields failed: {e}")
+            return {}, ""
+
+        if not isinstance(data, dict):
+            return {}, ""
+
+        def _clamp(s, n):
+            s = (s or "").strip()
+            return s if len(s) <= n else s[: n - 1].rstrip() + "…"
+
+        deep_fields: Dict[str, Dict[str, str]] = {}
+        for entry in data.get("items", []) or []:
+            if not isinstance(entry, dict):
+                continue
+            try:
+                idx = int(entry.get("index"))
+            except Exception:
+                continue
+            if not (1 <= idx <= len(core_items)):
+                continue
+            link = core_items[idx - 1].get("link") or ""
+            if not link:
+                continue
+            deep_fields[link] = {
+                "method_point": _clamp(entry.get("method_point", ""), 80),
+                "related_work": _clamp(entry.get("related_work", ""), 100),
+                "implication": _clamp(entry.get("implication", ""), 100),
+            }
+
+        direction_note = _clamp(data.get("direction_note", ""), 400)
+        return deep_fields, direction_note
+
+    def fallback_summary(self, articles: List[Dict], date: str) -> Dict:
+        data = {
+            'date': date,
+            'total': len(articles),
+            'overview': f"今日共收录{len(articles)}篇文献。",
+            'trends': "",
+            'full_list': [
+                {
+                    "title_en": a.get('title'),
+                    "title_zh": a.get('title_zh') or "",
+                    "abstract_zh": "",
+                    "summary": "",
+                    "link": a.get('link'),
+                    "journal": a.get("journal", ""),
+                    "authors": a.get("authors", []),
+                    "pub_date": a.get("pub_date", ""),
+                    "ai_score": a.get("ai_score"),
+                    "source_url": a.get("source_url", ""),
+                    "arxiv_category": a.get("arxiv_category", ""),
+                } for a in articles
+            ],
+            'generated_by': 'fallback'
+        }
+        data["summaries"] = data.get("full_list", [])
+        return data
+
+
+def generate_daily_summary(
+    articles: List[Dict],
+    *,
+    date: str,
+    api_provider: str,
+    api_key: str,
+    model: str = None,
+) -> Dict:
+    day_articles = [a for a in articles if (a.get("pub_date") or "").startswith(date)]
+    summarizer = AISummarizer(api_provider, api_key, model=model)
+    return summarizer.generate_daily_summary(day_articles, date)
